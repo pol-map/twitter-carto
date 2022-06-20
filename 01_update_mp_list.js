@@ -3,6 +3,12 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 
+const now = new Date()
+const year = now.getFullYear()
+const month = (1+now.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+const datem = (now.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+const thisFolder = `data/${year}/${month}/${datem}`
+
 // Logger
 // Inspiration: https://blog.appsignal.com/2021/09/01/best-practices-for-logging-in-nodejs.html
 const logLevels = {
@@ -14,13 +20,20 @@ const logLevels = {
   trace: 5,
 };
 
+const logLevel = "trace"
+
 const logger = createLogger({
-	level: "trace",
+	level: logLevel,
   levels: logLevels,
   format: format.combine(format.timestamp(), format.json()),
-  transports: [new transports.Console(), new transports.File({ filename: "data/test.log" })],
+  transports: [
+  	new transports.Console(),
+  	new transports.File({ filename: `${thisFolder}/01_update_mp.log` })
+  ],
 });
 
+console.log("Log level is", logLevel)
+logger.info('Log level is '+logLevel);
 
 /**
  * Downloads file from remote HTTP[S] host and puts its contents to the
@@ -65,7 +78,7 @@ async function download(url, filePath) {
 }
 
 const sourceFileURL = "https://nosdeputes.fr/deputes/enmandat/csv"
-const sourceFileSave = "data/test.csv"
+const sourceFileSave = `${thisFolder}/nosdeputes_source.csv`
 
 logger
 	.child({ context: {sourceFileURL, sourceFileSave} })
@@ -73,14 +86,14 @@ logger
 
 download(sourceFileURL, sourceFileSave)
 	.then(
-		function(result) {
+		result => {
 			logger
 				.child({ context: {sourceFileURL, sourceFileSave} })
 				.info('Source file downloaded');
 
 			console.log("Done.")
 		},
-  	function(error) {
+  	error => {
 			logger
 				.child({ context: {sourceFileURL, sourceFileSave, error} })
 				.error('Failed to download source file');
