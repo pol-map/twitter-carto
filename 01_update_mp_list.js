@@ -2,6 +2,7 @@ const { createLogger, format, transports } = require("winston");
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
+const d3 = require('d3');
 
 const now = new Date()
 const year = now.getFullYear()
@@ -91,6 +92,46 @@ download(sourceFileURL, sourceFileSave)
 				.child({ context: {sourceFileURL, sourceFileSave} })
 				.info('Source file downloaded');
 
+			// Process source into a simpler file format
+			const cleanFileSave = `${thisFolder}/twitter_handles.csv`
+			logger
+				.child({ context: {sourceFileSave, cleanFileSave} })
+				.debug('Clean source file and save list of handles');
+			try {
+				// Load file as string
+				const csvString = fs.readFileSync(sourceFileSave, "utf8")
+				// Parse string and filter data
+				const cleanData = d3.dsvFormat(";").parse(csvString, (d) => {
+				  return {
+				    handle: d.twitter,
+				    name: d.nom,
+				    group: d.groupe_sigle,
+				    group_long: d.parti_ratt_financier
+				  };
+				});
+				logger
+					.child({ context: {sourceFileSave} })
+					.info('Source file parsed');
+				// Format filtered data as a string
+				const outputCsvString = d3.csvFormat(cleanData.filter(d => d.handle.length>0))
+				// Write clean file
+				fs.writeFile(cleanFileSave, outputCsvString, error => {
+				  if (error) {
+						logger
+							.child({ context: {cleanFileSave, error} })
+							.error('The clean file could not be saved');
+				  } else {
+					  logger
+							.child({ context: {cleanFileSave} })
+							.info('Clean file saved successfully');	  	
+				  }
+				});
+			} catch (error) {
+				logger
+					.child({ context: {sourceFileSave, cleanFileSave, error} })
+					.error('The source file could not be parsed and saved');
+			}
+
 			console.log("Done.")
 		},
   	error => {
@@ -101,3 +142,5 @@ download(sourceFileURL, sourceFileSave)
 			console.log("Done (failed).")
   	}
 	)
+
+
