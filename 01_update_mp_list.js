@@ -1,8 +1,8 @@
-const { createLogger, format, transports } = require("winston");
-const https = require('https');
-const http = require('http');
-const fs = require('fs');
-const d3 = require('d3');
+import { createLogger, format, transports } from "winston";
+import * as https from "https";
+import * as http from "http";
+import * as fs from "fs";
+import * as d3 from 'd3';
 
 const now = new Date()
 const year = now.getFullYear()
