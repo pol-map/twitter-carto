@@ -1,0 +1,36 @@
+{
+  "name": "twitter-carto",
+  "version": "0.0.0",
+  "description": "Mapping Twitter landscapes with networks",
+  "dependencies": {
+    "canvas": "^2.8.0",
+    "csv-parser": "^3.0.0",
+    "d3": "^6.7.0",
+    "d3-contour": "^2.0.0",
+    "dom-parser": "^0.1.6",
+    "fs": "0.0.1-security",
+    "graphology": "^0.19.3",
+    "graphology-gexf": "^0.10.1",
+    "jsdom": "^16.5.3",
+    "sharp": "^0.30.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacomyma/twitter-carto.git"
+  },
+  "keywords": [
+    "graph",
+    "twitter",
+    "network",
+    "network map"
+  ],
+  "author": "Mathieu Jacomy",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/jacomyma/twitter-carto/issues"
+  },
+  "homepage": "https://github.com/jacomyma/twitter-carto#readme"
+}
