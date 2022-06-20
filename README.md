@@ -8,5 +8,5 @@ npm install
 ```
 
 # Config
-Duplicate and rename ```config_default.json``` into ```config.json``` and edit it to inform your own settings (API keys...)
+Duplicate and rename ```default.env``` into ```.env``` and edit it to inform your own settings (API keys...)
 

@@ -4,6 +4,9 @@ import * as http from "http";
 import * as fs from "fs";
 import * as d3 from 'd3';
 import { Client } from "twitter-api-sdk";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const now = new Date()
 const year = now.getFullYear()
@@ -40,3 +43,24 @@ logger.info('Log level is '+logLevel);
 console.log("Hello world")
 const client = new Client("MY-BEARER-TOKEN");
 
+// async function main() {
+//   const client = new Client(process.env.BEARER_TOKEN as string);
+//   await client.tweets.addOrDeleteRules(
+//     {
+//       add: [
+//         { value: "cat has:media", tag: "cats with media" },
+//         { value: "cat has:media -grumpy", tag: "happy cats with media" },
+//         { value: "meme", tag: "funny things" },
+//         { value: "meme has:images" },
+//       ],
+//     }
+//   );
+//   const rules = await client.tweets.getRules();
+//   console.log(rules);
+//   const stream = client.tweets.searchStream({
+//     "tweet.fields": ["author_id", "geo"],
+//   });
+//   for await (const tweet of stream) {
+//     console.log(tweet.data?.author_id);
+//   }
+// }

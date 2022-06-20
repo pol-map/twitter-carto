@@ -1,6 +1,6 @@
 node_modules/
 data/*
-config.json
+.env
 
 # Windows image file caches
 Thumbs.db
