@@ -9,6 +9,7 @@
     "d3": "^6.7.0",
     "d3-contour": "^2.0.0",
     "dom-parser": "^0.1.6",
+    "dotenv": "^16.0.1",
     "fs": "0.0.1-security",
     "graphology": "^0.19.3",
     "graphology-gexf": "^0.10.1",

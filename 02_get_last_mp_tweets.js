@@ -41,10 +41,9 @@ console.log("Log level is", logLevel)
 logger.info('Log level is '+logLevel);
 
 console.log("Hello world")
-const client = new Client("MY-BEARER-TOKEN");
 
-// async function main() {
-//   const client = new Client(process.env.BEARER_TOKEN as string);
+async function main() {
+  const client = new Client(process.env.BEARER_TOKEN);
 //   await client.tweets.addOrDeleteRules(
 //     {
 //       add: [
@@ -63,4 +62,6 @@ const client = new Client("MY-BEARER-TOKEN");
 //   for await (const tweet of stream) {
 //     console.log(tweet.data?.author_id);
 //   }
-// }
+}
+
+main();
