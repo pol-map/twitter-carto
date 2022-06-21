@@ -46,7 +46,7 @@ const handlesFile = `${thisFolder}/twitter_handles.csv`
 
 async function main() {
 	let handleList = loadHandles(handlesFile)
-	handleList = handleList.slice(0, 20); // TODO: REMOVE ME
+	handleList = handleList.slice(0, 5); // TODO: REMOVE ME
 
 	// Check that the handles are valid (else, the Twitter API will reject them)
 	const handleRegex = /^[A-Za-z0-9_]{1,15}$/
@@ -108,10 +108,29 @@ async function main() {
 		  }
 		});
 
-	  // For each mp, load yesterday's tweets (max 100)	
-	  users.forEach(d => {
-	  	const id = d.id
-	  })	
+	  // For each mp, load yesterday's tweets
+	  for (let i in users) {
+	  	const id = users[i].id
+	  	const tweetData = await getYesterdaysTweets(id)
+	  	// Save data as CSV
+	  	const tweetsDir = `${thisFolder}/tweets`
+	  	if (!fs.existsSync(tweetsDir)){
+			  fs.mkdirSync(tweetsDir);
+			}
+	  	const tweetsFile = `${tweetsDir}/${id}.json`
+			const tweetsString = JSON.stringify(tweetData)
+			fs.writeFile(tweetsFile, tweetsString, error => {
+			  if (error) {
+					logger
+						.child({ context: {id, tweetsFile, error} })
+						.error(`The tweets file for user ${id} could not be saved`);
+			  } else {
+				  logger
+						.child({ context: {id, tweetsFile} })
+						.debug('Tweets file saved successfully');	  	
+			  }
+			});
+	  }
 	} else {
 		logger
 			.child({ context: {handleList} })
@@ -178,7 +197,7 @@ async function retrieveUserIds(handleList) {
 		    logger
 		  		.child({ context: {batchNumber, handlesRetrieved: usernamesLookup.data.length} })
 					.info('Batch of handles retrieved');
-					result = result.concat(usernamesLookup.data)
+				result = result.concat(usernamesLookup.data)
 			} else {
 	  		logger
 	    		.child({ context: {batchNumber} })
@@ -202,37 +221,64 @@ async function retrieveUserIds(handleList) {
 }
 
 async function getYesterdaysTweets(id) {
-	// Get id from handle
+	let yesterday = new Date(now.getTime());
+	yesterday.setDate(now.getDate() - 1);
+	const yyear = yesterday.getFullYear()
+	const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+	const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 
-	// TODO
-	// try {
- //    const usersTweets = await twitterClient.tweets.usersIdTweets(
- //      //The ID of the User to list Tweets of
- //      2244994945,
- //      {
- //        //A comma separated list of fields to expand
- //        expansions: ["author_id"],
+	const settings = {
+    //A comma separated list of Tweet fields to display
+    "tweet.fields": [
+      "created_at",
+      "author_id",
+      "conversation_id",
+      "in_reply_to_user_id",
+      "referenced_tweets",
+      "attachments",
+      "entities",
+      "withheld",
+      "public_metrics",
+      "possibly_sensitive",
+      "lang",
+      "reply_settings",
+    ],
 
- //        //A comma separated list of Tweet fields to display
- //        "tweet.fields": [
- //          "created_at",
- //          "author_id",
- //          "conversation_id",
- //          "public_metrics",
- //          "context_annotations",
- //        ],
+    start_time: `${yyear}-${ymonth}-${ydatem}T00:00:00Z`,
+    end_time: `${year}-${month}-${datem}T00:00:00Z`,
 
- //        //A comma separated list of User fields to display
- //        "user.fields": ["username"],
-
- //        //The maximum number of results
- //        max_results: 5,
- //      }
- //    );
- //    console.dir(usersTweets, {
- //      depth: null,
- //    });
- //  } catch (error) {
- //    console.log(error);
- //  }
+    //The maximum number of results
+    "max_results": 100,
+  }
+	try {
+    const usersTweets = await twitterClient.tweets.usersIdTweets(
+      //The ID of the User to list Tweets of
+      id,
+      settings
+    );
+    if (usersTweets.errors) {
+	    logger
+	  		.child({ context: {id} })
+				.warn(`Errors returned for ${usersTweets.errors.length} tweets that we retrieved for user ${id}`);    	
+    }
+    if (usersTweets.data) {
+	    logger
+	  		.child({ context: {id} })
+				.info(`${usersTweets.data.length} tweets retrieved for user ${id}`);    	
+    } else {
+	    logger
+	  		.child({ context: {id} })
+				.info(`No tweets retrieved for user ${id}`);
+    }
+    logger
+  		.child({ context: {id, settings, usersTweets} })
+			.debug('Tweets retrieved');
+    return usersTweets || {}
+  } catch (error) {
+    console.log("Error", error)
+		logger
+			.child({ context: {id, settings, error:error.message} })
+			.error('The API call to retrieve tweets from id failed');
+		return {}
+  }
 }
