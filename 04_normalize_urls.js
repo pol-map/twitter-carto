@@ -61,7 +61,7 @@ async function main() {
 	}
 	// Save resolved resources as CSV
 	const resFile_resolved = `${thisFolder}/resources_cited_by_mps_resolved.csv`
-	fs.writeFile(resFile_resolved, resolvedDataString, error => {
+	fs.writeFileSync(resFile_resolved, resolvedDataString, error => {
 	  if (error) {
 			logger
 				.child({ context: {resFile_resolved, error} })
@@ -89,7 +89,7 @@ async function main() {
 	}
 	// Save resolved resources as CSV
 	const resFile_parsed = `${thisFolder}/resources_cited_by_mps_parsed.csv`
-	fs.writeFile(resFile_parsed, parsedDataString, error => {
+	fs.writeFileSync(resFile_parsed, parsedDataString, error => {
 	  if (error) {
 			logger
 				.child({ context: {resFile_parsed, error} })
@@ -123,13 +123,15 @@ async function main() {
 	})
 	logger
 		.child({ context: {resourcesNormalized} })
-		.debug('Resources normalized (cleaned of unnecessary Minet stuff)');
+		.debug('Normalized resources');
+	logger
+		.info('Resources normalized (cleaned of unnecessary Minet stuff)');
 	// Save normalized resources list as CSV
 	const resFile_norm = `${thisFolder}/resources_cited_by_mps_normalized.csv`
 	// Format filtered data as a string
 	const resCsvString_norm = d3.csvFormat(resourcesNormalized)
 	// Write clean file
-	fs.writeFile(resFile_norm, resCsvString_norm, error => {
+	fs.writeFileSync(resFile_norm, resCsvString_norm, error => {
 	  if (error) {
 			logger
 				.child({ context: {resFile_norm, error} })
