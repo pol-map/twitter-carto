@@ -25,7 +25,7 @@ const logLevels = {
   trace: 5,
 };
 
-const logLevel = "trace"
+const logLevel = "info"
 
 const logger = createLogger({
 	level: logLevel,
@@ -46,7 +46,6 @@ const handlesFile = `${thisFolder}/twitter_handles.csv`
 
 async function main() {
 	let handleList = loadHandles(handlesFile)
-	handleList = handleList.slice(0, 5); // TODO: REMOVE ME
 
 	// Check that the handles are valid (else, the Twitter API will reject them)
 	const handleRegex = /^[A-Za-z0-9_]{1,15}$/
@@ -108,7 +107,7 @@ async function main() {
 		  }
 		});
 
-	  // For each mp, load yesterday's tweets
+	  // For each user, load yesterday's tweets
 	  for (let i in users) {
 	  	const id = users[i].id
 	  	const tweetData = await getYesterdaysTweets(id)
@@ -131,11 +130,14 @@ async function main() {
 			  }
 			});
 	  }
+	  logger
+			.info('Yesterday\'s tweets for all valid handles retrieved.');
 	} else {
 		logger
 			.child({ context: {handleList} })
 			.error('No handles to fetch');
 	}
+	console.log("Done.")
 }
 
 main();
