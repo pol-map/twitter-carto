@@ -1,5 +1,6 @@
 node_modules/
-data/*
+data/
+minet/
 .env
 
 # Windows image file caches

@@ -25,7 +25,7 @@ const logLevels = {
   trace: 5,
 };
 
-const logLevel = "trace"
+const logLevel = "info"
 
 const logger = createLogger({
 	level: logLevel,
@@ -40,8 +40,6 @@ const logger = createLogger({
 logger.info('***** RUN SCRIPT ****');
 console.log("Log level is", logLevel)
 logger.info('Log level is '+logLevel);
-
-const twitterClient = new Client(process.env.BEARER_TOKEN);
 
 async function main() {
 	const usersFile = `${thisFolder}/twitter_valid_users.csv`
