@@ -65,7 +65,7 @@ async function main() {
 	}
 
 	if (handleList && handleList.length > 0) {
-		const users = await appendUserIds(handleList)
+		let users = await retrieveUserIds(handleList)
 		logger
 			.child({ context: {users} })
 			.debug('User data retrieved from Twitter');
@@ -76,8 +76,11 @@ async function main() {
 			handleList.forEach(d => {
 				handleIndex[d.handle.toLowerCase()] = d
 			})
-			users.forEach(d => {
-				d.source = handleIndex[d.username.toLowerCase()]
+			users = users.map(d => {
+				let sourceData = handleIndex[d.username.toLowerCase()]
+				sourceData.sourcename = sourceData.name
+				delete sourceData.name
+				return { ...d, ...sourceData }
 			})
 		} catch (error) {
 			console.log("Error", error)
@@ -90,10 +93,25 @@ async function main() {
 			.child({ context: {users} })
 			.debug('Reconciled user data');
 
-	  // const tweet = await client.tweets.findTweetById("20");
-	  // console.log(tweet.data.text);
+		// Save retrieved user data
+		const usersFile = `${thisFolder}/twitter_valid_users.csv`
+		const usersCsvString = d3.csvFormat(users)
+		fs.writeFile(usersFile, usersCsvString, error => {
+		  if (error) {
+				logger
+					.child({ context: {usersFile, error} })
+					.error('The valid users file could not be saved');
+		  } else {
+			  logger
+					.child({ context: {usersFile} })
+					.info('Valid users file saved successfully');	  	
+		  }
+		});
 
-	  // For each mp, load yesterday's tweets (max 100)		
+	  // For each mp, load yesterday's tweets (max 100)	
+	  users.forEach(d => {
+	  	const id = d.id
+	  })	
 	} else {
 		logger
 			.child({ context: {handleList} })
@@ -121,7 +139,7 @@ function loadHandles(filePath) {
 	}
 }
 
-async function appendUserIds(handleList) {
+async function retrieveUserIds(handleList) {
 	logger
 		.child({ context: {handleList} })
 		.debug('Retrieve Twitter ids from handles');
