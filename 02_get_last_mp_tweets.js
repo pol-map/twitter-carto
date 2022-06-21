@@ -111,7 +111,7 @@ async function main() {
 	  for (let i in users) {
 	  	const id = users[i].id
 	  	const tweetData = await getYesterdaysTweets(id)
-	  	// Save data as CSV
+	  	// Save data as JSON
 	  	const tweetsDir = `${thisFolder}/tweets`
 	  	if (!fs.existsSync(tweetsDir)){
 			  fs.mkdirSync(tweetsDir);
@@ -245,6 +245,8 @@ async function getYesterdaysTweets(id) {
       "lang",
       "reply_settings",
     ],
+
+    exclude: ["replies"],
 
     start_time: `${yyear}-${ymonth}-${ydatem}T00:00:00Z`,
     end_time: `${year}-${month}-${datem}T00:00:00Z`,
