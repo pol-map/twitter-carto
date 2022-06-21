@@ -29,10 +29,11 @@ const logger = createLogger({
   format: format.combine(format.timestamp(), format.json()),
   transports: [
   	new transports.Console(),
-  	new transports.File({ filename: `${thisFolder}/01_update_mp.log` })
+  	new transports.File({ filename: `${thisFolder}/01_update_mp.log` }),
   ],
 });
 
+logger.info('***** RUN SCRIPT ****');
 console.log("Log level is", logLevel)
 logger.info('Log level is '+logLevel);
 
@@ -80,6 +81,7 @@ async function download(url, filePath) {
 
 const sourceFileURL = "https://nosdeputes.fr/deputes/enmandat/csv"
 const sourceFileSave = `${thisFolder}/nosdeputes_source.csv`
+const cleanFileSave = `${thisFolder}/twitter_handles.csv`
 
 logger
 	.child({ context: {sourceFileURL, sourceFileSave} })
@@ -93,7 +95,6 @@ download(sourceFileURL, sourceFileSave)
 				.info('Source file downloaded');
 
 			// Process source into a simpler file format
-			const cleanFileSave = `${thisFolder}/twitter_handles.csv`
 			logger
 				.child({ context: {sourceFileSave, cleanFileSave} })
 				.debug('Clean source file and save list of handles');
