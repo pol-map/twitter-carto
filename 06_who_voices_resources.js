@@ -59,11 +59,15 @@ async function main() {
 	// But that is per page (so per 100) and we track up to 1000 so that's 2 minutes max per response.
 	// A reasonable cap for this is 6 hours, aka 360 min, aka 180 resources.
 	// Let's keep this order of magnitude, and aim at the top 100 resources of the last 7 days.
-	const maxResources = 20 // 100 TODO: REVERT ME
+	const maxResources = 100
 
 	const retweetingDir = `${thisFolder}/retweeting`
 	if (!fs.existsSync(retweetingDir)){
 	  fs.mkdirSync(retweetingDir);
+	}
+	const diffurlDir = `${thisFolder}/diffURL`
+	if (!fs.existsSync(diffurlDir)){
+	  fs.mkdirSync(diffurlDir);
 	}
 
 	let broadcastings = []
@@ -71,8 +75,9 @@ async function main() {
 	for (let i = 0; i<resources.length && i<maxResources; i++) {
 		const res = resources[i]
 
-		// CASE 1: TWEETS - We can ask Twitter directly who retweeted it (but we do not know when)
 		if (res.type == "tweet") {
+			// CASE 1: TWEETS - We can ask Twitter directly who retweeted it (but we do not know when)
+			
 			const maxPages = 10 // 100 users per page, so we cap the retweeters to 1000
 			let page = 0
 			let pageToken
@@ -152,6 +157,102 @@ async function main() {
 				page++
 				if (usersResponse && usersResponse.meta && usersResponse.meta.next_token) {
 					pageToken = usersResponse.meta.next_token
+				} else break;
+			}
+		} else if (res.type == "url") {
+			// CASE 2: URLs - We can use Twitter's SEARCH api
+
+			const maxPages = 10 // 100 users per page, so we cap the tweets to 1000
+			let page = 0
+			let pageToken
+			while (page<maxPages) {
+				const urlSignature = res.id.replace(/[^a-zA-Z0-9_-]/gi, '-').slice(0, 100)
+				const fileName = `${diffurlDir}/${urlSignature}-${page.toLocaleString('en-US', {minimumIntegerDigits: 3, useGrouping: false})}.json`
+				
+				let tweetsResponse
+				// If the file exists, we just load it (recovery system)
+				if (fs.existsSync(fileName)){
+					let tweetsResponseRaw
+					try {
+						tweetsResponseRaw = fs.readFileSync(fileName);
+					} catch (error) {
+						console.log("Error", error)
+						logger
+							.child({ context: {res, page, fileName, error:error.message} })
+							.error(`JSON file read error. The data could not be recovered.`);
+					}
+					if (tweetsResponseRaw) {
+						try {
+					  	tweetsResponse = JSON.parse(tweetsResponseRaw);
+					  	logger
+					  		.child({ context: {res, page, fileName, tweetsResponse} })
+								.trace(`Tweets data response retrieved from local cache ${fileName}`);
+				  	} catch (error) {
+							console.log("Error", error)
+							logger
+								.child({ context: {res, page, fileName, tweetsResponseRaw, error:error.message} })
+								.error(`JSON file cannot be parsed. The data could not be recovered.`);
+							tweetsResponse = undefined
+						}
+					}
+				}
+
+				// If the file does not exist or failed, query Twitter.
+				if (tweetsResponse === undefined) {
+					tweetsResponse = await getSearchUrlInTweets(res.id, pageToken)
+					// Save response
+					const tweetsResponseString = JSON.stringify(tweetsResponse)
+					fs.writeFile(fileName, tweetsResponseString, error => {
+					  if (error) {
+							logger
+								.child({ context: {res, page, fileName, error} })
+								.error(`The tweeting file for resource ${i},  ${truncate(res.url)}, page ${page} could not be saved`);
+					  } else {
+						  logger
+								.child({ context: {res, page, fileName} })
+								.debug(`The tweeting file for resource ${i},  ${truncate(res.url)}, page ${page} was saved successfully`);
+					  }
+					});
+
+				}
+				// Process the results
+				if (tweetsResponse && tweetsResponse.data && tweetsResponse.data.length > 0) {
+					// As the ids are in the "includes" section, we need to index them
+					let userIndex = {}
+					try {
+						tweetsResponse.includes.users.forEach(u => {
+							userIndex[u.id] = u
+						})
+					} catch (error) {
+						console.log("Error", error)
+						logger
+							.child({ context: {res, page, usersResponse, error:error.message} })
+							.error(`An error occured when indexing the user data from URL tweeting response data for resource ${i}, ${truncate(res.url)}, page ${page}.`);
+					}
+					try {
+						tweetsResponse.data.forEach(d => {
+							let broadcasting = {
+								broadcaster_id: userIndex[d.author_id].id,
+								broadcaster_name: userIndex[d.author_id].name,
+								broadcaster_username: userIndex[d.author_id].username,
+								// resource_group_main: res.group_main,
+								resource_groups: res.groups,
+								resource_id: res.id,
+								resource_type: res.type,
+								// resource_url: res.url,
+							}
+							broadcastings.push(broadcasting)
+						})
+					} catch (error) {
+						console.log("Error", error)
+						logger
+							.child({ context: {res, page, usersResponse, error:error.message} })
+							.error(`URL tweeting response data could not be processed for resource ${i}, ${truncate(res.url)}, page ${page}.`);
+					}
+				}
+				page++
+				if (tweetsResponse && tweetsResponse.meta && tweetsResponse.meta.next_token) {
+					pageToken = tweetsResponse.meta.next_token
 				} else break;
 			}
 		}
@@ -243,3 +344,59 @@ async function getRetweetingUsers(id, pageToken) {
 		return {}
   }
 }
+
+async function getSearchUrlInTweets(url, pageToken) {
+	// User rate limit: 180 queries per 15 minutes. So we wait the right amount of time to throttle.
+	await new Promise(resolve => setTimeout(resolve, 15*60*1000/180)) // wait 5.33 seconds
+
+	const settings = {
+		"query": `-is:retweet -is:reply url:"${url}"`,
+		"sort_order":["recency"],
+		"expansions":"author_id",
+		"user.fields":[
+			"id",
+			"name",
+			"username",
+		],
+    "max_results": 100,
+  }
+  if (pageToken) {
+  	settings.pagination_token = pageToken
+  }
+	try {
+
+    const tweets = await twitterClient.tweets.tweetsRecentSearch(settings);
+
+    if (tweets.errors) {
+	    logger
+	  		.child({ context: {url} })
+				.warn(`Errors returned for ${tweets.errors.length} tweets mentioning URL ${url}`);    	
+    }
+    if (tweets.data) {
+	    logger
+	  		.child({ context: {url} })
+				.info(`${tweets.data.length} tweets retrieved that mention ${url}`);
+    } else {
+	    logger
+	  		.child({ context: {url} })
+				.warn(`No tweets mentioned ${url}`);
+    }
+    logger
+  		.child({ context: {url, settings, tweets} })
+			.trace(`Tweets data response retrieved`);
+    return tweets || {}
+  } catch (error) {
+    console.log("Error", error)
+		logger
+			.child({ context: {url, settings, error:error.message} })
+			.error('The API call to retrieve tweets mentioning a URL failed');
+		return {}
+  }
+}
+
+function truncate(input) {
+   if (input.length > 50) {
+      return input.substring(0, 50) + '...';
+   }
+   return input;
+};
