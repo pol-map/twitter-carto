@@ -111,7 +111,7 @@ async function main() {
 		resources.forEach(r => {
 			let id
 			if (r.resource_type == "tweet") {
-				id = r.tweet_id
+				id = r.resource_id
 			} else {
 				id = r.normalized_url
 			}
