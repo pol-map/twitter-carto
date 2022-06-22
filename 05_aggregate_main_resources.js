@@ -25,7 +25,7 @@ const logLevels = {
   trace: 5,
 };
 
-const logLevel = "trace"
+const logLevel = "info"
 
 const logger = createLogger({
 	level: logLevel,
@@ -102,7 +102,7 @@ async function main() {
 		.info(`Normalized resources for precedent days loaded (${daysMissing} days missing)`);
 	logger
 		.child({ context: {resources} })
-		.debug(`Normalized resources (${resources.length} rows)`);
+		.trace(`Normalized resources (${resources.length} rows)`);
 
 	// Aggregate resources
 	let aggregatedResources
@@ -121,7 +121,7 @@ async function main() {
 		})
 		logger
 			.child({ context: {resIndex} })
-			.debug(`Indexed resources (${(Object.keys(resIndex)).length} different ids)`);
+			.trace(`Indexed resources (${(Object.keys(resIndex)).length} different ids)`);
 		aggregatedResources = Object.keys(resIndex).map(id => {
 			let resList = resIndex[id]
 			let url = ''
@@ -164,7 +164,7 @@ async function main() {
 				} else {
 					logger
 						.child({ context: {uid} })
-						.debug(`User index not found: ${uid} (this is not supposed to happen 🤔)`);
+						.error(`User index not found: ${uid} (this is not supposed to happen 🤔)`);
 				}
 			})
 
@@ -200,7 +200,7 @@ async function main() {
 		})
 		logger
 			.child({ context: {aggregatedResources} })
-			.debug(`Aggregated resources (${aggregatedResources.length} rows)`);
+			.trace(`Aggregated resources (${aggregatedResources.length} rows)`);
 	} catch (error) {
 		console.log("Error", error)
 		logger
