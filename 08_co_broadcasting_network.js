@@ -7,6 +7,7 @@ import { Client, auth } from "twitter-api-sdk";
 import dotenv from "dotenv";
 import Graph from "graphology";
 import gexf from "graphology-gexf";
+import forceAtlas2 from 'graphology-layout-forceatlas2';
 
 dotenv.config();
 
@@ -147,6 +148,7 @@ async function main() {
 	// Build network
 	let g
 	const pmi_threshold = 0.1
+	const k = 3 // k-core
 	try {
 		g = new Graph();
 		users.forEach(u => {
@@ -164,6 +166,92 @@ async function main() {
 			.child({ context: {"nodes":g.order, "edges":g.size} })
 			.info(`Network built (${g.order} nodes, ${g.size} edges). Edges below a PMI of ${pmi_threshold} have been omitted.`);
 
+		// Extract k-core
+		logger
+			.info(`Extract k-core (k=${k})...`);
+		let nodeRemoved = true
+		while (nodeRemoved) {
+			let nodesToRemove = g.nodes().filter(nid => g.degree(nid)<k)
+			nodeRemoved = nodesToRemove.length > 0
+			nodesToRemove.forEach(nid => {
+				g.dropNode(nid)
+			})
+		}
+		logger
+			.info(`K-core extracted (${g.order} nodes, ${g.size} edges).`);
+
+		// Compute weighted degree
+		g.nodes().forEach(nid => {
+			g.setNodeAttribute(nid, "wdegree", 0)
+		})
+		g.edges().forEach(eid => {
+			let ns = g.getNodeAttributes(g.source(eid))
+			let nt = g.getNodeAttributes(g.target(eid))
+			let w = g.getEdgeAttribute(eid, "weight")
+			ns.wdegree += w
+			nt.wdegree += w
+		})
+		let wdegreeMax = d3.max(g.nodes().map(nid => g.getNodeAttribute(nid, "wdegree")))
+		g.nodes().forEach(nid => {
+			let n = g.getNodeAttributes(nid)
+			n.size = 3 * 10 * Math.pow(n.wdegree/wdegreeMax, 2)
+		})
+		// Layout
+		logger
+			.info(`Compute layout...`);
+
+		// Applying a random layout before starting
+		g.nodes().forEach(nid => {
+			g.setNodeAttribute(nid, "x", Math.random()*1000)
+			g.setNodeAttribute(nid, "y", Math.random()*1000)
+		})
+
+		// Applying FA2 (basis)
+		forceAtlas2.assign(g, {iterations: 10000, settings: {
+			linLogMode: false,
+			outboundAttractionDistribution: false,
+			adjustSizes: false,
+			edgeWeightInfluence: 0,
+			scalingRatio: 1,
+			strongGravityMode: true,
+			gravity: 0.005,
+			slowDown: 10,
+			barnesHutOptimize: true,
+			barnesHutTheta: 1.2,
+		}});
+		forceAtlas2.assign(g, {iterations: 2000, settings: {
+			linLogMode: false,
+			outboundAttractionDistribution: false,
+			adjustSizes: true,
+			edgeWeightInfluence: 0,
+			scalingRatio: 1,
+			strongGravityMode: true,
+			gravity: 0.005,
+			slowDown: 10,
+			barnesHutOptimize: true,
+			barnesHutTheta: 1.2,
+		}});
+		forceAtlas2.assign(g, {iterations: 20, settings: {
+			linLogMode: false,
+			outboundAttractionDistribution: false,
+			adjustSizes: true,
+			edgeWeightInfluence: 0,
+			scalingRatio: 1,
+			strongGravityMode: true,
+			gravity: 0.005,
+			slowDown: 10,
+			barnesHutOptimize: false,
+			barnesHutTheta: 1.2,
+		}});
+		g.nodes().forEach(nid => {
+			let n = g.getNodeAttributes(nid)
+			n.size /= 3
+		})
+
+
+		logger
+			.info(`Layout computed.`);
+
 	} catch (error) {
 		console.log("Error", error)
 		logger
@@ -171,10 +259,53 @@ async function main() {
 			.error(`An error occurred during the building of the network`);
 	}
 
-	// Save the network
-	const networkFile = `${thisFolder}/network_cobroadcast_top_resources_7days.gexf`
+	// Save nodes and edges as tables
+	const nodes = g.nodes().map(nid => {
+		let n = {...g.getNodeAttributes(nid)}
+		n.Id = nid
+		n.Label = n.label
+		delete n.label
+		return n
+	})
+	const nodesFile = `${thisFolder}/network_cobroadcast_nodes.csv`
+	const nodesString = d3.csvFormat(nodes)
 	try {
-		const gexfString = gexf.write(g);
+		fs.writeFileSync(nodesFile, nodesString)
+		logger
+			.child({ context: {nodesFile} })
+			.info('Nodes file saved successfully');
+	} catch(error) {
+		logger
+			.child({ context: {nodesFile, error} })
+			.error('The nodes file could not be saved');
+	}
+	const edges = g.edges().map(eid => {
+		let e = {...g.getEdgeAttributes(eid)}
+		e.Source = g.source(eid)
+		e.Target = g.target(eid)
+		e.Weight = e.weight
+		delete e.weight
+		e.Type = "undirected"
+		return e
+	})
+	const edgesFile = `${thisFolder}/network_cobroadcast_edges.csv`
+	const edgesString = d3.csvFormat(edges)
+	try {
+		fs.writeFileSync(edgesFile, edgesString)
+		logger
+			.child({ context: {edgesFile} })
+			.info('Edges file saved successfully');
+	} catch(error) {
+		logger
+			.child({ context: {edgesFile, error} })
+			.error('The edges file could not be saved');
+	}
+	// Save the network (no edges, it's too heavy, but they're in the edges file)
+	g.clearEdges()
+	const networkFile = `${thisFolder}/network_cobroadcast_top_resources_7days.gexf`
+	let gexfString
+	try {
+		gexfString = gexf.write(g);
 	} catch(error) {
 		logger
 			.child({ context: {networkFile, error} })
@@ -184,7 +315,7 @@ async function main() {
 		fs.writeFileSync(networkFile, gexfString)
 		logger
 			.child({ context: {networkFile} })
-			.info('Network file saved successfully');
+			.info('Network (no edges) saved successfully as a GEXF');
 	} catch(error) {
 		logger
 			.child({ context: {networkFile, error} })
