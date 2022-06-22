@@ -25,7 +25,7 @@ const logLevels = {
   trace: 5,
 };
 
-const logLevel = "trace"
+const logLevel = "info"
 
 const logger = createLogger({
 	level: logLevel,
