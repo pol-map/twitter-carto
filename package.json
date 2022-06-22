@@ -12,7 +12,7 @@
     "dotenv": "^16.0.1",
     "fs": "0.0.1-security",
     "graphology": "^0.19.3",
-    "graphology-gexf": "^0.10.1",
+    "graphology-gexf": "^0.10.2",
     "jsdom": "^16.5.3",
     "sharp": "^0.30.3",
     "twitter-api-sdk": "^1.0.9",

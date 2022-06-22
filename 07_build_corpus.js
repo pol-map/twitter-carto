@@ -105,9 +105,18 @@ async function main() {
 			delete u.count
 			let total = 0
 			Object.keys(groupIndex).forEach(g => {
-				u['mp_align_'+g] = u.groups[g] || 0
-				total += u.groups[g] || 0
+				let gCount = u.groups[g] || 0
+				u['mp_align_'+g] = gCount
+				total += gCount
 			})
+			let mainGroup = "Other"
+			Object.keys(groupIndex).forEach(g => {
+				let gCount = u.groups[g] || 0
+				if (gCount > total*2/3) { // The main group, if any, is that aligned at two thirds or more with the user
+					mainGroup = g
+				}
+			})
+			u.main_group = mainGroup
 			delete u.groups
 			u.mp_align__TOTAL = total
 			u.resources = JSON.stringify(u.resources)
