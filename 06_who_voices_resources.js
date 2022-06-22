@@ -83,7 +83,8 @@ async function main() {
 			const maxPages = 5 // 100 users per page
 			let page = 0
 			let pageToken
-			while (page<maxPages) {
+			let flag = true
+			while (page<maxPages && flag) {
 				
 				const fileName = `${retweetingDir}/${res.id}-${page.toLocaleString('en-US', {minimumIntegerDigits: 3, useGrouping: false})}.json`
 				
@@ -131,7 +132,10 @@ async function main() {
 								.debug(`The retweeting file for resource ${i}, id ${res.id}, page ${page} was saved successfully`);
 					  }
 					});
-
+					// If not enough responses, we know we are in the end, and the additional query just slows us down for nothing.
+					if (usersResponse && usersResponse.data && usersResponse.data.length <= 66) {
+						flag = false
+					}
 				}
 				// Process the results
 				if (usersResponse && usersResponse.data && usersResponse.data.length > 0) {
