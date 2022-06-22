@@ -61,17 +61,16 @@ async function main() {
 	}
 	// Save resolved resources as CSV
 	const resFile_resolved = `${thisFolder}/resources_cited_by_mps_resolved.csv`
-	fs.writeFileSync(resFile_resolved, resolvedDataString, error => {
-	  if (error) {
-			logger
-				.child({ context: {resFile_resolved, error} })
-				.error('The resolved resources file could not be saved');
-	  } else {
-		  logger
-				.child({ context: {resFile_resolved} })
-				.info('Resolved resources file saved successfully');	  	
-	  }
-	});
+	try {
+		fs.writeFileSync(resFile_resolved, resolvedDataString)
+		logger
+			.child({ context: {resFile_resolved} })
+			.info('Resolved resources file saved successfully');
+	} catch(error) {
+		logger
+			.child({ context: {resFile_resolved, error} })
+			.error('The resolved resources file could not be saved');
+	}
 
 	// Second, we parse the resolved URLs (to normalize them)
 	const parsedSettings = ["url-parse", "resolved", resFile_resolved]
@@ -89,17 +88,16 @@ async function main() {
 	}
 	// Save resolved resources as CSV
 	const resFile_parsed = `${thisFolder}/resources_cited_by_mps_parsed.csv`
-	fs.writeFileSync(resFile_parsed, parsedDataString, error => {
-	  if (error) {
-			logger
-				.child({ context: {resFile_parsed, error} })
-				.error('The url-parsed resources file could not be saved');
-	  } else {
-		  logger
-				.child({ context: {resFile_parsed} })
-				.info('Resolved url-parsed file saved successfully');	  	
-	  }
-	});
+	try {
+		fs.writeFileSync(resFile_parsed, parsedDataString)
+		logger
+			.child({ context: {resFile_parsed} })
+			.info('Resolved url-parsed file saved successfully');
+	} catch(error) {
+		logger
+			.child({ context: {resFile_parsed, error} })
+			.error('The url-parsed resources file could not be saved');
+	}
 
 	// Third, we load the file, we slightly fix it, and we re-save it
 	let resourcesAfterMinet = loadResources(resFile_parsed);
@@ -131,17 +129,16 @@ async function main() {
 	// Format filtered data as a string
 	const resCsvString_norm = d3.csvFormat(resourcesNormalized)
 	// Write clean file
-	fs.writeFileSync(resFile_norm, resCsvString_norm, error => {
-	  if (error) {
-			logger
-				.child({ context: {resFile_norm, error} })
-				.error('The normalized resources file could not be saved');
-	  } else {
-		  logger
-				.child({ context: {resFile_norm} })
-				.info('Normalized resources file saved successfully');	  	
-	  }
-	});
+	try {
+		fs.writeFileSync(resFile_norm, resCsvString_norm)
+		logger
+			.child({ context: {resFile_norm} })
+			.info('Normalized resources file saved successfully');
+	} catch(error) {
+		logger
+			.child({ context: {resFile_norm, error} })
+			.error('The normalized resources file could not be saved');
+	}
 
 	console.log("Done.")
 }
