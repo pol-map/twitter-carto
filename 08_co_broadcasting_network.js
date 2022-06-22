@@ -69,7 +69,7 @@ async function main() {
 			})
 		})
 		logger
-			.debug(`Resources and users indexed`);
+			.debug(`Resources (${Object.keys(resIndex).length}) and users (${Object.keys(userIndex).length}) indexed`);
 	} catch (error) {
 		console.log("Error", error)
 		logger
@@ -146,6 +146,7 @@ async function main() {
 
 	// Build network
 	let g
+	const pmi_threshold = 0.1
 	try {
 		g = new Graph();
 		users.forEach(u => {
@@ -155,10 +156,13 @@ async function main() {
 			g.addNode(u.id, u2)
 		})
 		pairs.forEach(pair => {
-			if (pair.weight > 0) {
+			if (pair.weight > 0.1) {
 				g.addEdge(pair.u, pair.v, {weight:pair.weight, pmi:pair.pmi, co_broadcast:pair.count})
 			}
 		})
+		logger
+			.child({ context: {"nodes":g.order, "edges":g.size} })
+			.info(`Network built (${g.order} nodes, ${g.size} edges). Edges below a PMI of ${pmi_threshold} have been omitted.`);
 
 	} catch (error) {
 		console.log("Error", error)
@@ -169,7 +173,13 @@ async function main() {
 
 	// Save the network
 	const networkFile = `${thisFolder}/network_cobroadcast_top_resources_7days.gexf`
-	const gexfString = gexf.write(g);
+	try {
+		const gexfString = gexf.write(g);
+	} catch(error) {
+		logger
+			.child({ context: {networkFile, error} })
+			.error('The network file could not be written into a string');
+	}
 	try {
 		fs.writeFileSync(networkFile, gexfString)
 		logger

@@ -59,7 +59,9 @@ async function main() {
 	// But that is per page (so per 100) and we track up to 1000 so that's 2 minutes max per response.
 	// A reasonable cap for this is 6 hours, aka 360 min, aka 180 resources.
 	// Let's keep this order of magnitude, and aim at the top 100 resources of the last 7 days.
-	const maxResources = 100
+	// That's the rationale anyways. As it's a bit quicker in practice, since many resources
+	// are not broadcasted a lot, we can push a bit more.
+	const maxResources = 300
 
 	const retweetingDir = `${thisFolder}/retweeting`
 	if (!fs.existsSync(retweetingDir)){
@@ -78,7 +80,7 @@ async function main() {
 		if (res.type == "tweet") {
 			// CASE 1: TWEETS - We can ask Twitter directly who retweeted it (but we do not know when)
 			
-			const maxPages = 10 // 100 users per page, so we cap the retweeters to 1000
+			const maxPages = 5 // 100 users per page
 			let page = 0
 			let pageToken
 			while (page<maxPages) {
@@ -162,7 +164,7 @@ async function main() {
 		} else if (res.type == "url") {
 			// CASE 2: URLs - We can use Twitter's SEARCH api
 
-			const maxPages = 10 // 100 users per page, so we cap the tweets to 1000
+			const maxPages = 5 // 100 users per page
 			let page = 0
 			let pageToken
 			while (page<maxPages) {
@@ -256,6 +258,9 @@ async function main() {
 				} else break;
 			}
 		}
+
+		logger
+			.info(`Resource retrieved (${i}/${Math.min(resources.length, maxResources)})`);
 	}
 
 	logger
