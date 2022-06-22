@@ -133,7 +133,7 @@ async function main() {
 					  }
 					});
 					// If not enough responses, we know we are in the end, and the additional query just slows us down for nothing.
-					if (usersResponse && usersResponse.data && usersResponse.data.length <= 66) {
+					if (usersResponse && usersResponse.data && usersResponse.data.length <= 75) {
 						flag = false
 					}
 				}
