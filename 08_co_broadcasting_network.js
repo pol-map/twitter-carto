@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import Graph from "graphology";
 import gexf from "graphology-gexf";
 import forceAtlas2 from 'graphology-layout-forceatlas2';
+import noverlap from 'graphology-layout-noverlap';
 
 dotenv.config();
 
@@ -194,20 +195,35 @@ async function main() {
 		let wdegreeMax = d3.max(g.nodes().map(nid => g.getNodeAttribute(nid, "wdegree")))
 		g.nodes().forEach(nid => {
 			let n = g.getNodeAttributes(nid)
-			n.size = 3 * 10 * Math.pow(n.wdegree/wdegreeMax, 2)
+			n.size = 4 + (28-4) * Math.pow(n.wdegree/wdegreeMax, 1.3)
 		})
 		// Layout
 		logger
 			.info(`Compute layout...`);
 
 		// Applying a random layout before starting
-		g.nodes().forEach(nid => {
+		g.nodes().forEach((nid,i) => {
+			// g.setNodeAttribute(nid, "x", i%20)
+			// g.setNodeAttribute(nid, "y", (i-i%20)/20)
 			g.setNodeAttribute(nid, "x", Math.random()*1000)
 			g.setNodeAttribute(nid, "y", Math.random()*1000)
 		})
 
 		// Applying FA2 (basis)
-		forceAtlas2.assign(g, {iterations: 10000, settings: {
+		forceAtlas2.assign(g, {iterations: 1000, settings: {
+			linLogMode: false,
+			outboundAttractionDistribution: false,
+			adjustSizes: false,
+			edgeWeightInfluence: 0,
+			scalingRatio: 1,
+			strongGravityMode: true,
+			gravity: 0.005,
+			slowDown: 5,
+			barnesHutOptimize: true,
+			barnesHutTheta: 1.2,
+		}});
+		// Refine FA2
+		forceAtlas2.assign(g, {iterations: 50, settings: {
 			linLogMode: false,
 			outboundAttractionDistribution: false,
 			adjustSizes: false,
@@ -216,38 +232,33 @@ async function main() {
 			strongGravityMode: true,
 			gravity: 0.005,
 			slowDown: 10,
-			barnesHutOptimize: true,
-			barnesHutTheta: 1.2,
-		}});
-		forceAtlas2.assign(g, {iterations: 2000, settings: {
-			linLogMode: false,
-			outboundAttractionDistribution: false,
-			adjustSizes: true,
-			edgeWeightInfluence: 0,
-			scalingRatio: 1,
-			strongGravityMode: true,
-			gravity: 0.005,
-			slowDown: 10,
-			barnesHutOptimize: true,
-			barnesHutTheta: 1.2,
-		}});
-		forceAtlas2.assign(g, {iterations: 20, settings: {
-			linLogMode: false,
-			outboundAttractionDistribution: false,
-			adjustSizes: true,
-			edgeWeightInfluence: 0,
-			scalingRatio: 1,
-			strongGravityMode: true,
-			gravity: 0.005,
-			slowDown: 10,
 			barnesHutOptimize: false,
 			barnesHutTheta: 1.2,
 		}});
-		g.nodes().forEach(nid => {
-			let n = g.getNodeAttributes(nid)
-			n.size /= 3
-		})
-
+		noverlap.assign(g, {
+		  maxIterations: 500,
+		  settings: {
+		  	margin: 1,
+		    ratio: 1.1,
+		    speed:10,
+		  }
+		});
+		noverlap.assign(g, {
+		  maxIterations: 200,
+		  settings: {
+		  	margin: 1,
+		    ratio: 1.1,
+		    speed:5,
+		  }
+		});
+		noverlap.assign(g, {
+		  maxIterations: 100,
+		  settings: {
+		  	margin: 1,
+		    ratio: 1.1,
+		    speed:1,
+		  }
+		});
 
 		logger
 			.info(`Layout computed.`);
