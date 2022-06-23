@@ -62,6 +62,7 @@ async function main() {
 				username: b.broadcaster_username,
 				groups:{},
 				resources:[],
+				cited:b.tweet_mentions,
 			}
 			userData.resources.push(b.resource_id)
 
@@ -81,6 +82,26 @@ async function main() {
 		logger
 			.child({ context: {error:error.message} })
 			.error(`An error occurred during the indexation of users`);
+	}
+
+	// Index neighbors
+	try {
+		Object.values(userIndex).forEach(u => {
+			let cited = JSON.parse(u.cited)
+			u.cited = []
+			cited.forEach(d => {
+				if (userIndex[d]) {
+					u.cited.push(d)
+				}
+			})
+		})
+		logger
+			.debug(`Users neighbors indexed`);
+	} catch (error) {
+		console.log("Error", error)
+		logger
+			.child({ context: {error:error.message} })
+			.error(`An error occurred during the indexation of user neighbors`);
 	}
 
 	// Flatten, sort and truncate the list if necessary
@@ -120,6 +141,7 @@ async function main() {
 			delete u.groups
 			u.mp_align__TOTAL = total
 			u.resources = JSON.stringify(u.resources)
+			u.cited = JSON.stringify(u.cited)
 			return u
 		})
 
