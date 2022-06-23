@@ -79,7 +79,8 @@ async function download(url, filePath) {
   });
 }
 
-const sourceFileURL = "https://nosdeputes.fr/deputes/enmandat/csv"
+// const sourceFileURL = "https://nosdeputes.fr/deputes/enmandat/csv"
+const sourceFileURL = "https://raw.githubusercontent.com/regardscitoyens/twitter-parlementaires/master/data/deputes.csv"
 const sourceFileSave = `${thisFolder}/nosdeputes_source.csv`
 const cleanFileSave = `${thisFolder}/twitter_handles.csv`
 
@@ -102,12 +103,12 @@ download(sourceFileURL, sourceFileSave)
 				// Load file as string
 				const csvString = fs.readFileSync(sourceFileSave, "utf8")
 				// Parse string and filter data
-				const cleanData = d3.dsvFormat(";").parse(csvString, (d) => {
+				const cleanData = d3.dsvFormat(",").parse(csvString, (d) => {
 				  return {
 				    handle: d.twitter,
 				    name: d.nom,
-				    group: d.groupe_sigle,
-				    group_long: d.parti_ratt_financier
+				    group: d.groupe_sigle || "Missing",
+				    group_long: d.parti_ratt_financier || "Missing"
 				  };
 				});
 				logger
