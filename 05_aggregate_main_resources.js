@@ -198,6 +198,7 @@ async function main() {
 				group_main: mainGroup,
 			}
 		})
+		aggregatedResources.sort(function(a,b){ return b.count - a.count })
 		logger
 			.child({ context: {aggregatedResources} })
 			.trace(`Aggregated resources (${aggregatedResources.length} rows)`);
