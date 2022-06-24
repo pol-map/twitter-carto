@@ -164,7 +164,7 @@ async function main() {
 				} else {
 					logger
 						.child({ context: {uid} })
-						.error(`User index not found: ${uid} (this is not supposed to happen 🤔)`);
+						.warn(`User index not found: ${uid}. UNEXPECTED. DOUBLE CHECK why it happened. Possible causes: the user changed handle or is no more in source list.`);
 				}
 			})
 
