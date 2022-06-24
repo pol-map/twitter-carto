@@ -52,8 +52,9 @@ async function main() {
 		.child({ context: {resources} })
 		.trace('Sorted resources');
 
-	// Who cited those resources as of today?
 	const maxResources = 1000
+	const maxTweets = 30000
+	let harvestedTweetsCount = 0
 
 	const broadcastingsDir = `${thisFolder}/broadcastings`
 	if (!fs.existsSync(broadcastingsDir)){
@@ -176,6 +177,7 @@ async function main() {
 						.error(`An error occured when indexing the user data of the broadcasing of resource ${i}, ${truncate(res.id)}, page ${page}.`);
 				}
 				try {
+					harvestedTweetsCount += tweetsResponse.data.length
 					tweetsResponse.data.forEach(d => {
 						let mentions = {}
 						if (d.entities && d.entities.mentions){
@@ -216,7 +218,13 @@ async function main() {
 		}
 
 		logger
-			.info(`Resource retrieved (${i+1}/${Math.min(resources.length, maxResources)})`);
+			.info(`Resource ${i+1} retrieved (${harvestedTweetsCount}/${maxTweets} tweets)`);
+
+		if (harvestedTweetsCount > maxTweets) {
+			logger
+				.info(`Daily tweet limit attained, stopping here. (${harvestedTweetsCount} tweets harvested)`);
+			break
+		}
 	}
 
 	logger
