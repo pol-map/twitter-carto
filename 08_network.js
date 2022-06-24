@@ -206,8 +206,8 @@ async function main() {
 			.error('The edges file could not be saved');
 	}
 	// Save the network (no edges, it's too heavy, but they're in the edges file)
-	// g.clearEdges()
-	const networkFile = `${thisFolder}/network_7days.gexf`
+	// g.clearEdges() // TODO: uncomment me to actually remove the edges
+	const networkFile = `${thisFolder}/network.gexf`
 	let gexfString
 	try {
 		gexfString = gexf.write(g);

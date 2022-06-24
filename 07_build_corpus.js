@@ -43,14 +43,50 @@ logger.info('Log level is '+logLevel);
 
 async function main() {
 	
-	// The goal of this script is twofold:
-	// * Cap the total number of users in case it gets out of control (computationally)
-	// * Count, for each account, how it aligns with the MPs (through the top 100 resources)
-	// We do that simply from the broadcastings.
 	const max_accounts = 100000;
 
-	const broadcastingsFile = `${thisFolder}/broadcastings_7days.csv`
-	let broadcastings = loadBroadcastings(broadcastingsFile)
+	// Load resources from today and previous days for one MONTH (30 days)
+	let broadcastings = []
+	let daysMissing = 0
+	for (let offset = 0; offset > -30; offset--) {
+		let day = new Date(now.getTime());
+		day.setDate(now.getDate() + offset);
+		let dyear = day.getFullYear()
+		let dmonth = (1+day.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+		let ddatem = (day.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+		let dayFolder = `data/${dyear}/${dmonth}/${ddatem}`
+		let filePath = `${dayFolder}/broadcastings.csv`
+  	if (fs.existsSync(filePath)) {
+			try {
+				// Load file as string
+				let csvString = fs.readFileSync(filePath, "utf8")
+				// Parse string
+				let data = d3.csvParse(csvString);
+				logger
+					.child({ context: {filePath} })
+					.info(`Broadcastings for day offset ${offset} loaded (${data.length} rows)`);
+				broadcastings = broadcastings.concat(data)
+	
+			} catch (error) {
+				daysMissing++
+				console.log("Error", error)
+	
+				logger
+					.child({ context: {filePath, error:error.message} })
+					.warn(`Broadcastings file ${filePath} could not be loaded`);
+			}
+  	} else {
+  		daysMissing++
+  		logger
+				.child({ context: {filePath} })
+				.warn(`Broadcastings not found for day offset ${offset}`);
+  	}
+	}
+	logger
+		.info(`Broadcastings for precedent days loaded (${daysMissing} days missing)`);
+	logger
+		.child({ context: {broadcastings} })
+		.trace(`Broadcastings (${broadcastings.length} rows)`);
 
 	// Build user index
 	const userIndex = {}
@@ -173,21 +209,3 @@ async function main() {
 }
 
 main();
-
-function loadBroadcastings(filePath) {
-	try {
-		// Load file as string
-		const csvString = fs.readFileSync(filePath, "utf8")
-		// Parse string
-		const data = d3.csvParse(csvString);
-		logger
-			.child({ context: {filePath} })
-			.info('Broadcastings file loaded');
-		return data
-	} catch (error) {
-		console.log("Error", error)
-		logger
-			.child({ context: {filePath, error:error.message} })
-			.error('The broadcastings file could not be loaded');
-	}
-}

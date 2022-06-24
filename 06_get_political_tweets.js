@@ -52,8 +52,8 @@ async function main() {
 		.child({ context: {resources} })
 		.trace('Sorted resources');
 
-	const maxResources = 1000
-	const maxTweets = 30000
+	const maxResources = 1000 // This is just backup, in practice it's never met
+	const maxTweets = 33000
 	let harvestedTweetsCount = 0
 
 	const broadcastingsDir = `${thisFolder}/broadcastings`
@@ -232,7 +232,7 @@ async function main() {
 		.info(`Broadcastings retrieved (${broadcastings.length})`);
 
 	// Save broadcastings as CSV
-	const broadcastingsFile = `${thisFolder}/broadcastings_7days.csv`
+	const broadcastingsFile = `${thisFolder}/broadcastings.csv`
 	const broadcastingsString = d3.csvFormat(broadcastings)
 	try {
 		fs.writeFileSync(broadcastingsFile, broadcastingsString)
