@@ -47,17 +47,19 @@ logger.info('Log level is '+logLevel);
 
 async function main() {
 	
-	const usersFile = `${thisFolder}/users_corpus_7days.csv`
+	const usersFile = `${thisFolder}/user_corpus_1month.csv`
 	let users = loadUsers(usersFile)
 
 	// Build network
 	let g
 	const pmi_threshold = 0.1
-	const k = 2 // k-core
+	const k = 3 // k-core
 	try {
+		let userIndex = {}
 		g = new Graph();
 		users.forEach(u => {
 			let u2 = {...u, label:u.name}
+			userIndex[u.id] = true
 			delete u2.id
 			delete u2.resources
 			delete u2.cited
@@ -66,7 +68,9 @@ async function main() {
 		users.forEach(u => {
 			const cited = JSON.parse(u.cited)
 			cited.forEach(v => {
-				g.addEdge(u.id, v)
+				if (userIndex[v]) {
+					g.addEdge(u.id, v)
+				}
 			})
 		})
 		logger
@@ -86,11 +90,62 @@ async function main() {
 		}
 		logger
 			.info(`K-core extracted (${g.order} nodes, ${g.size} edges).`);
-		const degreeMax = d3.max(g.nodes().map(nid => g.degree(nid)))
+		// Set node size
+		const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
 		g.nodes().forEach(nid => {
 			let n = g.getNodeAttributes(nid)
-			n.size = 4 + (28-4) * Math.pow(g.degree(nid)/degreeMax, 1.3)
+			n.size = 4 + ( (28-4) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
 		})
+	} catch (error) {
+		console.log("Error", error)
+		logger
+			.child({ context: {error:error.message} })
+			.error(`An error occurred during the building of the network`);
+	}
+
+	// Save nodes and edges as tables
+	const nodes = g.nodes().map(nid => {
+		let n = {...g.getNodeAttributes(nid)}
+		n.Id = nid
+		n.Label = n.label
+		delete n.label
+		return n
+	})
+	const nodesFile = `${thisFolder}/network_nodes.csv`
+	const nodesString = d3.csvFormat(nodes)
+	try {
+		fs.writeFileSync(nodesFile, nodesString)
+		logger
+			.child({ context: {nodesFile} })
+			.info('Nodes file saved successfully');
+	} catch(error) {
+		logger
+			.child({ context: {nodesFile, error} })
+			.error('The nodes file could not be saved');
+	}
+	const edges = g.edges().map(eid => {
+		let e = {...g.getEdgeAttributes(eid)}
+		e.Source = g.source(eid)
+		e.Target = g.target(eid)
+		e.Weight = e.weight
+		delete e.weight
+		e.Type = "undirected"
+		return e
+	})
+	const edgesFile = `${thisFolder}/network_edges.csv`
+	const edgesString = d3.csvFormat(edges)
+	try {
+		fs.writeFileSync(edgesFile, edgesString)
+		logger
+			.child({ context: {edgesFile} })
+			.info('Edges file saved successfully');
+	} catch(error) {
+		logger
+			.child({ context: {edgesFile, error} })
+			.error('The edges file could not be saved');
+	}
+
+	try {
 		// Layout
 		logger
 			.info(`Compute layout...`);
@@ -161,52 +216,11 @@ async function main() {
 		console.log("Error", error)
 		logger
 			.child({ context: {error:error.message} })
-			.error(`An error occurred during the building of the network`);
+			.error(`An error occurred during the layout of the network`);
 	}
 
-	// Save nodes and edges as tables
-	const nodes = g.nodes().map(nid => {
-		let n = {...g.getNodeAttributes(nid)}
-		n.Id = nid
-		n.Label = n.label
-		delete n.label
-		return n
-	})
-	const nodesFile = `${thisFolder}/network_nodes.csv`
-	const nodesString = d3.csvFormat(nodes)
-	try {
-		fs.writeFileSync(nodesFile, nodesString)
-		logger
-			.child({ context: {nodesFile} })
-			.info('Nodes file saved successfully');
-	} catch(error) {
-		logger
-			.child({ context: {nodesFile, error} })
-			.error('The nodes file could not be saved');
-	}
-	const edges = g.edges().map(eid => {
-		let e = {...g.getEdgeAttributes(eid)}
-		e.Source = g.source(eid)
-		e.Target = g.target(eid)
-		e.Weight = e.weight
-		delete e.weight
-		e.Type = "undirected"
-		return e
-	})
-	const edgesFile = `${thisFolder}/network_edges.csv`
-	const edgesString = d3.csvFormat(edges)
-	try {
-		fs.writeFileSync(edgesFile, edgesString)
-		logger
-			.child({ context: {edgesFile} })
-			.info('Edges file saved successfully');
-	} catch(error) {
-		logger
-			.child({ context: {edgesFile, error} })
-			.error('The edges file could not be saved');
-	}
 	// Save the network (no edges, it's too heavy, but they're in the edges file)
-	// g.clearEdges() // TODO: uncomment me to actually remove the edges
+	g.clearEdges() // TODO: uncomment me to actually remove the edges
 	const networkFile = `${thisFolder}/network.gexf`
 	let gexfString
 	try {

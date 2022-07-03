@@ -98,9 +98,12 @@ async function main() {
 				username: b.broadcaster_username,
 				groups:{},
 				resources:[],
-				cited:b.tweet_mentions,
+				cited:{},
 			}
 			userData.resources.push(b.resource_id)
+			JSON.parse(b.tweet_mentions).forEach(u2 => {
+				userData.cited[u2] = true
+			})
 
 			let bgroups = JSON.parse(b.resource_groups)
 			Object.keys(bgroups).forEach(g => {
@@ -123,13 +126,7 @@ async function main() {
 	// Index neighbors
 	try {
 		Object.values(userIndex).forEach(u => {
-			let cited = JSON.parse(u.cited)
-			u.cited = []
-			cited.forEach(d => {
-				if (userIndex[d]) {
-					u.cited.push(d)
-				}
-			})
+			u.cited = Object.keys(u.cited)
 		})
 		logger
 			.debug(`Users neighbors indexed`);
@@ -149,17 +146,20 @@ async function main() {
 				groupIndex[g] = true
 			})
 			return {
-				count: u.resources.length,
+				count_resources: u.resources.length,
+				count_neighbors: u.cited.length,
 				...u
 			}
 		})
-		users.sort(function(a,b){ return b.count - a.count })
+		users.sort(function(a,b){ return b.count_neighbors - a.count_neighbors })
 		users = users.slice(0, max_accounts)
 
 		// Flatten
 		users = users.map(u => {
-			u.resources_total = u.count
-			delete u.count
+			u.resources_total = u.count_resources
+			delete u.count_resources
+			u.interactions_total = u.count_neighbors
+			delete u.count_neighbors
 			let total = 0
 			Object.keys(groupIndex).forEach(g => {
 				let gCount = u.groups[g] || 0
@@ -192,7 +192,7 @@ async function main() {
 	}
 
 	// Save user list as CSV
-	const usersFile = `${thisFolder}/users_corpus_7days.csv`
+	const usersFile = `${thisFolder}/user_corpus_1month.csv`
 	const usersString = d3.csvFormat(users)
 	try {
 		fs.writeFileSync(usersFile, usersString)
