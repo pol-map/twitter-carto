@@ -37,7 +37,7 @@ const logger = createLogger({
   format: format.combine(format.timestamp(), format.json()),
   transports: [
   	new transports.Console(),
-  	new transports.File({ filename: `${thisFolder}/08_network.log` })
+  	new transports.File({ filename: `${thisFolder}/09_network_layout.log` })
   ],
 });
 
@@ -52,10 +52,11 @@ async function main() {
 
 	// Build network
 	let g
-	const k = 4 // k-core
+	const pmi_threshold = 0.1
+	const k = 3 // k-core
 	try {
 		let userIndex = {}
-		g = new Graph({type: "directed", allowSelfLoops: false});
+		g = new Graph();
 		users.forEach(u => {
 			let u2 = {...u, label:u.name}
 			userIndex[u.id] = true
@@ -67,17 +68,14 @@ async function main() {
 		users.forEach(u => {
 			const cited = JSON.parse(u.cited)
 			cited.forEach(v => {
-				if (userIndex[v] && u.id != v) {
+				if (userIndex[v]) {
 					g.addEdge(u.id, v)
 				}
 			})
 		})
-		g.edges().forEach(eid => {
-			g.setEdgeAttribute(eid, "weight", 1) // We omit duplicates
-		})
 		logger
 			.child({ context: {"nodes":g.order, "edges":g.size} })
-			.info(`Network built (${g.order} nodes, ${g.size} edges).`);
+			.info(`Network built (${g.order} nodes, ${g.size} edges). Edges below a PMI of ${pmi_threshold} have been omitted.`);
 
 		// Extract k-core
 		logger
@@ -96,7 +94,7 @@ async function main() {
 		const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
 		g.nodes().forEach(nid => {
 			let n = g.getNodeAttributes(nid)
-			n.size = 2 + ( (20-2) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
+			n.size = 4 + ( (28-4) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
 		})
 	} catch (error) {
 		console.log("Error", error)
@@ -129,8 +127,9 @@ async function main() {
 		let e = {...g.getEdgeAttributes(eid)}
 		e.Source = g.source(eid)
 		e.Target = g.target(eid)
+		e.Weight = e.weight
 		delete e.weight
-		e.Type = "Directed"
+		e.Type = "undirected"
 		return e
 	})
 	const edgesFile = `${thisFolder}/network_edges.csv`
@@ -144,6 +143,102 @@ async function main() {
 		logger
 			.child({ context: {edgesFile, error} })
 			.error('The edges file could not be saved');
+	}
+
+	try {
+		// Layout
+		logger
+			.info(`Compute layout...`);
+
+		// Applying a random layout before starting
+		g.nodes().forEach((nid,i) => {
+			// g.setNodeAttribute(nid, "x", i%20)
+			// g.setNodeAttribute(nid, "y", (i-i%20)/20)
+			g.setNodeAttribute(nid, "x", Math.random()*1000)
+			g.setNodeAttribute(nid, "y", Math.random()*1000)
+		})
+
+		// Applying FA2 (basis)
+		forceAtlas2.assign(g, {iterations: 1000, settings: {
+			linLogMode: false,
+			outboundAttractionDistribution: false,
+			adjustSizes: false,
+			edgeWeightInfluence: 0,
+			scalingRatio: 1,
+			strongGravityMode: true,
+			gravity: 0.005,
+			slowDown: 5,
+			barnesHutOptimize: true,
+			barnesHutTheta: 1.2,
+		}});
+		// Refine FA2
+		forceAtlas2.assign(g, {iterations: 50, settings: {
+			linLogMode: false,
+			outboundAttractionDistribution: false,
+			adjustSizes: false,
+			edgeWeightInfluence: 0,
+			scalingRatio: 1,
+			strongGravityMode: true,
+			gravity: 0.005,
+			slowDown: 10,
+			barnesHutOptimize: false,
+			barnesHutTheta: 1.2,
+		}});
+		noverlap.assign(g, {
+		  maxIterations: 500,
+		  settings: {
+		  	margin: 1,
+		    ratio: 1.1,
+		    speed:10,
+		  }
+		});
+		noverlap.assign(g, {
+		  maxIterations: 200,
+		  settings: {
+		  	margin: 1,
+		    ratio: 1.1,
+		    speed:5,
+		  }
+		});
+		noverlap.assign(g, {
+		  maxIterations: 100,
+		  settings: {
+		  	margin: 1,
+		    ratio: 1.1,
+		    speed:1,
+		  }
+		});
+
+		logger
+			.info(`Layout computed.`);
+
+	} catch (error) {
+		console.log("Error", error)
+		logger
+			.child({ context: {error:error.message} })
+			.error(`An error occurred during the layout of the network`);
+	}
+
+	// Save the network (no edges, it's too heavy, but they're in the edges file)
+	g.clearEdges() // TODO: uncomment me to actually remove the edges
+	const networkFile = `${thisFolder}/network.gexf`
+	let gexfString
+	try {
+		gexfString = gexf.write(g);
+	} catch(error) {
+		logger
+			.child({ context: {networkFile, error} })
+			.error('The network file could not be written into a string');
+	}
+	try {
+		fs.writeFileSync(networkFile, gexfString)
+		logger
+			.child({ context: {networkFile} })
+			.info('Network (no edges) saved successfully as a GEXF');
+	} catch(error) {
+		logger
+			.child({ context: {networkFile, error} })
+			.error('The network file could not be saved');
 	}
 
 	console.log("Done.")
