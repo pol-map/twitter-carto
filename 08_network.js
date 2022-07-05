@@ -92,12 +92,6 @@ async function main() {
 		}
 		logger
 			.info(`K-core extracted (${g.order} nodes, ${g.size} edges).`);
-		// Set node size
-		const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
-		g.nodes().forEach(nid => {
-			let n = g.getNodeAttributes(nid)
-			n.size = 2 + ( (20-2) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
-		})
 	} catch (error) {
 		console.log("Error", error)
 		logger

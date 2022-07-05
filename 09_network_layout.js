@@ -47,108 +47,51 @@ logger.info('Log level is '+logLevel);
 
 async function main() {
 	
-	const usersFile = `${thisFolder}/user_corpus_1month.csv`
-	let users = loadUsers(usersFile)
+	const nodesFile = `${thisFolder}/network_nodes.csv`
+	let nodes = loadFile(nodesFile, "Nodes")
+	const edgesFile = `${thisFolder}/network_edges.csv`
+	let edges = loadFile(edgesFile, "Edges")
 
 	// Build network
 	let g
-	const pmi_threshold = 0.1
-	const k = 3 // k-core
 	try {
 		let userIndex = {}
-		g = new Graph();
-		users.forEach(u => {
-			let u2 = {...u, label:u.name}
-			userIndex[u.id] = true
-			delete u2.id
-			delete u2.resources
-			delete u2.cited
-			g.addNode(u.id, u2)
+		g = new Graph({type: "directed", allowSelfLoops: false});
+		nodes.forEach(node => {
+			g.addNode(node.Id, node)
 		})
-		users.forEach(u => {
-			const cited = JSON.parse(u.cited)
-			cited.forEach(v => {
-				if (userIndex[v]) {
-					g.addEdge(u.id, v)
-				}
-			})
+		edges.forEach(edge => {
+			g.addEdge(edge.Source, edge.Target)
 		})
 		logger
 			.child({ context: {"nodes":g.order, "edges":g.size} })
-			.info(`Network built (${g.order} nodes, ${g.size} edges). Edges below a PMI of ${pmi_threshold} have been omitted.`);
+			.info(`Network loaded (${g.order} nodes, ${g.size} edges).`);
+	} catch (error) {
+		console.log("Error", error)
+		logger
+			.child({ context: {error:error.message} })
+			.error(`An error occurred during the loading of the network`);
+	}
 
-		// Extract k-core
-		logger
-			.info(`Extract k-core (k=${k})...`);
-		let nodeRemoved = true
-		while (nodeRemoved) {
-			let nodesToRemove = g.nodes().filter(nid => g.degree(nid)<k)
-			nodeRemoved = nodesToRemove.length > 0
-			nodesToRemove.forEach(nid => {
-				g.dropNode(nid)
-			})
-		}
-		logger
-			.info(`K-core extracted (${g.order} nodes, ${g.size} edges).`);
+	try {
 		// Set node size
 		const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
 		g.nodes().forEach(nid => {
 			let n = g.getNodeAttributes(nid)
-			n.size = 4 + ( (28-4) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
+			n.size = 2 + ( (20-2) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
 		})
 	} catch (error) {
 		console.log("Error", error)
 		logger
 			.child({ context: {error:error.message} })
-			.error(`An error occurred during the building of the network`);
+			.error(`An error occurred when setting node sizes`);
 	}
-
-	// Save nodes and edges as tables
-	const nodes = g.nodes().map(nid => {
-		let n = {...g.getNodeAttributes(nid)}
-		n.Id = nid
-		n.Label = n.label
-		delete n.label
-		return n
-	})
-	const nodesFile = `${thisFolder}/network_nodes.csv`
-	const nodesString = d3.csvFormat(nodes)
+	/// LAYOUT
+	const howManyLayoutSteps = 4
 	try {
-		fs.writeFileSync(nodesFile, nodesString)
+		// Initial positions
 		logger
-			.child({ context: {nodesFile} })
-			.info('Nodes file saved successfully');
-	} catch(error) {
-		logger
-			.child({ context: {nodesFile, error} })
-			.error('The nodes file could not be saved');
-	}
-	const edges = g.edges().map(eid => {
-		let e = {...g.getEdgeAttributes(eid)}
-		e.Source = g.source(eid)
-		e.Target = g.target(eid)
-		e.Weight = e.weight
-		delete e.weight
-		e.Type = "undirected"
-		return e
-	})
-	const edgesFile = `${thisFolder}/network_edges.csv`
-	const edgesString = d3.csvFormat(edges)
-	try {
-		fs.writeFileSync(edgesFile, edgesString)
-		logger
-			.child({ context: {edgesFile} })
-			.info('Edges file saved successfully');
-	} catch(error) {
-		logger
-			.child({ context: {edgesFile, error} })
-			.error('The edges file could not be saved');
-	}
-
-	try {
-		// Layout
-		logger
-			.info(`Compute layout...`);
+			.info(`Compute layout 1/${howManyLayoutSteps} - Initial positions...`);
 
 		// Applying a random layout before starting
 		g.nodes().forEach((nid,i) => {
@@ -157,6 +100,21 @@ async function main() {
 			g.setNodeAttribute(nid, "x", Math.random()*1000)
 			g.setNodeAttribute(nid, "y", Math.random()*1000)
 		})
+
+		logger
+			.info(`Layout 1/${howManyLayoutSteps} computed.`);
+
+	} catch (error) {
+		console.log("Error", error)
+		logger
+			.child({ context: {error:error.message} })
+			.error(`An error occurred during the layout (1/${howManyLayoutSteps}) of the network`);
+	}
+
+	try {
+		// Rough sketch
+		logger
+			.info(`Compute layout 2/${howManyLayoutSteps} - Rough sketch...`);
 
 		// Applying FA2 (basis)
 		forceAtlas2.assign(g, {iterations: 1000, settings: {
@@ -171,8 +129,24 @@ async function main() {
 			barnesHutOptimize: true,
 			barnesHutTheta: 1.2,
 		}});
+
+		logger
+			.info(`Layout 2/${howManyLayoutSteps} computed.`);
+
+	} catch (error) {
+		console.log("Error", error)
+		logger
+			.child({ context: {error:error.message} })
+			.error(`An error occurred during the layout (2/${howManyLayoutSteps}) of the network`);
+	}
+
+	try {
+		// Refine
+		logger
+			.info(`Compute layout 3/${howManyLayoutSteps} - Refine...`);
+
 		// Refine FA2
-		forceAtlas2.assign(g, {iterations: 50, settings: {
+		forceAtlas2.assign(g, {iterations: 100, settings: {
 			linLogMode: false,
 			outboundAttractionDistribution: false,
 			adjustSizes: false,
@@ -180,13 +154,31 @@ async function main() {
 			scalingRatio: 1,
 			strongGravityMode: true,
 			gravity: 0.005,
-			slowDown: 10,
-			barnesHutOptimize: false,
-			barnesHutTheta: 1.2,
+			slowDown: 25,
+			barnesHutOptimize: true,
+			barnesHutTheta: 0.5,
 		}});
+
+		logger
+			.info(`Layout 3/${howManyLayoutSteps} computed.`);
+
+	} catch (error) {
+		console.log("Error", error)
+		logger
+			.child({ context: {error:error.message} })
+			.error(`An error occurred during the layout (3/${howManyLayoutSteps}) of the network`);
+	}
+
+	try {
+		// Prevent node overlap
+		logger
+			.info(`Compute layout 4/${howManyLayoutSteps} - Prevent node overlap...`);
+
+		
 		noverlap.assign(g, {
 		  maxIterations: 500,
 		  settings: {
+		  	gridSize: 64,
 		  	margin: 1,
 		    ratio: 1.1,
 		    speed:10,
@@ -195,6 +187,7 @@ async function main() {
 		noverlap.assign(g, {
 		  maxIterations: 200,
 		  settings: {
+		  	gridSize: 64,
 		  	margin: 1,
 		    ratio: 1.1,
 		    speed:5,
@@ -203,6 +196,7 @@ async function main() {
 		noverlap.assign(g, {
 		  maxIterations: 100,
 		  settings: {
+		  	gridSize: 64,
 		  	margin: 1,
 		    ratio: 1.1,
 		    speed:1,
@@ -210,18 +204,36 @@ async function main() {
 		});
 
 		logger
-			.info(`Layout computed.`);
+			.info(`Layout 4/${howManyLayoutSteps} computed.`);
 
 	} catch (error) {
 		console.log("Error", error)
 		logger
 			.child({ context: {error:error.message} })
-			.error(`An error occurred during the layout of the network`);
+			.error(`An error occurred during the layout (4/${howManyLayoutSteps}) of the network`);
 	}
-
+	
+	// Save nodes and edges as tables
+	const nodes_spat = g.nodes().map(nid => {
+		let n = {...g.getNodeAttributes(nid)}
+		return n
+	})
+	const nodesSpatFile = `${thisFolder}/network_nodes_spat.csv`
+	const nodesString = d3.csvFormat(nodes)
+	try {
+		fs.writeFileSync(nodesSpatFile, nodesString)
+		logger
+			.child({ context: {nodesSpatFile} })
+			.info('Nodes file saved successfully');
+	} catch(error) {
+		logger
+			.child({ context: {nodesSpatFile, error} })
+			.error('The nodes file could not be saved');
+	}
+	
 	// Save the network (no edges, it's too heavy, but they're in the edges file)
-	g.clearEdges() // TODO: uncomment me to actually remove the edges
-	const networkFile = `${thisFolder}/network.gexf`
+	g.clearEdges()
+	const networkFile = `${thisFolder}/network_spat.gexf`
 	let gexfString
 	try {
 		gexfString = gexf.write(g);
@@ -241,12 +253,13 @@ async function main() {
 			.error('The network file could not be saved');
 	}
 
+	
 	console.log("Done.")
 }
 
 main();
 
-function loadUsers(filePath) {
+function loadFile(filePath, title) {
 	try {
 		// Load file as string
 		const csvString = fs.readFileSync(filePath, "utf8")
@@ -254,13 +267,13 @@ function loadUsers(filePath) {
 		const data = d3.csvParse(csvString);
 		logger
 			.child({ context: {filePath} })
-			.info('Users file loaded');
+			.info(`${title} file loaded`);
 		return data
 	} catch (error) {
 		console.log("Error", error)
 		logger
 			.child({ context: {filePath, error:error.message} })
-			.error('The users file could not be loaded');
+			.error(`The ${title} file could not be loaded`);
 	}
 }
 
