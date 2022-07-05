@@ -78,7 +78,7 @@ async function main() {
 		const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
 		g.nodes().forEach(nid => {
 			let n = g.getNodeAttributes(nid)
-			n.size = 2 + ( (20-2) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
+			n.size = 3 + ( (40-3) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
 		})
 	} catch (error) {
 		console.log("Error", error)
@@ -86,6 +86,7 @@ async function main() {
 			.child({ context: {error:error.message} })
 			.error(`An error occurred when setting node sizes`);
 	}
+
 	/// LAYOUT
 	const howManyLayoutSteps = 4
 	try {
@@ -174,7 +175,6 @@ async function main() {
 		logger
 			.info(`Compute layout 4/${howManyLayoutSteps} - Prevent node overlap...`);
 
-		
 		noverlap.assign(g, {
 		  maxIterations: 500,
 		  settings: {
@@ -216,6 +216,7 @@ async function main() {
 	// Save nodes and edges as tables
 	const nodes_spat = g.nodes().map(nid => {
 		let n = {...g.getNodeAttributes(nid)}
+		console.log(nid, n.size)
 		return n
 	})
 	const nodesSpatFile = `${thisFolder}/network_nodes_spat.csv`

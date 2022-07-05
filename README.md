@@ -26,7 +26,7 @@ Duplicate and rename ```default.env``` into ```.env``` and edit it to inform you
 6. For the resources the most cited by MPs in the last 7 days, it retrieves up to 1K users who also "broadcasted" that resource yesterday, i.e. either mentioned it in a reply, retweet or quote. We stop harvesting at 33K broadcasting, so that we get ~1M broadcastings monthly. Output files: ```broadcastings/[id]-[page].json``` (API responses) and ```broadcastings.csv``` for the aggregated result.
 7. It extracts the list of the users that broadcasted during the 30 days, capped at 100K and keeping those with that had the most interactions. It tracks the affiliation of the MPs that broadcasted the same resources, if any affiliation is present in the source file. When one affiliation accounts for two thirds or more of those alignments, it marks it as the main affiliation of that person. That just means that this person is particularly aligned with the themes broadcasted by the MPs of that group, regardless of whether or not they agree on a political or ideological level. For convenience, let us call this set of users "the corpus". Output file: ```user_corpus_1month.csv```
 8. It extracts the network of users that have at least 4 interactions (mentioning or being mentioned in broadcastings) with other users of the network. Output files: ```network_edges.csv``` and ```network_nodes.csv```.
-9. It applies a layout to the network.
+9. It applies a layout to the network, including node sizes. Output files: ```network_spat.gexf``` and ```network_nodes_spat.csv```.
 
 # In short
 
