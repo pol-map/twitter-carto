@@ -73,8 +73,8 @@ async function main() {
 			.error(`An error occurred during the loading of the network`);
 	}
 
+	// Set node size
 	try {
-		// Set node size
 		const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
 		g.nodes().forEach(nid => {
 			let n = g.getNodeAttributes(nid)
@@ -85,6 +85,54 @@ async function main() {
 		logger
 			.child({ context: {error:error.message} })
 			.error(`An error occurred when setting node sizes`);
+	}
+
+	// Set node colors
+	try {
+		const colorCode = {
+			"LFI": d3.color("#aa2400"),
+			"GDR": d3.color("#db3a5d"),
+			"SOC": d3.color("#e882bf"),
+			"ECO": d3.color("#2db24a"),
+			"LIOT": d3.color("#cacf2b"),
+			"REN": d3.color("#ffbc00"),
+			"MODEM": d3.color("#e28813"),
+			"HOR": d3.color("#3199aa"),
+			"LR": d3.color("#4747a0"),
+			"RN": d3.color("#604a45"),
+		}
+		const defaultColor = d3.color("#a4a4a4");
+		const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
+		g.nodes().forEach(nid => {
+			let n = g.getNodeAttributes(nid)
+			let l = 0
+			let a = 0
+			let b = 0
+			let total = 0
+			Object.keys(colorCode).forEach(k => {
+				const count = +n[`mp_align_${k}`]
+				if (count > 0) {
+					const lab = d3.lab(colorCode[k])
+					l += lab.l * count
+					a += lab.a * count
+					b += lab.b * count
+					total += count
+				}
+			})
+			if (total > 10) {
+				const lab = d3.lab(l/total, a/total, b/total)
+				n.color = lab.formatHex()
+				n.colored = "yes"
+			} else {
+				n.color = defaultColor.formatHex()
+				n.colored = "no"
+			}
+		})
+	} catch (error) {
+		console.log("Error", error)
+		logger
+			.child({ context: {error:error.message} })
+			.error(`An error occurred when setting node colors`);
 	}
 
 	/// LAYOUT
@@ -216,7 +264,6 @@ async function main() {
 	// Save nodes and edges as tables
 	const nodes_spat = g.nodes().map(nid => {
 		let n = {...g.getNodeAttributes(nid)}
-		console.log(nid, n.size)
 		return n
 	})
 	const nodesSpatFile = `${thisFolder}/network_nodes_spat.csv`
