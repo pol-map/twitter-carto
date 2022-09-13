@@ -4,145 +4,146 @@ import * as http from "http";
 import * as fs from "fs";
 import * as d3 from 'd3';
 
-const targetDate = new Date() // Now
-const year = targetDate.getFullYear()
-const month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-const datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-const thisFolder = `data/${year}/${month}/${datem}`
+export function update_mp_list(date) {
 
-// Logger
-// Inspiration: https://blog.appsignal.com/2021/09/01/best-practices-for-logging-in-nodejs.html
-const logLevels = {
-  fatal: 0,
-  error: 1,
-  warn: 2,
-  info: 3,
-  debug: 4,
-  trace: 5,
-};
+	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date))) 
+	const year = targetDate.getFullYear()
+	const month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+	const datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+	const thisFolder = `data/${year}/${month}/${datem}`
 
-const logLevel = "info"
+	// Logger
+	// Inspiration: https://blog.appsignal.com/2021/09/01/best-practices-for-logging-in-nodejs.html
+	const logLevels = {
+	  fatal: 0,
+	  error: 1,
+	  warn: 2,
+	  info: 3,
+	  debug: 4,
+	  trace: 5,
+	};
 
-const logger = createLogger({
-	level: logLevel,
-  levels: logLevels,
-  format: format.combine(format.timestamp(), format.json()),
-  transports: [
-  	new transports.Console(),
-  	new transports.File({ filename: `${thisFolder}/01_update_mp.log` }),
-  ],
-});
+	const logLevel = "info"
 
-logger.info('***** RUN SCRIPT ****');
-console.log("Log level is", logLevel)
-logger.info('Log level is '+logLevel);
+	const logger = createLogger({
+		level: logLevel,
+	  levels: logLevels,
+	  format: format.combine(format.timestamp(), format.json()),
+	  transports: [
+	  	new transports.Console(),
+	  	new transports.File({ filename: `${thisFolder}/01_update_mp.log` }),
+	  ],
+	});
 
-/**
- * Downloads file from remote HTTP[S] host and puts its contents to the
- * specified location.
- */
-async function download(url, filePath) {
-  const proto = !url.charAt(4).localeCompare('s') ? https : http;
+	logger.info('***** RUN SCRIPT ****');
+	console.log("Log level is", logLevel)
+	logger.info('Log level is '+logLevel);
 
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(filePath);
-    let fileInfo = null;
+	/**
+	 * Downloads file from remote HTTP[S] host and puts its contents to the
+	 * specified location.
+	 */
+	async function download(url, filePath) {
+	  const proto = !url.charAt(4).localeCompare('s') ? https : http;
 
-    const request = proto.get(url, response => {
-      if (response.statusCode !== 200) {
-        fs.unlink(filePath, () => {
-          reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
-        });
-        return;
-      }
+	  return new Promise((resolve, reject) => {
+	    const file = fs.createWriteStream(filePath);
+	    let fileInfo = null;
 
-      fileInfo = {
-        mime: response.headers['content-type'],
-        size: parseInt(response.headers['content-length'], 10),
-      };
+	    const request = proto.get(url, response => {
+	      if (response.statusCode !== 200) {
+	        fs.unlink(filePath, () => {
+	          reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
+	        });
+	        return;
+	      }
 
-      response.pipe(file);
-    });
+	      fileInfo = {
+	        mime: response.headers['content-type'],
+	        size: parseInt(response.headers['content-length'], 10),
+	      };
 
-    // The destination stream is ended by the time it's called
-    file.on('finish', () => resolve(fileInfo));
+	      response.pipe(file);
+	    });
 
-    request.on('error', err => {
-      fs.unlink(filePath, () => reject(err));
-    });
+	    // The destination stream is ended by the time it's called
+	    file.on('finish', () => resolve(fileInfo));
 
-    file.on('error', err => {
-      fs.unlink(filePath, () => reject(err));
-    });
+	    request.on('error', err => {
+	      fs.unlink(filePath, () => reject(err));
+	    });
 
-    request.end();
-  });
+	    file.on('error', err => {
+	      fs.unlink(filePath, () => reject(err));
+	    });
+
+	    request.end();
+	  });
+	}
+
+	const sourceFileURL = "https://www.nosdeputes.fr/deputes/csv"
+	// const sourceFileURL = "https://raw.githubusercontent.com/regardscitoyens/twitter-parlementaires/master/data/deputes.csv"
+	const sourceFileSave = `${thisFolder}/nosdeputes_source.csv`
+	const cleanFileSave = `${thisFolder}/twitter_handles.csv`
+
+	logger
+		.child({ context: {sourceFileURL, sourceFileSave} })
+		.debug('Download source file');
+
+	download(sourceFileURL, sourceFileSave)
+		.then(
+			result => {
+				logger
+					.child({ context: {sourceFileURL, sourceFileSave} })
+					.info('Source file downloaded');
+
+				// Process source into a simpler file format
+				logger
+					.child({ context: {sourceFileSave, cleanFileSave} })
+					.debug('Clean source file and save list of handles');
+				try {
+					// Load file as string
+					const csvString = fs.readFileSync(sourceFileSave, "utf8")
+					// Parse string and filter data
+					const cleanData = d3.dsvFormat(";").parse(csvString, (d) => {
+					  return {
+					    handle: d.twitter,
+					    name: d.nom,
+					    group: d.groupe_sigle || "Missing",
+					    group_long: d.parti_ratt_financier || "Missing"
+					  };
+					});
+					logger
+						.child({ context: {sourceFileSave} })
+						.info('Source file parsed');
+					// Format filtered data as a string
+					const outputCsvString = d3.csvFormat(cleanData.filter(d => d.handle.length>0))
+					// Write clean file
+					fs.writeFile(cleanFileSave, outputCsvString, error => {
+					  if (error) {
+							logger
+								.child({ context: {cleanFileSave, error} })
+								.error('The clean file could not be saved');
+					  } else {
+						  logger
+								.child({ context: {cleanFileSave} })
+								.info('Clean file saved successfully');	  	
+					  }
+					});
+				} catch (error) {
+					logger
+						.child({ context: {sourceFileSave, cleanFileSave, error} })
+						.error('The source file could not be parsed and saved');
+				}
+
+				console.log("Done.")
+			},
+	  	error => {
+				logger
+					.child({ context: {sourceFileURL, sourceFileSave, error} })
+					.error('Failed to download source file');
+
+				console.log("Done (failed).")
+	  	}
+		)
 }
-
-const sourceFileURL = "https://www.nosdeputes.fr/deputes/csv"
-// const sourceFileURL = "https://raw.githubusercontent.com/regardscitoyens/twitter-parlementaires/master/data/deputes.csv"
-const sourceFileSave = `${thisFolder}/nosdeputes_source.csv`
-const cleanFileSave = `${thisFolder}/twitter_handles.csv`
-
-logger
-	.child({ context: {sourceFileURL, sourceFileSave} })
-	.debug('Download source file');
-
-download(sourceFileURL, sourceFileSave)
-	.then(
-		result => {
-			logger
-				.child({ context: {sourceFileURL, sourceFileSave} })
-				.info('Source file downloaded');
-
-			// Process source into a simpler file format
-			logger
-				.child({ context: {sourceFileSave, cleanFileSave} })
-				.debug('Clean source file and save list of handles');
-			try {
-				// Load file as string
-				const csvString = fs.readFileSync(sourceFileSave, "utf8")
-				// Parse string and filter data
-				const cleanData = d3.dsvFormat(";").parse(csvString, (d) => {
-				  return {
-				    handle: d.twitter,
-				    name: d.nom,
-				    group: d.groupe_sigle || "Missing",
-				    group_long: d.parti_ratt_financier || "Missing"
-				  };
-				});
-				logger
-					.child({ context: {sourceFileSave} })
-					.info('Source file parsed');
-				// Format filtered data as a string
-				const outputCsvString = d3.csvFormat(cleanData.filter(d => d.handle.length>0))
-				// Write clean file
-				fs.writeFile(cleanFileSave, outputCsvString, error => {
-				  if (error) {
-						logger
-							.child({ context: {cleanFileSave, error} })
-							.error('The clean file could not be saved');
-				  } else {
-					  logger
-							.child({ context: {cleanFileSave} })
-							.info('Clean file saved successfully');	  	
-				  }
-				});
-			} catch (error) {
-				logger
-					.child({ context: {sourceFileSave, cleanFileSave, error} })
-					.error('The source file could not be parsed and saved');
-			}
-
-			console.log("Done.")
-		},
-  	error => {
-			logger
-				.child({ context: {sourceFileURL, sourceFileSave, error} })
-				.error('Failed to download source file');
-
-			console.log("Done (failed).")
-  	}
-	)
-
-
