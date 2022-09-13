@@ -4,7 +4,7 @@ import * as http from "http";
 import * as fs from "fs";
 import * as d3 from 'd3';
 
-export function update_mp_list(date) {
+export async function update_mp_list(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date))) 
 	const year = targetDate.getFullYear()
@@ -90,7 +90,7 @@ export function update_mp_list(date) {
 		.child({ context: {sourceFileURL, sourceFileSave} })
 		.debug('Download source file');
 
-	download(sourceFileURL, sourceFileSave)
+	return download(sourceFileURL, sourceFileSave)
 		.then(
 			result => {
 				logger
@@ -119,21 +119,23 @@ export function update_mp_list(date) {
 					// Format filtered data as a string
 					const outputCsvString = d3.csvFormat(cleanData.filter(d => d.handle.length>0))
 					// Write clean file
-					fs.writeFile(cleanFileSave, outputCsvString, error => {
-					  if (error) {
-							logger
-								.child({ context: {cleanFileSave, error} })
-								.error('The clean file could not be saved');
-					  } else {
-						  logger
-								.child({ context: {cleanFileSave} })
-								.info('Clean file saved successfully');	  	
-					  }
-					});
+					return fs.promises.writeFile(cleanFileSave, outputCsvString)
+						.then(result => {
+								logger
+									.child({ context: {cleanFileSave} })
+									.info('Clean file saved successfully');
+								return {success:true, msg:"Clean file saved successfully."}
+							}, error => {
+								logger
+									.child({ context: {cleanFileSave, error} })
+									.error('The clean file could not be saved');
+								return {success:false, msg:"The clean file could not be saved."}
+							})
 				} catch (error) {
 					logger
 						.child({ context: {sourceFileSave, cleanFileSave, error} })
 						.error('The source file could not be parsed and saved');
+					return {success:false, msg:"The source file could not be parsed and saved."}
 				}
 
 				console.log("Done.")
@@ -142,6 +144,7 @@ export function update_mp_list(date) {
 				logger
 					.child({ context: {sourceFileURL, sourceFileSave, error} })
 					.error('Failed to download source file');
+				return {success:false, msg:"Failed to download source file."}
 
 				console.log("Done (failed).")
 	  	}

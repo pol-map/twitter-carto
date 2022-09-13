@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export function aggregate_main_resources(date) {
+export async function aggregate_main_resources(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -63,6 +63,10 @@ export function aggregate_main_resources(date) {
 			logger
 				.child({ context: {users, error:error.message} })
 				.error(`An error occurred during the indexation of users`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the indexation of users.`}));
+				logger.end();
+		  });
 		}
 
 		// Load resources from today and previous days for one week
@@ -209,6 +213,10 @@ export function aggregate_main_resources(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the aggregation of resources`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the aggregation of resources.`}));
+				logger.end();
+		  });
 		}
 
 		// Save aggregated resources as CSV
@@ -219,16 +227,24 @@ export function aggregate_main_resources(date) {
 			logger
 				.child({ context: {resFile_agg} })
 				.info('Aggregated resources file saved successfully');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:true, msg:`Aggregated resources file saved successfully (${daysMissing} days missing).`}));
+				logger.end();
+		  });
 		} catch(error) {
 			logger
 				.child({ context: {resFile_agg, error} })
 				.error('The aggregated resources file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The aggregated resources file could not be saved.`}));
+				logger.end();
+		  });
 		}
 
 		console.log("Done.")
 	}
 
-	main();
+	return main();
 
 	function loadUsers(filePath) {
 		try {

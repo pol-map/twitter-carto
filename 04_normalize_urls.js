@@ -9,7 +9,7 @@ import { spawn } from "child_process";
 
 dotenv.config();
 
-export function normalize_urls(date) {
+export async function normalize_urls(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -60,6 +60,10 @@ export function normalize_urls(date) {
 			logger
 				.child({ context: {resolveSettings, error:error.message} })
 				.error('An error occurred during the resolving of resources URLs');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the resolving of resources URLs.`}));
+				logger.end();
+		  });
 		}
 		// Save resolved resources as CSV
 		const resFile_resolved = `${thisFolder}/resources_cited_by_mps_resolved.csv`
@@ -72,6 +76,10 @@ export function normalize_urls(date) {
 			logger
 				.child({ context: {resFile_resolved, error} })
 				.error('The resolved resources file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The resolved resources file could not be saved.`}));
+				logger.end();
+		  });
 		}
 
 		// Second, we parse the resolved URLs (to normalize them)
@@ -87,6 +95,10 @@ export function normalize_urls(date) {
 			logger
 				.child({ context: {parsedSettings, error:error.message} })
 				.error('An error occurred during Minet\'s parsing of resources URLs');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during Minet's parsing of resources URLs.`}));
+				logger.end();
+		  });
 		}
 		// Save resolved resources as CSV
 		const resFile_parsed = `${thisFolder}/resources_cited_by_mps_parsed.csv`
@@ -99,6 +111,10 @@ export function normalize_urls(date) {
 			logger
 				.child({ context: {resFile_parsed, error} })
 				.error('The url-parsed resources file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The url-parsed resources file could not be saved.`}));
+				logger.end();
+			})
 		}
 
 		// Third, we load the file, we slightly fix it, and we re-save it
@@ -136,16 +152,24 @@ export function normalize_urls(date) {
 			logger
 				.child({ context: {resFile_norm} })
 				.info('Normalized resources file saved successfully');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:true, msg:`${resourcesNormalized.length} resources normalized and saved successfully.`}));
+				logger.end();
+			})
 		} catch(error) {
 			logger
 				.child({ context: {resFile_norm, error} })
 				.error('The normalized resources file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The normalized resources file could not be saved.`}));
+				logger.end();
+			})
 		}
 
 		console.log("Done.")
 	}
 
-	main();
+	return main();
 
 	function loadResources(filePath) {
 		try {

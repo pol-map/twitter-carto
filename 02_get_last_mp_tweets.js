@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export function get_last_mp_tweets(date) {
+export async function get_last_mp_tweets(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -48,6 +48,7 @@ export function get_last_mp_tweets(date) {
 
 	async function main() {
 		let handleList = loadHandles(handlesFile)
+		let tweetsFilesSavecSuccessfully = 0;
 
 		// Check that the handles are valid (else, the Twitter API will reject them)
 		const handleRegex = /^[A-Za-z0-9_]{1,15}$/
@@ -88,6 +89,7 @@ export function get_last_mp_tweets(date) {
 				logger
 					.child({ context: {error:error.message} })
 					.error('The user data retrieved from Twitter could not be reconciled with the original data');
+				return {success:false, msg:"The user data retrieved from Twitter could not be reconciled with the original data."}
 			}
 
 			logger
@@ -97,17 +99,17 @@ export function get_last_mp_tweets(date) {
 			// Save retrieved user data
 			const usersFile = `${thisFolder}/twitter_valid_users.csv`
 			const usersCsvString = d3.csvFormat(users)
-			fs.writeFile(usersFile, usersCsvString, error => {
-			  if (error) {
-					logger
-						.child({ context: {usersFile, error} })
-						.error('The valid users file could not be saved');
-			  } else {
-				  logger
-						.child({ context: {usersFile} })
-						.info('Valid users file saved successfully');	  	
-			  }
-			});
+			try {
+				fs.writeFileSync(usersFile, usersCsvString)
+				logger
+					.child({ context: {usersFile} })
+					.info('Valid users file saved successfully');
+			} catch(error) {
+				logger
+					.child({ context: {usersFile, error} })
+					.error('The valid users file could not be saved');
+				return {success:false, msg:"The valid users file could not be saved."}
+			}
 
 		  // For each user, load yesterday's tweets
 		  for (let i in users) {
@@ -120,17 +122,17 @@ export function get_last_mp_tweets(date) {
 				}
 		  	const tweetsFile = `${tweetsDir}/${id}.json`
 				const tweetsString = JSON.stringify(tweetData)
-				fs.writeFile(tweetsFile, tweetsString, error => {
-				  if (error) {
-						logger
-							.child({ context: {id, tweetsFile, error} })
-							.error(`The tweets file for user ${id} could not be saved`);
-				  } else {
-					  logger
-							.child({ context: {id, tweetsFile} })
-							.debug('Tweets file saved successfully');	  	
-				  }
-				});
+				try {
+					fs.writeFileSync(tweetsFile, tweetsString)
+					logger
+						.child({ context: {id, tweetsFile} })
+						.debug('Tweets file saved successfully');
+						tweetsFilesSavecSuccessfully++
+				} catch(error) {
+					logger
+						.child({ context: {id, tweetsFile, error} })
+						.error(`The tweets file for user ${id} could not be saved`);
+				}
 		  }
 		  logger
 				.info('Yesterday\'s tweets for all valid handles retrieved.');
@@ -138,11 +140,13 @@ export function get_last_mp_tweets(date) {
 			logger
 				.child({ context: {handleList} })
 				.error('No handles to fetch');
+			return {success:false, msg:"No handles to fetch."}
 		}
 		console.log("Done.")
+		return {success:true, msg:`${tweetsFilesSavecSuccessfully} tweet files saved successfully.`}
 	}
 
-	main();
+	return main();
 
 	function loadHandles(filePath) {
 		try {

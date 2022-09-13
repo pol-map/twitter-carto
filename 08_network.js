@@ -12,7 +12,7 @@ import noverlap from 'graphology-layout-noverlap';
 
 dotenv.config();
 
-export function network(date) {
+export async function network(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -99,6 +99,10 @@ export function network(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the building of the network`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the building of the network.`}));
+				logger.end();
+		  });
 		}
 
 		// Save nodes and edges as tables
@@ -120,6 +124,10 @@ export function network(date) {
 			logger
 				.child({ context: {nodesFile, error} })
 				.error('The nodes file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The nodes file could not be saved.`}));
+				logger.end();
+		  });
 		}
 		const edges = g.edges().map(eid => {
 			let e = {...g.getEdgeAttributes(eid)}
@@ -136,16 +144,24 @@ export function network(date) {
 			logger
 				.child({ context: {edgesFile} })
 				.info('Edges file saved successfully');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:true, msg:`${g.order} nodes and ${g.size} edges saved successfully.`}));
+				logger.end();
+		  });
 		} catch(error) {
 			logger
 				.child({ context: {edgesFile, error} })
 				.error('The edges file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The edges file could not be saved.`}));
+				logger.end();
+		  });
 		}
 
 		console.log("Done.")
 	}
 
-	main();
+	return main();
 
 	function loadUsers(filePath) {
 		try {

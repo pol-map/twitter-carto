@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export function build_corpus(date) {
+export async function build_corpus(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -123,6 +123,10 @@ export function build_corpus(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the indexation of users`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the indexation of users.`}));
+				logger.end();
+		  });
 		}
 
 		// Index neighbors
@@ -137,6 +141,10 @@ export function build_corpus(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the indexation of user neighbors`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the indexation of user neighbors.`}));
+				logger.end();
+		  });
 		}
 
 		// Flatten, sort and truncate the list if necessary
@@ -191,6 +199,10 @@ export function build_corpus(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the processing of users list`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the processing of users list.`}));
+				logger.end();
+		  });
 		}
 
 		// Save user list as CSV
@@ -201,14 +213,22 @@ export function build_corpus(date) {
 			logger
 				.child({ context: {usersFile} })
 				.info('Users file saved successfully');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:true, msg:`${users.length} users saved successfully (${daysMissing} days missing).`}));
+				logger.end();
+		  });
 		} catch(error) {
 			logger
 				.child({ context: {usersFile, error} })
 				.error('The users file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The users file could not be saved.`}));
+				logger.end();
+		  });
 		}
 
 		console.log("Done.")
 	}
 
-	main();
+	return main();
 }

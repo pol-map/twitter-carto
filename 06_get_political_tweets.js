@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export function get_political_tweets(date) {
+export async function get_political_tweets(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -96,6 +96,10 @@ export function get_political_tweets(date) {
 						logger
 							.child({ context: {res, page, fileName, error:error.message} })
 							.error(`JSON file read error. The data could not be recovered.`);
+						return new Promise((resolve, reject) => {
+							logger.once('finish', () => resolve({success:false, msg:`JSON file read error. The data could not be recovered.`}));
+							logger.end();
+					  });
 					}
 					if (tweetsResponseRaw) {
 						try {
@@ -151,18 +155,16 @@ export function get_political_tweets(date) {
 					tweetsResponse = await getSearchQueryTweets(settings, pageToken)
 					// Save response
 					const tweetsResponseString = JSON.stringify(tweetsResponse)
-					fs.writeFile(fileName, tweetsResponseString, error => {
-					  if (error) {
-							logger
-								.child({ context: {res, page, fileName, error} })
-								.error(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} could not be saved`);
-					  } else {
-						  logger
-								.child({ context: {res, page, fileName} })
-								.debug(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} was saved successfully`);
-					  }
-					});
-
+					try {
+						fs.writeFileSync(fileName, tweetsResponseString)
+					  logger
+							.child({ context: {res, page, fileName} })
+							.debug(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} was saved successfully`);
+					} catch(error) {
+						logger
+							.child({ context: {res, page, fileName, error} })
+							.error(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} could not be saved`);						
+					}
 				}
 				// Process the results
 				if (tweetsResponse && tweetsResponse.data && tweetsResponse.data.length > 0) {
@@ -241,16 +243,24 @@ export function get_political_tweets(date) {
 			logger
 				.child({ context: {broadcastingsFile} })
 				.info('Broadcastings file saved successfully');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:true, msg:`${broadcastings.length} broadcastings saved successfully.`}));
+				logger.end();
+		  });
 		} catch(error) {
 			logger
 				.child({ context: {broadcastingsFile, error} })
 				.error('The broadcastings file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The broadcastings file could not be saved.`}));
+				logger.end();
+		  });
 		}
 
 		console.log("Done.")
 	}
 
-	main();
+	return main();
 
 	function loadResources(filePath) {
 		try {

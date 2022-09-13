@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export function extract_cited_resources(date) {
+export async function extract_cited_resources(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -168,28 +168,39 @@ export function extract_cited_resources(date) {
 			// Format filtered data as a string
 			const resCsvString = d3.csvFormat(resources)
 			// Write clean file
-			fs.writeFile(resFile, resCsvString, error => {
-			  if (error) {
-					logger
-						.child({ context: {resFile, error} })
-						.error('The resources file could not be saved');
-			  } else {
-				  logger
-						.child({ context: {resFile} })
-						.info('Resources file saved successfully');	  	
-			  }
-			});
+			try {
+				fs.writeFileSync(resFile, resCsvString)
+				logger
+					.child({ context: {resFile} })
+					.info('Resources file saved successfully');
+				return new Promise((resolve, reject) => {
+					logger.once('finish', () => resolve({success:true, msg:`${resources.length} resources saved successfully.`}));
+					logger.end();
+			  });
+			} catch(error) {
+				logger
+					.child({ context: {resFile, error} })
+					.error('The resources file could not be saved');
+				return new Promise((resolve, reject) => {
+					logger.once('finish', () => resolve({success:false, msg:"The resources file could not be saved."}));
+					logger.end();
+			  });
+			}
 		} catch (error) {
 			console.log("Error", error)
 			logger
 				.child({ context: {users, error:error.message} })
 				.error('An error occurred during the extraction of resources cited by MPs');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:"An error occurred during the extraction of resources cited by MPs."}));
+				logger.end();
+		  });
 		}
 
 		console.log("Done.")
 	}
 
-	main();
+	return main();
 
 	function loadUsers(filePath) {
 		try {

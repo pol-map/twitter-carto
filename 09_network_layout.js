@@ -12,7 +12,7 @@ import noverlap from 'graphology-layout-noverlap';
 
 dotenv.config();
 
-export function network_layout(date) {
+export async function network_layout(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -160,6 +160,10 @@ export function network_layout(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the layout (1/${howManyLayoutSteps}) of the network`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (1/${howManyLayoutSteps}) of the network.`}));
+				logger.end();
+		  });
 		}
 
 		try {
@@ -189,6 +193,10 @@ export function network_layout(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the layout (2/${howManyLayoutSteps}) of the network`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (2/${howManyLayoutSteps}) of the network.`}));
+				logger.end();
+		  });
 		}
 
 		try {
@@ -218,6 +226,10 @@ export function network_layout(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the layout (3/${howManyLayoutSteps}) of the network`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (3/${howManyLayoutSteps}) of the network.`}));
+				logger.end();
+		  });
 		}
 
 		try {
@@ -261,6 +273,10 @@ export function network_layout(date) {
 			logger
 				.child({ context: {error:error.message} })
 				.error(`An error occurred during the layout (4/${howManyLayoutSteps}) of the network`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (4/${howManyLayoutSteps}) of the network.`}));
+				logger.end();
+		  });
 		}
 		
 		// Save nodes and edges as tables
@@ -279,6 +295,10 @@ export function network_layout(date) {
 			logger
 				.child({ context: {nodesSpatFile, error} })
 				.error('The nodes file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The nodes file could not be saved.`}));
+				logger.end();
+		  });
 		}
 		
 		// Save the network (no edges, it's too heavy, but they're in the edges file)
@@ -297,17 +317,25 @@ export function network_layout(date) {
 			logger
 				.child({ context: {networkFile} })
 				.info('Network (no edges) saved successfully as a GEXF');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:true, msg:`Network (no edges) saved successfully as a GEXF.`}));
+				logger.end();
+		  });
 		} catch(error) {
 			logger
 				.child({ context: {networkFile, error} })
 				.error('The network file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The network file could not be saved.`}));
+				logger.end();
+		  });
 		}
 
 		
 		console.log("Done.")
 	}
 
-	main();
+	return main();
 
 	function loadFile(filePath, title) {
 		try {
