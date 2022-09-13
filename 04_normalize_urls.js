@@ -9,10 +9,10 @@ import { spawn } from "child_process";
 
 dotenv.config();
 
-const now = new Date()
-const year = now.getFullYear()
-const month = (1+now.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-const datem = (now.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+const targetDate = new Date() // Now
+const year = targetDate.getFullYear()
+const month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+const datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 const thisFolder = `data/${year}/${month}/${datem}`
 
 // Logger

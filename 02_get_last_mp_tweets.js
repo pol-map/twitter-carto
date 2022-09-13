@@ -8,10 +8,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const now = new Date()
-const year = now.getFullYear()
-const month = (1+now.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-const datem = (now.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+const targetDate = new Date() // Now
+const year = targetDate.getFullYear()
+const month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+const datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 const thisFolder = `data/${year}/${month}/${datem}`
 
 // Logger
@@ -223,8 +223,8 @@ async function retrieveUserIds(handleList) {
 }
 
 async function getYesterdaysTweets(id) {
-	let yesterday = new Date(now.getTime());
-	yesterday.setDate(now.getDate() - 1);
+	let yesterday = new Date(targetDate.getTime());
+	yesterday.setDate(targetDate.getDate() - 1);
 	const yyear = yesterday.getFullYear()
 	const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 	const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})

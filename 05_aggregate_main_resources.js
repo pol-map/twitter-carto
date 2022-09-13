@@ -8,10 +8,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const now = new Date()
-const year = now.getFullYear()
-const month = (1+now.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-const datem = (now.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+const targetDate = new Date() // Now
+const year = targetDate.getFullYear()
+const month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+const datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 const thisFolder = `data/${year}/${month}/${datem}`
 
 // Logger
@@ -67,8 +67,8 @@ async function main() {
 	let resources = []
 	let daysMissing = 0
 	for (let offset = 0; offset >= -6; offset--) {
-		let day = new Date(now.getTime());
-		day.setDate(now.getDate() + offset);
+		let day = new Date(targetDate.getTime());
+		day.setDate(targetDate.getDate() + offset);
 		let dyear = day.getFullYear()
 		let dmonth = (1+day.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 		let ddatem = (day.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
