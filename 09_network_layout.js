@@ -108,16 +108,18 @@ export async function network_layout(date) {
 		// Set node colors
 		try {
 			const colorCode = {
-				"LFI": d3.color("#aa2400"),
-				"GDR": d3.color("#db3a5d"),
-				"SOC": d3.color("#e882bf"),
-				"ECO": d3.color("#2db24a"),
-				"LIOT": d3.color("#cacf2b"),
-				"REN": d3.color("#ffbc00"),
-				"MODEM": d3.color("#e28813"),
-				"HOR": d3.color("#3199aa"),
-				"LR": d3.color("#4747a0"),
-				"RN": d3.color("#604a45"),
+				"LFI": d3.color("#aa2400"), // Dark red
+				"GDR": d3.color("#db3a5d"), // Dark red-pink
+				"SOC": d3.color("#e882bf"), // Old pink
+				"ECO": d3.color("#2db24a"), // Green
+				"LIOT": d3.color("#cacf2b"), // Yellow (greenish)
+				"REN": d3.color("#ffaf00"), // Orange
+				"MODEM": d3.color("#e28813"), // Dark orange
+				"HOR": d3.color("#3199aa"), // Teal
+				"LR": d3.color("#4747a0"), // Blue
+				"RN": d3.color("#604a45"), // Brown
+				// "NI": d3.color("#808000"), // Olive (dark yellow)
+				"NI": d3.color("#9d9d9d"), // Grey
 			}
 			const defaultColor = d3.color("#a4a4a4");
 			const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
@@ -127,23 +129,35 @@ export async function network_layout(date) {
 				let a = 0
 				let b = 0
 				let total = 0
-				Object.keys(colorCode).forEach(k => {
-					const count = +n[`mp_align_${k}`]
-					if (count > 0) {
-						const lab = d3.lab(colorCode[k])
-						l += lab.l * count
-						a += lab.a * count
-						b += lab.b * count
-						total += count
+				if (n.mp_group == "None") {
+					Object.keys(colorCode).forEach(k => {
+						const count = +n[`mp_align_${k}`]
+						if (count > 0) {
+							const lab = d3.lab(colorCode[k])
+							l += lab.l * count
+							a += lab.a * count
+							b += lab.b * count
+							total += count
+						}
+					})
+					if (total > 10) {
+						const lab = d3.lab(l/total, a/total, b/total)
+						n.color = lab.formatHex()
+						n.colored = "yes"
+					} else {
+						n.color = defaultColor.formatHex()
+						n.colored = "no"
 					}
-				})
-				if (total > 10) {
-					const lab = d3.lab(l/total, a/total, b/total)
-					n.color = lab.formatHex()
-					n.colored = "yes"
 				} else {
-					n.color = defaultColor.formatHex()
-					n.colored = "no"
+					let color = colorCode[n.mp_group]
+					if (color === undefined) {
+						color = defaultColor
+						logger
+							.child({ context: {node:n} })
+							.error(`The group of node ${n.Id} (${n.username}), namely "${n.mp_group}", is unknown (no color code).`);
+					}
+					n.color = color.formatHex()
+					n.colored = "yes"
 				}
 			})
 		} catch (error) {
