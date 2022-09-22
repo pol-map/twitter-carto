@@ -53,13 +53,29 @@ export async function network_layout(date) {
 		let nodes = loadFile(nodesFile, "Nodes")
 		const edgesFile = `${thisFolder}/network_edges.csv`
 		let edges = loadFile(edgesFile, "Edges")
+		// We load the Twitter valid users to force their political affiliation, if any
+		const usersFile = `${thisFolder}/twitter_valid_users.csv`
+		let users = loadFile(usersFile, "Twitter valid users")
+
+		// Build user index
+		userIndex = {}
+		for (let i = 0; i < users.length; i++) {
+			let user = users[i]
+			userIndex[user.handle] = user.group
+		}
 
 		// Build network
 		let g
 		try {
-			let userIndex = {}
 			g = new Graph({type: "directed", allowSelfLoops: false});
 			nodes.forEach(node => {
+				let group = userIndex[node.username]
+				if (group === undefined) {
+					node.mp_group = "None"
+				} else {
+					node.mp_group = group
+					node.main_group = group					
+				}
 				g.addNode(node.Id, node)
 			})
 			edges.forEach(edge => {
@@ -238,7 +254,7 @@ export async function network_layout(date) {
 				.info(`Compute layout 4/${howManyLayoutSteps} - Prevent node overlap...`);
 
 			noverlap.assign(g, {
-			  maxIterations: 500,
+			  maxIterations: 200,
 			  settings: {
 			  	gridSize: 64,
 			  	margin: 1,
@@ -247,7 +263,7 @@ export async function network_layout(date) {
 			  }
 			});
 			noverlap.assign(g, {
-			  maxIterations: 200,
+			  maxIterations: 100,
 			  settings: {
 			  	gridSize: 64,
 			  	margin: 1,
@@ -256,7 +272,7 @@ export async function network_layout(date) {
 			  }
 			});
 			noverlap.assign(g, {
-			  maxIterations: 100,
+			  maxIterations: 50,
 			  settings: {
 			  	gridSize: 64,
 			  	margin: 1,
