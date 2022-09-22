@@ -9,6 +9,7 @@ import Graph from "graphology";
 import gexf from "graphology-gexf";
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
+import {largestConnectedComponentSubgraph} from 'graphology-components';
 
 dotenv.config();
 
@@ -94,6 +95,12 @@ export async function network(date) {
 			}
 			logger
 				.info(`K-core extracted (${g.order} nodes, ${g.size} edges).`);
+
+			// Get the largest component
+			g = largestConnectedComponentSubgraph(g);
+			logger
+				.info(`Largest connected component selected (${g.order} nodes, ${g.size} edges).`);
+
 		} catch (error) {
 			console.log("Error", error)
 			logger

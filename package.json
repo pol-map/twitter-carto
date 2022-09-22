@@ -4,21 +4,22 @@
   "description": "Mapping Twitter landscapes with networks",
   "type": "module",
   "dependencies": {
-    "canvas": "^2.9.1",
+    "canvas": "^2.10.1",
     "csv-parser": "^3.0.0",
     "d3": "^6.7.0",
     "d3-contour": "^2.0.0",
     "dom-parser": "^0.1.6",
-    "dotenv": "^16.0.1",
+    "dotenv": "^16.0.2",
     "fs": "0.0.1-security",
-    "graphology": "^0.19.3",
+    "graphology": "^0.25.0",
+    "graphology-components": "^1.5.4",
     "graphology-gexf": "^0.10.2",
     "graphology-layout-forceatlas2": "^0.9.2",
     "graphology-layout-noverlap": "^0.4.2",
     "jsdom": "^16.7.0",
     "sharp": "^0.30.7",
-    "twitter-api-sdk": "^1.0.9",
-    "winston": "^3.7.2"
+    "twitter-api-sdk": "^1.1.0",
+    "winston": "^3.8.2"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
