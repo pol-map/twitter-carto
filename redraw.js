@@ -39,7 +39,7 @@ const redraw = function(){
 			if (endDate-date >= 0) {
 				return redraw()
 			} else {
-				console.log("\n\n# DONE. ###############################`)")
+				console.log("\n\n# DONE. ###############################")
 			}
 		})
 }
