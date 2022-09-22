@@ -58,7 +58,7 @@ export async function network_layout(date) {
 		let users = loadFile(usersFile, "Twitter valid users")
 
 		// Build user index
-		userIndex = {}
+		let userIndex = {}
 		for (let i = 0; i < users.length; i++) {
 			let user = users[i]
 			userIndex[user.handle] = user.group
