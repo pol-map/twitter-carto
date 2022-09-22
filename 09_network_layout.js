@@ -20,6 +20,14 @@ export async function network_layout(date) {
 	const datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 	const thisFolder = `data/${year}/${month}/${datem}`
 
+	// We'll need yesterday's folder
+	let yesterday = new Date(targetDate.getTime());
+	yesterday.setDate(targetDate.getDate() - 1);
+	const yyear = yesterday.getFullYear()
+	const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+	const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+	const yesterdaysFolder = `data/${yyear}/${ymonth}/${ydatem}`
+
 	// Logger
 	// Inspiration: https://blog.appsignal.com/2021/09/01/best-practices-for-logging-in-nodejs.html
 	const logLevels = {
@@ -57,11 +65,28 @@ export async function network_layout(date) {
 		const usersFile = `${thisFolder}/twitter_valid_users.csv`
 		let users = loadFile(usersFile, "Twitter valid users")
 
+		// Let's also try to load yesterday's network
+		const ySpatNodesFile = `${yesterdaysFolder}/network_nodes_spat.csv`
+		let yNodes = []
+		try {
+			yNodes = loadFile(ySpatNodesFile, "network_nodes_spat (from the day before)")
+		} catch(e) {
+			logger
+				.warn(`Yesterday's spatialized network file could not be found (not a big deal): ${ySpatNodesFile}`);
+		}
+
 		// Build user index
 		let userIndex = {}
 		for (let i = 0; i < users.length; i++) {
 			let user = users[i]
 			userIndex[user.handle] = user.group
+		}
+
+		// Build yesterday's nodes coordinates index
+		let ynIndex = {}
+		for (let i = 0; i < yNodes.length; i++) {
+			let n = yNodes[i]
+			ynIndex[n.Id] = n
 		}
 
 		// Build network
@@ -175,11 +200,21 @@ export async function network_layout(date) {
 				.info(`Compute layout 1/${howManyLayoutSteps} - Initial positions...`);
 
 			// Applying a random layout before starting
+			const spreading = 10000
 			g.nodes().forEach((nid,i) => {
 				// g.setNodeAttribute(nid, "x", i%20)
 				// g.setNodeAttribute(nid, "y", (i-i%20)/20)
-				g.setNodeAttribute(nid, "x", Math.random()*1000)
-				g.setNodeAttribute(nid, "y", Math.random()*1000)
+				g.setNodeAttribute(nid, "x", (Math.random()-0.5)*spreading)
+				g.setNodeAttribute(nid, "y", (Math.random()-0.5)*spreading)
+			})
+
+			// If the node already existed yesterday, use yesterday's coordinates.
+			g.nodes().forEach((nid,i) => {
+				const yn = ynIndex[nid]
+				if (yn) {
+					g.setNodeAttribute(nid, "x", yn.x)
+					g.setNodeAttribute(nid, "y", yn.y)
+				}
 			})
 
 			logger
