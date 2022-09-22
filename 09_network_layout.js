@@ -143,7 +143,6 @@ export async function network_layout(date) {
 				"HOR": d3.color("#3199aa"), // Teal
 				"LR": d3.color("#4747a0"), // Blue
 				"RN": d3.color("#604a45"), // Brown
-				// "NI": d3.color("#808000"), // Olive (dark yellow)
 				"NI": d3.color("#9d9d9d"), // Grey
 			}
 			const defaultColor = d3.color("#a4a4a4");
@@ -193,7 +192,7 @@ export async function network_layout(date) {
 		}
 
 		/// LAYOUT
-		const howManyLayoutSteps = 4
+		const howManyLayoutSteps = 5
 		try {
 			// Initial positions
 			logger
@@ -340,6 +339,114 @@ export async function network_layout(date) {
 				.error(`An error occurred during the layout (4/${howManyLayoutSteps}) of the network`);
 			return new Promise((resolve, reject) => {
 				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (4/${howManyLayoutSteps}) of the network.`}));
+				logger.end();
+		  });
+		}
+
+		try {
+			// Calibrate according to political axes
+			logger
+				.info(`Compute layout 5/${howManyLayoutSteps} - Rotate and center...`);
+
+			// First of all, let's compute barycenters:
+			// Everything, the left, the right, and the center.
+			const blockCode = {
+				"LFI": "left",
+				"GDR": "left",
+				"SOC": "left",
+				"ECO": "left",
+				"LIOT": "",
+				"REN": "center",
+				"MODEM": "center",
+				"HOR": "center",
+				"LR": "right",
+				"RN": "right",
+				"NI": "",
+			}
+
+			// First, let's center on zero.
+			let everything = {x:0, y:0, count:0}
+			g.nodes().forEach((nid,i) => {
+				const n = g.getNodeAttributes(nid)
+				everything.count++
+				everything.x += +n.x
+				everything.y += +n.y
+			})
+			everything.x /= everything.count
+			everything.y /= everything.count
+			g.nodes().forEach((nid,i) => {
+				const n = g.getNodeAttributes(nid)
+				n.x -= everything.x
+				n.y -= everything.y
+			})
+
+			// Then, let's rotate so that the left is on the left and the right on the right.
+			let left = {x:0, y:0, count:0}
+			let right = {x:0, y:0, count:0}
+			g.nodes().forEach((nid,i) => {
+				const n = g.getNodeAttributes(nid)
+				// We only use the official affiliations of MPs.
+				if (n.mp_group != "None") {
+					const block = blockCode[n.mp_group]
+					if (block == "left") {
+						left.count++
+						left.x += +n.x
+						left.y += +n.y
+					} else if (block == "right") {
+						right.count++
+						right.x += +n.x
+						right.y += +n.y
+					}
+				}
+			})
+			left.x /= left.count
+			left.y /= left.count
+			right.x /= right.count
+			right.y /= right.count
+			const angle = Math.atan2(right.y-left.y, right.x-left.x)
+			g.nodes().forEach((nid,i) => {
+				const n = g.getNodeAttributes(nid)
+				let a = Math.atan2(+n.y, +n.x)
+				let d = Math.sqrt(Math.pow(+n.x,2) + Math.pow(+n.y,2))
+				a -= angle
+				n.x = d*Math.cos(a)
+				n.y = d*Math.sin(a)
+			})
+
+			// And finally, let's ensure the center is on top.
+			let center = {x:0, y:0, count:0}
+			g.nodes().forEach((nid,i) => {
+				const n = g.getNodeAttributes(nid)
+				// We only use the official affiliations of MPs.
+				if (n.mp_group != "None") {
+					const block = blockCode[n.mp_group]
+					if (block == "center") {
+						center.count++
+						center.x += +n.x
+						center.y += +n.y
+					}
+				}
+			})
+			center.x /= center.count
+			center.y /= center.count
+			const flip = center.y < 0
+			if (flip) {
+				g.nodes().forEach((nid,i) => {
+					const n = g.getNodeAttributes(nid)
+					n.y = -n.y
+				})
+			}
+
+			logger
+				.info(`Layout 5/${howManyLayoutSteps} computed.`);
+
+		} catch (error) {
+			console.log("Error", error)
+			logger
+				.child({ context: {error:error.message} })
+				.error(`An error occurred during the layout (5/${howManyLayoutSteps}) of the network`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (5/${howManyLayoutSteps}) of the network.`}));
 				logger.end();
 		  });
 		}
