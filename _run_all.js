@@ -142,12 +142,8 @@ update_mp_list(date)
 		console.log("\n\n# 10. RENDER MAP TWITTER #################################")
 		return render_map_twitter(date)
 	})
-	.then(result => {
-		if (result.success) {
-			console.info("# RENDER MAP TWITTER SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# RENDER MAP TWITTER FAILED", result.msg)
-		}
+	.then(() => {
+		console.info("# RENDER MAP TWITTER DONE.")
 	}, error => {
 		console.error("# RENDER MAP TWITTER ERROR", error)
 	})
@@ -156,40 +152,28 @@ update_mp_list(date)
 		console.log("\n\n# 11. RENDER MAP 4k NO LABELS ############################")
 		return render_map_4k_no_labels(date)
 	})
-	.then(result => {
-		if (result.success) {
-			console.info("# RENDER MAP 4k NO LABELS SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# RENDER MAP 4k NO LABELS FAILED", result.msg)
-		}
+	.then(() => {
+		console.info("# RENDER MAP 4K NO LABELS DONE.")
 	}, error => {
-		console.error("# RENDER MAP 4k NO LABELS ERROR", error)
+		console.error("# RENDER MAP 4K NO LABELS ERROR", error)
 	})
 
 	.then(() => {
 		console.log("\n\n# 12. RENDER MAP 4k TOP LABELS ###########################")
 		return render_map_4k_top_labels(date)
 	})
-	.then(result => {
-		if (result.success) {
-			console.info("# RENDER MAP 4k TOP LABELS SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# RENDER MAP 4k TOP LABELS FAILED", result.msg)
-		}
+	.then(() => {
+		console.info("# RENDER MAP 4K TOP LABELS DONE.")
 	}, error => {
-		console.error("# RENDER MAP 4k TOP LABELS ERROR", error)
+		console.error("# RENDER MAP 4K TOP LABELS ERROR", error)
 	})
 
 	.then(() => {
 		console.log("\n\n# 13. RENDER MAP LARGE ###################################")
 		return render_map_large(date)
 	})
-	.then(result => {
-		if (result.success) {
-			console.info("# RENDER MAP LARGE SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# RENDER MAP LARGE FAILED", result.msg)
-		}
+	.then(() => {
+		console.info("# RENDER MAP LARGE SUCCESSFUL.")
 	}, error => {
 		console.error("# RENDER MAP LARGE ERROR", error)
 	})
