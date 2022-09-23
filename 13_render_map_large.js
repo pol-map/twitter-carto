@@ -49,7 +49,7 @@ export async function render_map_large(date) {
   settings.image_width = 1600 // in mm. Default: 200mm (fits in a A4 page)
   settings.image_height = 1200
   settings.output_dpi = 300 // Dots per inch.
-  settings.rendering_dpi = 3 // Default: same as output_dpi. You can over- or under-render to tweak quality and speed.
+  settings.rendering_dpi = 300 // Default: same as output_dpi. You can over- or under-render to tweak quality and speed.
 
   // Tiling:
   // Tiling allows to build images that would be otherwise too large.
@@ -340,9 +340,14 @@ export async function render_map_large(date) {
     }
 
     // Render and save
-    ns.renderAndSave = function(g, settings, name) {
-      let canvas = ns.render(g, settings)
-      ns.saveCanvas(canvas, name || "output", () =>  console.log('The PNG file was created.'))
+    ns.renderAndSave = async function(g, settings, name) {
+      return new Promise(resolve => {
+        let canvas = ns.render(g, settings)
+        ns.saveCanvas(canvas, name || "output", () =>  {
+          console.log('The PNG file was created.')
+          resolve()
+        })
+      })
     }
 
     // Render all tiles
@@ -3823,7 +3828,7 @@ export async function render_map_large(date) {
 
   /// FINALLY, RENDER
   let renderer = newRenderer()
-  renderer.renderAndSave(g, settings, thisFolder+'/Carto large') // Custom
+  await renderer.renderAndSave(g, settings, thisFolder+'/Carto large') // Custom
   // renderer.renderAndSaveAllTiles(g, settings)
 }
 

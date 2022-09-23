@@ -341,9 +341,14 @@ export async function render_map_4k_no_labels(date) {
     }
 
     // Render and save
-    ns.renderAndSave = function(g, settings, name) {
-      let canvas = ns.render(g, settings)
-      ns.saveCanvas(canvas, name || "output", () =>  console.log('The PNG file was created.'))
+    ns.renderAndSave = async function(g, settings, name) {
+      return new Promise(resolve => {
+        let canvas = ns.render(g, settings)
+        ns.saveCanvas(canvas, name || "output", () =>  {
+          console.log('The PNG file was created.')
+          resolve()
+        })
+      })
     }
 
     // Render all tiles
@@ -3826,7 +3831,7 @@ export async function render_map_4k_no_labels(date) {
 
   /// FINALLY, RENDER
   let renderer = newRenderer()
-  renderer.renderAndSave(g, settings, thisFolder+'/Carto 4K no labels') // Custom
+  await renderer.renderAndSave(g, settings, thisFolder+'/Carto 4K no labels') // Custom
   // renderer.renderAndSaveAllTiles(g, settings)
 }
 
