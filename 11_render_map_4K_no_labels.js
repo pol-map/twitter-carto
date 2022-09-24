@@ -3467,13 +3467,34 @@ export async function render_map_4k_no_labels(date) {
       ratio = 0.42 // CUSTOM: we fix it so that it is constant from one map to another (since this is 4K with about the same number of nodes)
       
       // Resize
-      g.nodes().forEach(function(nid){
+      /*g.nodes().forEach(function(nid){
         var n = g.getNodeAttributes(nid)
         n.x = m.l + (dim.w-m.r-m.l) / 2 + (n.x - xcenter) * ratio
         n.y = m.t + (dim.h-m.t-m.b) / 2 + (n.y - ycenter) * ratio
         n.size *= ratio
+      })*/
+      // CUSTOM: we resize around the barycenter
+      // First, let's center on zero.
+      let everything = {x:0, y:0, count:0}
+      g.nodes().forEach((nid,i) => {
+        const n = g.getNodeAttributes(nid)
+        everything.count++
+        everything.x += +n.x
+        everything.y += +n.y
       })
-
+      everything.x /= everything.count
+      everything.y /= everything.count
+      g.nodes().forEach((nid,i) => {
+        const n = g.getNodeAttributes(nid)
+        n.x -= everything.x
+        n.y -= everything.y
+      })
+      g.nodes().forEach(function(nid){
+        var n = g.getNodeAttributes(nid)
+        n.x = m.l + 0.500*(dim.w-m.r-m.l) + (n.x - everything.x) * ratio
+        n.y = m.t + 0.666*(dim.h-m.t-m.b) + (n.y - everything.y) * ratio
+        n.size *= ratio
+      })
       ns.report("...done.")
     }
 
