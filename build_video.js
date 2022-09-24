@@ -6,7 +6,7 @@ let settings = {}
 settings.sdate = "2022-07-22"
 settings.edate = "2022-09-24"
 settings.framesPerSecond = 30; // FPS (frame rate)
-settings.framesPerImage = 1; // How long in frames does each image stay. 1=quick, 15=slow.
+settings.framesPerImage = 15; // How long in frames does each image stay. 1=quick, 15=slow.
 
 const startDate = new Date(settings.sdate)
 const endDate = new Date(settings.edate)
@@ -18,7 +18,7 @@ canvas.height = 2160
 const ctx = canvas.getContext("2d")
 
 
-const cartoFilename = "Carto 4K no labels.png"
+const cartoFilename = "Carto 4K top labels.png"
 let encoder, uint8Array, year, month, datem, path, img, imgd
 HME.default.createH264MP4Encoder()
 	.then(enc => {
