@@ -237,13 +237,13 @@ export async function network_layout(date) {
 
 			// Applying FA2 (basis)
 			forceAtlas2.assign(g, {iterations: 800, settings: {
-				linLogMode: false,
+				linLogMode: true,
 				outboundAttractionDistribution: false,
 				adjustSizes: false,
 				edgeWeightInfluence: 0,
-				scalingRatio: 1,
+				scalingRatio: 0.01,
 				strongGravityMode: true,
-				gravity: 0.03,
+				gravity: 0.001,
 				slowDown: 5,
 				barnesHutOptimize: true,
 				barnesHutTheta: 1.2,
@@ -270,13 +270,13 @@ export async function network_layout(date) {
 
 			// Refine FA2
 			forceAtlas2.assign(g, {iterations: 80, settings: {
-				linLogMode: false,
+				linLogMode: true,
 				outboundAttractionDistribution: false,
 				adjustSizes: false,
 				edgeWeightInfluence: 0,
-				scalingRatio: 1,
+				scalingRatio: 0.01,
 				strongGravityMode: true,
-				gravity: 0.03,
+				gravity: 0.001,
 				slowDown: 20,
 				barnesHutOptimize: true,
 				barnesHutTheta: 0.3,
@@ -303,13 +303,13 @@ export async function network_layout(date) {
 
 			// Refine FA2
 			forceAtlas2.assign(g, {iterations: 8, settings: {
-				linLogMode: false,
+				linLogMode: true,
 				outboundAttractionDistribution: false,
 				adjustSizes: false,
 				edgeWeightInfluence: 0,
-				scalingRatio: 1,
+				scalingRatio: 0.01,
 				strongGravityMode: true,
-				gravity: 0.03,
+				gravity: 0.001,
 				slowDown: 10,
 				barnesHutOptimize: false,
 				barnesHutTheta: 0.3,
