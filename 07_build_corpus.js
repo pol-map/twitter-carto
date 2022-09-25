@@ -45,7 +45,7 @@ export async function build_corpus(date) {
 
 	async function main() {
 		
-		const max_accounts = 100000;
+		const max_accounts = 1000000;
 
 		// Load resources from today and previous days for one MONTH (30 days)
 		let broadcastings = []

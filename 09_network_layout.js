@@ -121,7 +121,7 @@ export async function network_layout(date) {
 			const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
 			g.nodes().forEach(nid => {
 				let n = g.getNodeAttributes(nid)
-				n.size = 3 + ( (40-3) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
+				n.size = 2 + ( (30-2) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
 			})
 		} catch (error) {
 			console.log("Error", error)
@@ -192,7 +192,7 @@ export async function network_layout(date) {
 		}
 
 		/// LAYOUT
-		const howManyLayoutSteps = 5
+		const howManyLayoutSteps = 6
 		try {
 			// Initial positions
 			logger
@@ -236,7 +236,7 @@ export async function network_layout(date) {
 				.info(`Compute layout 2/${howManyLayoutSteps} - Rough sketch...`);
 
 			// Applying FA2 (basis)
-			forceAtlas2.assign(g, {iterations: 1000, settings: {
+			forceAtlas2.assign(g, {iterations: 800, settings: {
 				linLogMode: false,
 				outboundAttractionDistribution: false,
 				adjustSizes: false,
@@ -266,10 +266,10 @@ export async function network_layout(date) {
 		try {
 			// Refine
 			logger
-				.info(`Compute layout 3/${howManyLayoutSteps} - Refine...`);
+				.info(`Compute layout 3/${howManyLayoutSteps} - Precision pass...`);
 
 			// Refine FA2
-			forceAtlas2.assign(g, {iterations: 100, settings: {
+			forceAtlas2.assign(g, {iterations: 80, settings: {
 				linLogMode: false,
 				outboundAttractionDistribution: false,
 				adjustSizes: false,
@@ -277,9 +277,9 @@ export async function network_layout(date) {
 				scalingRatio: 1,
 				strongGravityMode: true,
 				gravity: 0.03,
-				slowDown: 25,
+				slowDown: 20,
 				barnesHutOptimize: true,
-				barnesHutTheta: 0.5,
+				barnesHutTheta: 0.3,
 			}});
 
 			logger
@@ -297,40 +297,26 @@ export async function network_layout(date) {
 		}
 
 		try {
-			// Prevent node overlap
+			// Refine
 			logger
-				.info(`Compute layout 4/${howManyLayoutSteps} - Prevent node overlap...`);
+				.info(`Compute layout 4/${howManyLayoutSteps} - Slow refine...`);
 
-			noverlap.assign(g, {
-			  maxIterations: 180,
-			  settings: {
-			  	gridSize: 64,
-			  	margin: 2,
-			    ratio: 1.1,
-			    speed:8,
-			  }
-			});
-			noverlap.assign(g, {
-			  maxIterations: 120,
-			  settings: {
-			  	gridSize: 64,
-			  	margin: 1.5,
-			    ratio: 1.1,
-			    speed:4,
-			  }
-			});
-			noverlap.assign(g, {
-			  maxIterations: 80,
-			  settings: {
-			  	gridSize: 64,
-			  	margin: 1,
-			    ratio: 1.1,
-			    speed:1,
-			  }
-			});
+			// Refine FA2
+			forceAtlas2.assign(g, {iterations: 8, settings: {
+				linLogMode: false,
+				outboundAttractionDistribution: false,
+				adjustSizes: false,
+				edgeWeightInfluence: 0,
+				scalingRatio: 1,
+				strongGravityMode: true,
+				gravity: 0.03,
+				slowDown: 10,
+				barnesHutOptimize: false,
+				barnesHutTheta: 0.3,
+			}});
 
 			logger
-				.info(`Layout 4/${howManyLayoutSteps} computed.`);
+				.info(`Layout 3/${howManyLayoutSteps} computed.`);
 
 		} catch (error) {
 			console.log("Error", error)
@@ -344,9 +330,56 @@ export async function network_layout(date) {
 		}
 
 		try {
+			// Prevent node overlap
+			logger
+				.info(`Compute layout 5/${howManyLayoutSteps} - Prevent node overlap...`);
+
+			noverlap.assign(g, {
+			  maxIterations: 120,
+			  settings: {
+			  	gridSize: 64,
+			  	margin: 0.9,
+			    ratio: 1.05,
+			    speed:8,
+			  }
+			});
+			noverlap.assign(g, {
+			  maxIterations: 80,
+			  settings: {
+			  	gridSize: 64,
+			  	margin: 0.6,
+			    ratio: 1.05,
+			    speed:4,
+			  }
+			});
+			noverlap.assign(g, {
+			  maxIterations: 40,
+			  settings: {
+			  	gridSize: 64,
+			  	margin: 0.3,
+			    ratio: 1.05,
+			    speed:1,
+			  }
+			});
+
+			logger
+				.info(`Layout 4/${howManyLayoutSteps} computed.`);
+
+		} catch (error) {
+			console.log("Error", error)
+			logger
+				.child({ context: {error:error.message} })
+				.error(`An error occurred during the layout (5/${howManyLayoutSteps}) of the network`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (5/${howManyLayoutSteps}) of the network.`}));
+				logger.end();
+		  });
+		}
+
+		try {
 			// Calibrate according to political axes
 			logger
-				.info(`Compute layout 5/${howManyLayoutSteps} - Rotate and center...`);
+				.info(`Compute layout 6/${howManyLayoutSteps} - Rotate and center...`);
 
 			// First of all, let's compute barycenters:
 			// Everything, the left, the right, and the center.
@@ -444,9 +477,9 @@ export async function network_layout(date) {
 			console.log("Error", error)
 			logger
 				.child({ context: {error:error.message} })
-				.error(`An error occurred during the layout (5/${howManyLayoutSteps}) of the network`);
+				.error(`An error occurred during the layout (6/${howManyLayoutSteps}) of the network`);
 			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (5/${howManyLayoutSteps}) of the network.`}));
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the layout (6/${howManyLayoutSteps}) of the network.`}));
 				logger.end();
 		  });
 		}
