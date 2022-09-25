@@ -2,8 +2,8 @@ import { render_map_twitter } from "./10_render_map_twitter.js";
 import { render_map_4k_no_labels } from "./11_render_map_4K_no_labels.js";
 import { render_map_4k_top_labels } from "./12_render_map_4K_top_labels.js";
 
-const startingDate = new Date("2022-08-06")
-const endDate = new Date("2022-09-23")
+const startingDate = new Date("2022-07-22")
+const endDate = new Date("2022-09-25")
 
 let date = startingDate
 const redraw = function(){

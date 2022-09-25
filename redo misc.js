@@ -5,8 +5,8 @@ import { render_map_twitter } from "./10_render_map_twitter.js";
 import { render_map_4k_no_labels } from "./11_render_map_4K_no_labels.js";
 import { render_map_4k_top_labels } from "./12_render_map_4K_top_labels.js";
 
-const startingDate = new Date("2022-07-22")
-const endDate = new Date("2022-09-24")
+const startingDate = new Date("2022-07-21")
+const endDate = new Date("2022-09-25")
 
 let date = startingDate
 const redraw = function(){
@@ -25,11 +25,11 @@ const redraw = function(){
 		}, error => {
 			console.error("# BUILD CORPUS ERROR", error)
 		})
+
 		.then(() => {
 			console.log("# NOW COMPUTE NETWORK ####################")
 			return network(date)
 		})
-		
 		.then(result => {
 			if (result.success) {
 				console.info("# NETWORK SUCCESSFUL.",result.msg)
@@ -39,11 +39,11 @@ const redraw = function(){
 		}, error => {
 			console.error("# NETWORK LAYOUT ERROR", error)
 		})
+
 		.then(() => {
 			console.log("# NOW COMPUTE NETWORK LAYOUT ####################")
 			return network_layout(date)
 		})
-
 		.then(result => {
 			if (result.success) {
 				console.info("# NETWORK LAYOUT SUCCESSFUL.",result.msg)
@@ -59,11 +59,7 @@ const redraw = function(){
 			return render_map_twitter(date)
 		})
 		.then(result => {
-			if (result.success) {
-				console.info("# RENDER MAP TWITTER SUCCESSFUL.",result.msg)
-			} else {
-				console.error("# RENDER MAP TWITTER FAILED", result.msg)
-			}
+			console.info("# RENDER MAP TWITTER DONE.")
 		}, error => {
 			console.error("# RENDER MAP TWITTER ERROR", error)
 		})
