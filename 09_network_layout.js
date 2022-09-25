@@ -243,7 +243,7 @@ export async function network_layout(date) {
 				edgeWeightInfluence: 0,
 				scalingRatio: 1,
 				strongGravityMode: true,
-				gravity: 0.005,
+				gravity: 0.03,
 				slowDown: 5,
 				barnesHutOptimize: true,
 				barnesHutTheta: 1.2,
@@ -276,7 +276,7 @@ export async function network_layout(date) {
 				edgeWeightInfluence: 0,
 				scalingRatio: 1,
 				strongGravityMode: true,
-				gravity: 0.005,
+				gravity: 0.03,
 				slowDown: 25,
 				barnesHutOptimize: true,
 				barnesHutTheta: 0.5,
@@ -302,25 +302,25 @@ export async function network_layout(date) {
 				.info(`Compute layout 4/${howManyLayoutSteps} - Prevent node overlap...`);
 
 			noverlap.assign(g, {
-			  maxIterations: 200,
+			  maxIterations: 180,
 			  settings: {
 			  	gridSize: 64,
-			  	margin: 1,
+			  	margin: 2,
 			    ratio: 1.1,
-			    speed:10,
+			    speed:8,
 			  }
 			});
 			noverlap.assign(g, {
-			  maxIterations: 100,
+			  maxIterations: 120,
 			  settings: {
 			  	gridSize: 64,
-			  	margin: 1,
+			  	margin: 1.5,
 			    ratio: 1.1,
-			    speed:5,
+			    speed:4,
 			  }
 			});
 			noverlap.assign(g, {
-			  maxIterations: 50,
+			  maxIterations: 80,
 			  settings: {
 			  	gridSize: 64,
 			  	margin: 1,
