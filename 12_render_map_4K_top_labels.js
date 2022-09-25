@@ -180,10 +180,10 @@ export async function render_map_4k_top_labels(date) {
 
   // Experimental stuff
   settings.hillshading_strength = 36
-  settings.hillshading_color = "#494c55"
-  settings.hillshading_alpha = .4 // Opacity
+  settings.hillshading_color = "#1B2529"
+  settings.hillshading_alpha = .36 // Opacity
   settings.hillshading_sun_azimuth = Math.PI * 0.6 // angle in radians
-  settings.hillshading_sun_elevation = Math.PI * 0.4 // angle in radians
+  settings.hillshading_sun_elevation = Math.PI * 0.35 // angle in radians
   settings.hillshading_hypsometric_gradient = true // Elevation gradient color
 
   /// (END OF SETTINGS)
@@ -3163,6 +3163,9 @@ export async function render_map_4k_top_labels(date) {
         var color = ns.getNodeColor(options, n)
         var radius = Math.max(options.node_size * n.size, stroke_width)
 
+        // Custom: we add an offset to the node radius
+        radius += ns.mm_to_px(0.025 /* in mm */)
+
         ctx.lineCap="round"
         ctx.lineJoin="round"
 
@@ -3490,8 +3493,8 @@ export async function render_map_4k_top_labels(date) {
       })
       g.nodes().forEach(function(nid){
         var n = g.getNodeAttributes(nid)
-        n.x = m.l + 0.500*(dim.w-m.r-m.l) + (n.x - everything.x) * ratio
-        n.y = m.t + 0.666*(dim.h-m.t-m.b) + (n.y - everything.y) * ratio
+        n.x = m.l + 0.5*(dim.w-m.r-m.l) + (n.x - everything.x) * ratio
+        n.y = m.t + 0.6*(dim.h-m.t-m.b) + (n.y - everything.y) * ratio
         n.size *= ratio
       })
 

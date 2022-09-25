@@ -180,10 +180,10 @@ export async function render_map_large(date) {
 
   // Experimental stuff
   settings.hillshading_strength = 36
-  settings.hillshading_color = "#494c55"
-  settings.hillshading_alpha = .4 // Opacity
+  settings.hillshading_color = "#1B2529"
+  settings.hillshading_alpha = .36 // Opacity
   settings.hillshading_sun_azimuth = Math.PI * 0.6 // angle in radians
-  settings.hillshading_sun_elevation = Math.PI * 0.4 // angle in radians
+  settings.hillshading_sun_elevation = Math.PI * 0.35 // angle in radians
   settings.hillshading_hypsometric_gradient = true // Elevation gradient color
 
   /// (END OF SETTINGS)
