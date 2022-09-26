@@ -4,7 +4,7 @@ import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
 settings.sdate = "2022-07-22"
-settings.edate = "2022-09-24"
+settings.edate = "2022-08-26"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 15; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -62,7 +62,7 @@ function drawLegend(ctx, date, year, month, datem) {
 	const xOffset = 12
 	// Draw the title and info
 	let y = 84
-	drawText(ctx, "DÉBAT POLITIQUE FRANÇAIS SUR TWITTER", xOffset, y, "start", "#303040", 0, "66px Raleway")
+	drawText(ctx, "QUI DÉBAT DE POLITIQUE FR. SUR TWITTER", xOffset, y, "start", "#303040", 0, "66px Raleway")
 	y += 60
 	drawText(ctx, "Carte des interactions Twitter mentionnant des documents du débat politique.", xOffset, y, "start", "#303040", 0, "26px Raleway")
 	y += 36
