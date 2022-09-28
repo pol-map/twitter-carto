@@ -11,6 +11,7 @@ import { render_map_twitter } from "./10_render_map_twitter.js";
 import { render_map_4k_no_labels } from "./11_render_map_4K_no_labels.js";
 import { render_map_4k_top_labels } from "./12_render_map_4K_top_labels.js";
 import { render_map_large } from "./13_render_map_large.js";
+import { render_pol_heatmaps } from "./14_render_pol_heatmaps.js";
 
 const date = undefined; // Now
 
@@ -176,5 +177,15 @@ update_mp_list(date)
 		console.info("# RENDER MAP LARGE SUCCESSFUL.")
 	}, error => {
 		console.error("# RENDER MAP LARGE ERROR", error)
+	})
+
+	.then(() => {
+		console.log("\n\n# 14. RENDER POL HEATMAPS ################################")
+		return render_pol_heatmaps(date)
+	})
+	.then(() => {
+		console.info("# RENDER POL HEATMAPS SUCCESSFUL.")
+	}, error => {
+		console.error("# RENDER POL HEATMAPS ERROR", error)
 	})
 

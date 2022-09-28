@@ -4,7 +4,7 @@ import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
 settings.sdate = "2022-07-22"
-settings.edate = "2022-08-26"
+settings.edate = "2022-09-26"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 15; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -87,7 +87,7 @@ function drawLegend(ctx, date, year, month, datem) {
 		{abb:"HOR", name:"Horizons et apparentés", color: "#3199aa"}, // Teal
 		{abb:"LR", name:"Les Républicains", color: "#4747a0"}, // Blue
 		{abb:"RN", name:"Rassemblement National", color: "#604a45"}, // Brown
-		{abb:"", name:"Sans couleur politique", color: "#a4a4a4"}, // Grey
+		{abb:"", name:"Autre", color: "#a4a4a4"}, // Grey
 	]
 	colorCode.forEach(d => {
 		drawSquare(xOffset, y, 48, d.color)
