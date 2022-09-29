@@ -12,9 +12,10 @@ export async function render_map_large(date) {
   const thisFolder = `data/${year}/${month}/${datem}`
 
   // Read file
-  var gexf_string;
+  var gexf_string, edges_string;
   try {
       gexf_string = fs.readFileSync(thisFolder+'/network_spat.gexf', 'utf8');
+      edges_string = fs.readFileSync(thisFolder+'/network_edges.csv', 'utf8')
       // gexf_string = fs.readFileSync('data/test.gexf', 'utf8');
       console.log('GEXF file loaded');    
   } catch(e) {
@@ -24,6 +25,11 @@ export async function render_map_large(date) {
   // Parse string
   var g = gexf.parse(Graph, gexf_string, {addMissingNodes: true});
   console.log('GEXF parsed');
+  const edges = d3.csvParse(edges_string);
+  edges.forEach(e => {
+    g.addEdge(e.Source, e.Target)
+  })
+  console.log('Edges integrated');
 
   // Note about resolution:
   // Photo posters on PixArtPrinting
@@ -67,7 +73,7 @@ export async function render_map_large(date) {
   settings.draw_cluster_fills         = false
   settings.draw_cluster_contours      = false
   settings.draw_cluster_labels        = false
-  settings.draw_edges                 = false
+  settings.draw_edges                 = true
   settings.draw_node_shadows          = true
   settings.draw_nodes                 = true
   settings.draw_node_labels           = true
@@ -133,7 +139,7 @@ export async function render_map_large(date) {
   settings.edge_color = "#6b7660"
 
   // Layer: Node shadows
-  settings.node_color_shadow_offset = 6 // mm; larger than you'd think (gradient)
+  settings.node_color_shadow_offset = 8 // mm; larger than you'd think (gradient)
   settings.node_color_shadow_opacity = .5
   settings.node_color_shadow_blur_radius = 6 // mm
 
@@ -176,10 +182,10 @@ export async function render_map_large(date) {
   settings.voronoi_range = 1.2 // Halo size in mm
   settings.voronoi_resolution_max = 1 * Math.pow(10, 7) // in pixel. 10^7 still quick, 10^8 better quality 
   settings.heatmap_resolution_max = 1 * Math.pow(10, 6) // in pixel. 10^5 quick. 10^7 nice but super slow.
-  settings.heatmap_spreading = (settings.image_width - settings.margin_left - settings.margin_right) / 196 // in mm
+  settings.heatmap_spreading = (settings.image_width - settings.margin_left - settings.margin_right) / 160 // in mm
 
   // Experimental stuff
-  settings.hillshading_strength = 36
+  settings.hillshading_strength = 40
   settings.hillshading_color = "#1B2529"
   settings.hillshading_alpha = .36 // Opacity
   settings.hillshading_sun_azimuth = Math.PI * 0.6 // angle in radians
@@ -2731,8 +2737,16 @@ export async function render_map_large(date) {
         g.edges()
           .filter(function(eid, i_){ return i_ < options.max_edge_count })
           .forEach(function(eid, i_){
-            // Custom: edge colored as target
-            var color = d3.color(ns.getNodeColor(options, g.getNodeAttributes(g.target(eid))))
+
+            // CUSTOM COLOR: mix + dark enough
+            var rgbs = d3.color(ns.getNodeColor(options, g.getNodeAttributes(g.source(eid))))
+            var rgbt = d3.color(ns.getNodeColor(options, g.getNodeAttributes(g.target(eid))))
+            var color = d3.rgb((rgbs.r+rgbt.r)/2, (rgbs.g+rgbt.g)/2, (rgbs.b+rgbt.b)/2)
+            var hsl = d3.hsl(color)
+            hsl.l = Math.min(0.3, Math.max(0.6, hsl.l))
+            // hsl.s = Math.min(1, hsl.s * 1.1)
+            color = d3.color(hsl)
+
             if ((i_+1)%10000 == 0) {
               console.log("..."+(i_+1)/1000+"K edges drawn...")
             }
