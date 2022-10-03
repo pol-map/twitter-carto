@@ -73,7 +73,7 @@ export async function render_map_large(date) {
   settings.draw_cluster_fills         = false
   settings.draw_cluster_contours      = false
   settings.draw_cluster_labels        = false
-  settings.draw_edges                 = true
+  settings.draw_edges                 = false
   settings.draw_node_shadows          = true
   settings.draw_nodes                 = true
   settings.draw_node_labels           = true
