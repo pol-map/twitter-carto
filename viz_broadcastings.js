@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 import * as d3 from 'd3';
 
-export async function render_map_4k_no_labels(date) {
+export async function computeBroadcastingsViz(date, edges) {
   const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
   const year = targetDate.getFullYear()
   const month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
@@ -15,7 +15,6 @@ export async function render_map_4k_no_labels(date) {
   var gexf_string, edges_string;
   try {
       gexf_string = fs.readFileSync(thisFolder+'/network_spat.gexf', 'utf8');
-      edges_string = fs.readFileSync(thisFolder+'/network_edges_broadcastings_test.csv', 'utf8')
       console.log('GEXF file loaded');
   } catch(e) {
       console.log('Error:', e.stack);
@@ -24,7 +23,8 @@ export async function render_map_4k_no_labels(date) {
   // Parse string
   var g = gexf.parse(Graph, gexf_string, {addMissingNodes: true});
   console.log('GEXF parsed');
-  const edges = d3.csvParse(edges_string);
+
+  // Add edges (if both ends in map)
   edges.forEach(e => {
     if (g.hasNode(e.Source) && g.hasNode(e.Target)) {
       g.mergeEdge(e.Source, e.Target)
@@ -85,13 +85,14 @@ export async function render_map_4k_no_labels(date) {
 
   // Layer: Edges
   settings.max_edge_count = Infinity
-  settings.edge_thickness = 0.06 // in mm
-  settings.edge_alpha = 1 // Opacity // Range from 0 to 1
+  settings.edge_thickness = 0.1 // in mm
+  settings.edge_alpha = .8 // Opacity // Range from 0 to 1
   settings.edge_curved = false
   settings.edge_high_quality = false // Halo around nodes // Time-consuming
   settings.edge_color = "#FFFFFF"
+  settings.edge_individual_opacity = 0.38
   settings.edge_path_jitter = 0.2
-  settings.edge_path_segment_length = 0.5
+  settings.edge_path_segment_length = 0.3
 
   // Layer: Node shadows
   settings.node_color_shadow_offset = 4 // mm; larger than you'd think (gradient)
@@ -103,7 +104,7 @@ export async function render_map_4k_no_labels(date) {
   settings.node_size = 1. // Factor to adjust the nodes drawing size
   settings.node_color_original = false // Use the original node color
   settings.node_color_by_modalities = false // Use the modalities to color nodes (using settings.node_clusters)
-  settings.node_stroke_width = 0.01 // mm
+  settings.node_stroke_width = 0.18 // mm
   settings.node_stroke_color = "#FFFFFF"
   settings.node_fill_color = "#FFFFFF"
 
@@ -205,34 +206,11 @@ export async function render_map_4k_no_labels(date) {
     }
 
     // Render and save
-    ns.renderAndSave = async function(g, settings, name) {
+    ns.renderAndGetImgd = async function(g, settings) {
       return new Promise(resolve => {
         let canvas = ns.render(g, settings)
-        ns.saveCanvas(canvas, name || "output", () =>  {
-          console.log('The PNG file was created.')
-          resolve()
-        })
+        resolve(canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height))
       })
-    }
-
-    // Render all tiles
-    ns.renderAndSaveAllTiles = function(g, settings) {
-      console.log("Rendering all tiles.")
-      if (settings === undefined || settings.tile_factor === undefined) {
-        console.error("Tile factor not specified")
-        return
-      }
-
-      let count = 1
-      for (let ti = 0; ti<settings.tile_factor; ti++) {
-        for (let tj = 0; tj<settings.tile_factor; tj++) {
-          console.log("###### DRAW TILE "+ti+" "+tj+" ("+count+"/"+Math.pow(settings.tile_factor,2)+") ######")
-          settings.tile_to_render = [ti, tj]
-          let tile = ns.render(g, settings)
-          renderer.saveCanvas(tile, "tile "+ti+" "+tj, () =>  console.log("Tile "+ti+" "+tj+".png saved."))
-          count++
-        }
-      }
     }
 
     /// Initialization
@@ -745,6 +723,7 @@ export async function render_map_4k_no_labels(date) {
       options.edge_high_quality = options.edge_high_quality || false
       options.edge_path_jitter = (options.edge_path_jitter === undefined)?(0.00):(options.edge_path_jitter) // in mm
       options.edge_path_segment_length = (options.edge_path_segment_length === undefined)?(options.edge_high_quality?.2:2):(options.edge_path_segment_length) // in mm
+      options.edge_individual_opacity = (options.edge_individual_opacity===undefined)?(1.):(options.edge_individual_opacity)
       // Monitoring options
       options.display_voronoi = false // for monitoring purpose
       options.display_edges = true // disable for monitoring purpose
@@ -864,7 +843,7 @@ export async function render_map_4k_no_labels(date) {
             var n_s = g.getNodeAttributes(g.source(eid))
             var n_t = g.getNodeAttributes(g.target(eid))
             var path, i, x, y, o, dpixi, lastdpixi, lasto, pixi, pi
-            var edgeOpacity = (g.getEdgeAttribute(eid, 'opacity')===undefined)?(1.):(g.getEdgeAttribute(eid, 'opacity'))
+            var edgeOpacity = options.edge_individual_opacity //(g.getEdgeAttribute(eid, 'opacity')===undefined)?(1.):(g.getEdgeAttribute(eid, 'opacity'))
 
             // Build path
             var d = Math.sqrt(Math.pow(n_s.x - n_t.x, 2) + Math.pow(n_s.y - n_t.y, 2))
@@ -1981,22 +1960,8 @@ export async function render_map_4k_no_labels(date) {
 
   /// FINALLY, RENDER
   let renderer = newRenderer()
-  await renderer.renderAndSave(g, settings, thisFolder+'/VIZ TEST') // Custom
-  // renderer.renderAndSaveAllTiles(g, settings)
-}
-
-// Command line arguments
-// Date argument
-let date = undefined
-const dateArgRegexp = /d(ate)?=([0-9]{4}\-[0-9]{2}\-[0-9]{2})/i
-process.argv.forEach(d => {
-  let found = d.match(dateArgRegexp)
-  if (found && found[2]) {
-    date = found[2]
-  }
-})
-// Auto mode (run the script)
-if (process.argv.some(d => ["a","-a","auto","-auto"].includes(d))) {
-  console.log("Run script"+((date)?(" on date "+date):("")))
-  render_map_4k_no_labels(date)
+  let r = await renderer.renderAndGetImgd(g, settings) // Custom
+  return new Promise((resolve, reject) => {
+    resolve(r)
+  });
 }
