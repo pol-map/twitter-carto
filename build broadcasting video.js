@@ -189,8 +189,17 @@ function drawLegend(ctx, date, year, month, datem) {
   })
 
   let day = (date-startDate)/(1000*3600*24)
-  let x = timelineBox.x + timelineBox.w * (day+30) / timelineData.days
-  let l = timelineBox.w / timelineData.days
+  let x, l
+  // 30 days
+  x = timelineBox.x + timelineBox.w * day / timelineData.days
+  l = timelineBox.w * 31 / timelineData.days
+  ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
+  ctx.lineWidth = 0;
+  ctx.beginPath();
+  ctx.fillRect(x, timelineBox.y+58, l, 24);
+  // 1 day
+  x = timelineBox.x + timelineBox.w * (day+30) / timelineData.days
+  l = timelineBox.w / timelineData.days
   ctx.strokeStyle = "#FFFFFF";
   ctx.fillStyle = "#FFFFFF";
   ctx.lineWidth = 0;
