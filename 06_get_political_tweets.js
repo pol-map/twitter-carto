@@ -38,6 +38,7 @@ export async function get_political_tweets(date) {
 	  	new transports.File({ filename: `${thisFolder}/06_get_political_tweets.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
 	console.log("Log level is", logLevel)
@@ -166,6 +167,7 @@ export async function get_political_tweets(date) {
 							.error(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} could not be saved`);						
 					}
 				}
+
 				// Process the results
 				if (tweetsResponse && tweetsResponse.data && tweetsResponse.data.length > 0) {
 					// As the ids are in the "includes" section, we need to index them
@@ -183,6 +185,7 @@ export async function get_political_tweets(date) {
 					try {
 						harvestedTweetsCount += tweetsResponse.data.length
 						tweetsResponse.data.forEach(d => {
+							// Mentions
 							let mentions = {}
 							if (d.entities && d.entities.mentions){
 								d.entities.mentions.forEach(m => {
@@ -194,16 +197,38 @@ export async function get_political_tweets(date) {
 							}
 							mentions = Object.keys(mentions)
 							if (mentions.length > 0) {
+								// Hashtags
+								let hashtags = {}
+								if (d.entities && d.entities.hashtags){
+									d.entities.hashtags.forEach(h => {
+										hashtags[h.tag] = true
+									})
+								}
+								hashtags = Object.keys(hashtags)
+
+								// Media
+								let media = {}
+								if (d.attachments && d.attachments.media_keys){
+									d.attachments.media_keys.forEach(mk => {
+										media[mk] = true
+									})
+								}
+								media = Object.keys(media)
+								
+								// Create row (object)
 								let broadcasting = {
 									broadcaster_id: userIndex[d.author_id].id,
 									broadcaster_name: userIndex[d.author_id].name,
 									broadcaster_username: userIndex[d.author_id].username,
 									// resource_group_main: res.group_main,
 									resource_groups: res.groups,
-									resource_id: res.id,
+									resource_id: res.id || res.url,
 									resource_type: res.type,
 									// resource_url: res.url,
 									tweet_mentions: JSON.stringify(mentions),
+									tweet_text: d.text,
+									tweet_hashtags: JSON.stringify(hashtags),
+									tweet_media: JSON.stringify(media),
 								}
 								broadcastings.push(broadcasting)
 							}
@@ -234,20 +259,23 @@ export async function get_political_tweets(date) {
 		logger
 			.child({ context: {broadcastingsLength:broadcastings.length } })
 			.info(`Broadcastings retrieved (${broadcastings.length})`);
-
+		
 		// Save broadcastings as CSV
 		const broadcastingsFile = `${thisFolder}/broadcastings.csv`
 		const broadcastingsString = d3.csvFormat(broadcastings)
 		try {
+		
 			fs.writeFileSync(broadcastingsFile, broadcastingsString)
 			logger
 				.child({ context: {broadcastingsFile} })
 				.info('Broadcastings file saved successfully');
+		  
 			return new Promise((resolve, reject) => {
 				logger.once('finish', () => resolve({success:true, msg:`${broadcastings.length} broadcastings saved successfully.`}));
-				logger.end();
+				logger.end();					
 		  });
 		} catch(error) {
+			
 			logger
 				.child({ context: {broadcastingsFile, error} })
 				.error('The broadcastings file could not be saved');
@@ -255,8 +283,9 @@ export async function get_political_tweets(date) {
 				logger.once('finish', () => resolve({success:false, msg:`The broadcastings file could not be saved.`}));
 				logger.end();
 		  });
-		}
 
+		}
+		
 		console.log("Done.")
 	}
 
