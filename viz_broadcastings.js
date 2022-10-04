@@ -86,11 +86,11 @@ export async function computeBroadcastingsViz(date, edges) {
   // Layer: Edges
   settings.max_edge_count = Infinity
   settings.edge_thickness = 0.1 // in mm
-  settings.edge_alpha = .8 // Opacity // Range from 0 to 1
+  settings.edge_alpha = .9 // Opacity // Range from 0 to 1
   settings.edge_curved = false
   settings.edge_high_quality = false // Halo around nodes // Time-consuming
   settings.edge_color = "#FFFFFF"
-  settings.edge_individual_opacity = 0.38
+  settings.edge_individual_opacity = 0.32
   settings.edge_path_jitter = 0.2
   settings.edge_path_segment_length = 0.3
 

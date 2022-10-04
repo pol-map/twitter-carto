@@ -7,11 +7,11 @@ import { createLogger, format, transports } from "winston";
 import * as StackBlur from "stackblur-canvas";
 
 let settings = {}
-settings.sdate = "2022-08-15"
+settings.sdate = "2022-07-22"
 settings.edate = "2022-10-03"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
-settings.filterName = "taxesuperprofits" // For file name
+settings.filterName = "taxesuperprofits.fr" // For file name
 settings.resFilter = function(res){ return res.resource_id == "taxesuperprofits.fr"}
 
 // Logger
@@ -317,11 +317,11 @@ function compositeHeatmap(bgImg, hmImg, ctx) {
     0,
     currCtx.canvas.width,
     currCtx.canvas.height,
-    2 // Blur radius
+    3 // Blur radius
   );
   // Blacken current frame
   currCtx.globalCompositeOperation = "source-over"
-  currCtx.globalAlpha = 0.06;
+  currCtx.globalAlpha = 0.064;
   currCtx.beginPath()
   currCtx.rect(0, 0, currCtx.canvas.width, currCtx.canvas.height)
   currCtx.fillStyle = "#000000"
