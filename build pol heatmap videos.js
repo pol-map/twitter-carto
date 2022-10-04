@@ -43,6 +43,7 @@ async function renderPolGroup() {
 	    encoder.width = 3840;
 	    encoder.height = 2160;
 	    encoder.frameRate = settings.framesPerSecond;
+	    encoder.quantizationParameter = 12 // Default 33. Higher means better compression, and lower means better quality [10..51].
 	    encoder.initialize();
 	  })
 	  .then(encodeFrame)
