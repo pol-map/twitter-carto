@@ -96,7 +96,7 @@ function drawLegend(ctx, date, year, month, datem) {
 	const timelineBox = {
 		x: 2*1280,
 		y: 12,
-		w: 1280-12,
+		w: 1280-24,
 		h: 200,
 	}
 	const timelineData = getTimelineData()

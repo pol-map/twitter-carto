@@ -11,7 +11,7 @@ settings.sdate = "2022-07-22"
 settings.edate = "2022-10-03"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
-settings.filterName = "taxesuperprofits.fr" // For file name
+settings.filterName = "Taxesuperprofits.fr" // For file name
 settings.resFilter = function(res){ return res.resource_id == "taxesuperprofits.fr"}
 
 // Logger
@@ -142,7 +142,7 @@ function drawLegend(ctx, date, year, month, datem) {
 	const xOffset = 12
 	// Draw the title and info
 	let y = 84
-	drawText(ctx, "XXXXXX", xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+	drawText(ctx, `Diffusion: ${settings.filterName}`, xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
 	y += 80
 
 	// Légende timeline
@@ -151,7 +151,7 @@ function drawLegend(ctx, date, year, month, datem) {
 	const timelineBox = {
 		x: 2*1280,
 		y: 12,
-		w: 1280-12,
+		w: 1280-24,
 		h: 200,
 	}
 	const timelineData = getTimelineData()
@@ -161,16 +161,6 @@ function drawLegend(ctx, date, year, month, datem) {
 	  	drawText(ctx, yd.id, x, timelineBox.y+22, "start", "#EEEEEE", 0, "bold 36px Raleway")
 	  }
   })
-  let day = (date-startDate)/(1000*3600*24)
-  let x = timelineBox.x + timelineBox.w * day / timelineData.days
-  let l = timelineBox.w * 31 / timelineData.days
-	ctx.strokeStyle = "#EEEEEE";
-  ctx.fillStyle = "#DDDDDD";
-  ctx.lineWidth = 0;
-  ctx.beginPath();
-  ctx.fillRect(x, timelineBox.y+58, l, 24);
-  ctx.rect(x, timelineBox.y+58, l, 24);
-  ctx.stroke();
   const mnames = {
   	"01": "JAN",
   	"02": "FEV",
@@ -197,9 +187,19 @@ function drawLegend(ctx, date, year, month, datem) {
 	  ctx.rect(x, timelineBox.y+58, l, 24);
 	  ctx.stroke();
   })
-	drawText(ctx, `${datem} ${mnames[month]} ${year}`, x+l, timelineBox.y+164, "end", "#EEEEEE", 0, "bold 80px Raleway")
-	drawText(ctx, `et les 30 jours précédents`, x+l, timelineBox.y+206, "end", "#EEEEEE", 0, "32px Raleway")
 
+  let day = (date-startDate)/(1000*3600*24)
+  let x = timelineBox.x + timelineBox.w * (day+30) / timelineData.days
+  let l = timelineBox.w / timelineData.days
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.lineWidth = 0;
+  ctx.beginPath();
+  ctx.fillRect(x, timelineBox.y+58, l, 24);
+  ctx.rect(x, timelineBox.y+58, l, 24);
+  ctx.stroke();
+
+	drawText(ctx, `${datem} ${mnames[month]} ${year}`, x+l, timelineBox.y+164, "end", "#EEEEEE", 0, "bold 80px Raleway")
 
 	// Internal methods
   function drawText(ctx, txt, x, y, textAlign, text_color, text_border_thickness, font) {
