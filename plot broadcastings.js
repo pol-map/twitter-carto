@@ -120,9 +120,7 @@ resources.forEach(res => {
 })
 const maxCount = d3.max(Object.values(countPerDay))
 
-// Draw the thing
-let canvas = createCanvas(maxDateOffset, maxCount)
-const ctx = canvas.getContext("2d")
+/// Build and draw visualization
 
 // Colors
 const colorCode = {
@@ -139,19 +137,22 @@ const colorCode = {
   "": "#a4a4a4",
 }
 
-// White bg
-ctx.lineWidth = 0;
-ctx.fillStyle = "#FFFFFF";
-ctx.beginPath();
-ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+// Additional settings. TODO: move up
+settings.dayPxWidth = 32
+settings.dayPxSep = 6
+settings.resPxSep = 6
 
-// Paint resources
-for (dateOffset=0; dateOffset<maxDateOffset; dateOffset++) {
-  let yCurrent = 0
-  resources.forEach(res => {
+// Virtual plot each resource
+resources.forEach(res => {
+  res.dateBlocks = []
+  // Let's get the min and max
+  res.dateOffsetExtent = d3.extent(Object.keys(res.days).filter(dateOffset => {
+    return Object.values(res.days[dateOffset]).length > 0
+  }))
+  for (dateOffset=res.dateOffsetExtent[0]; dateOffset<=res.dateOffsetExtent[1]; dateOffset++) {
     let groupsObj = res.days[dateOffset]
+    let pixels = []
     if (groupsObj) {
-      let pixels = []
       for (let g in groupsObj) {
         for (let i=0; i<groupsObj[g]; i++) {
           let col = colorCode[g]
@@ -162,15 +163,93 @@ for (dateOffset=0; dateOffset<maxDateOffset; dateOffset++) {
         }
       }
       pixels = shuffle(pixels)
-      pixels[0] = "#FFFFFF" // Borders
-      pixels.forEach(col => {
-        ctx.fillStyle = col;
-        ctx.beginPath();
-        ctx.fillRect(dateOffset, yCurrent++, 1, 1);
-      })
     }
+    const dateBlock = {
+      px: pixels,
+      do: dateOffset,
+      h: Math.ceil(pixels.length/settings.dayPxWidth),
+    }
+    res.dateBlocks.push(dateBlock)
+  }
+  res.block = {
+    x: settings.dayPxSep + (settings.dayPxWidth + settings.dayPxSep) * res.dateOffsetExtent[0],
+    w: (settings.dayPxWidth + settings.dayPxSep) * res.dateBlocks.length - settings.dayPxSep,
+    h: d3.max(res.dateBlocks.map(db => db.h)),
+  }
+
+  // Draw that resource's visualization
+
+  const blockCanvas = createCanvas(res.block.w, res.block.h)
+  const bCtx = blockCanvas.getContext("2d")
+  bCtx.lineWidth = 0;
+  bCtx.fillStyle = "#666666";
+  bCtx.beginPath();
+  bCtx.fillRect(0, 0, bCtx.canvas.width, bCtx.canvas.height);
+  res.dateBlocks.forEach((db, dbi) => {
+    let yCurrent = 0
+    let xCurrent = 0
+    db.px.forEach(col => {
+      bCtx.fillStyle = col;
+      bCtx.beginPath();
+      bCtx.fillRect(dbi * (settings.dayPxWidth + settings.dayPxSep) + xCurrent, yCurrent, 1, 1);
+      xCurrent++
+      if (xCurrent >= settings.dayPxWidth + ((dbi<res.dateBlocks.length-1)?(settings.dayPxSep):(0))) {
+        xCurrent = 0
+        yCurrent++
+      }
+    })
   })
-}
+  res.imgd = bCtx.getImageData(0, 0, blockCanvas.width, blockCanvas.height)
+})
+
+// Virtual plot the whole
+// resources = resources.filter((d,i) => i<1000)
+
+// Stack from top
+let bars = {}
+let wCurrent = 0
+resources.forEach(res => {
+  let yCurrent = 0
+  res.dateBlocks.forEach(db => {
+    let dateOffset = db.do
+    yCurrent = Math.max(yCurrent, bars[dateOffset] || 0)
+  })
+  res.block.y = yCurrent
+  yCurrent += res.block.h + settings.resPxSep
+  res.dateBlocks.forEach(db => {
+    bars[db.do] = yCurrent
+  })
+  wCurrent = Math.max(wCurrent, res.block.x + res.block.w + settings.dayPxSep)
+})
+let hCurrent = d3.max(Object.values(bars))
+
+/*
+// Naive (stairs)
+let yCurrent = settings.resPxSep
+let wCurrent = 0
+resources.forEach(res => {
+  res.block.y = yCurrent
+  yCurrent += res.block.h + settings.resPxSep
+  wCurrent = Math.max(wCurrent, res.block.x + res.block.w + settings.dayPxSep)
+})
+let hCurrent = yCurrent
+*/
+
+// Init canvas
+let canvas = createCanvas(wCurrent, hCurrent)
+const ctx = canvas.getContext("2d")
+
+// Background
+ctx.lineWidth = 0;
+ctx.fillStyle = "#303040";
+ctx.beginPath();
+ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+// Paint each image data
+resources.forEach(res => {
+  ctx.putImageData(res.imgd, res.block.x, res.block.y)
+})
+
 
 let imgd = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
 const out = fs.createWriteStream(`data/broadcastings from ${settings.sdate} to ${settings.edate}.png`)
@@ -179,6 +258,10 @@ stream.pipe(out)
 out.on('finish', () => {
   console.log("\nDone.")
 })
+
+
+
+
 
 
 
