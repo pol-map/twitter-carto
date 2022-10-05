@@ -3,38 +3,17 @@ import * as fs from "fs";
 import * as d3 from 'd3';
 import { createCanvas, loadImage, ImageData } from "canvas"
 import { computeBroadcastingsViz } from "./viz_broadcastings.js";
-import { createLogger, format, transports } from "winston";
 import * as StackBlur from "stackblur-canvas";
 
 let settings = {}
-settings.sdate = "2022-07-22"
-settings.edate = "2022-10-03"
+settings.sdate = "2022-10-01"
+settings.edate = "2022-10-04"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
-settings.filterName = "Taxesuperprofits.fr" // For file name
-settings.resFilter = function(res){ return res.resource_id == "taxesuperprofits.fr"}
-
-// Logger
-// Inspiration: https://blog.appsignal.com/2021/09/01/best-practices-for-logging-in-nodejs.html
-const logLevels = {
-  fatal: 0,
-  error: 1,
-  warn: 2,
-  info: 3,
-  debug: 4,
-  trace: 5,
-};
-
-const logLevel = "info"
-
-const logger = createLogger({
-	level: logLevel,
-  levels: logLevels,
-  format: format.combine(format.timestamp(), format.json()),
-  transports: [
-  	new transports.Console(),
-  ],
-});
+settings.filterName = "Kohler" // For file name
+settings.broadcastingFilter = function(b){
+  return b.tweet_text.toLowerCase().indexOf("kohler") >= 0
+}
 
 const startDate = new Date(settings.sdate)
 const endDate = new Date(settings.edate)
@@ -99,28 +78,18 @@ async function getHeatMap(date, folder) {
       let csvString = fs.readFileSync(filePath, "utf8")
       // Parse string
       broadcastings = d3.csvParse(csvString);
-      logger
-        .child({ context: {filePath} })
-        .info(`Broadcastings loaded (${broadcastings.length} rows)`);
+      console.log(`Broadcastings loaded (${broadcastings.length} rows)`)
 
     } catch (error) {
-      console.log("Error", error)
-      logger
-        .child({ context: {error:error.message} })
-        .error(`An error occurred during the loading and parsing of broadcastings`);
+      console.error(`An error occurred during the loading and parsing of broadcastings`, error)
     }
   } else {
-    logger
-      .child({ context: {filePath} })
-      .warn(`Broadcastings not found`);
+    console.warn(`Broadcastings not found`)
   }
 
-  logger
-    .child({ context: {broadcastings} })
-    .trace(`Broadcastings (${broadcastings.length} rows)`);
-
   // Look for target broadcastings
-  const targetBroadcastings = broadcastings.filter(settings.resFilter)
+  const targetBroadcastings = broadcastings.filter(settings.broadcastingFilter)
+  console.log(targetBroadcastings.length, "target broadcastings")
 
   // Build edges list
   let edges = []
