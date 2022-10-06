@@ -49,7 +49,7 @@ export async function update_mp_list(date) {
 		logger
 			.error('The corpus settings file could not be loaded and parsed', error);
 	}
-	console.log(corpusSettings)
+
 	/**
 	 * Downloads file from remote HTTP[S] host and puts its contents to the
 	 * specified location.
