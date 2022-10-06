@@ -69,7 +69,12 @@ export async function network_layout(date) {
 		const ySpatNodesFile = `${yesterdaysFolder}/network_nodes_spat.csv`
 		let yNodes = []
 		try {
-			yNodes = loadFile(ySpatNodesFile, "network_nodes_spat (from the day before)")
+			if (fs.existsSync(ySpatNodesFile)) {
+				yNodes = loadFile(ySpatNodesFile, "network_nodes_spat (from the day before)")
+			} else {
+				logger
+					.warn(`Yesterday's spatialized network file could not be found (not a big deal): ${ySpatNodesFile}`);
+			}
 		} catch(e) {
 			logger
 				.warn(`Yesterday's spatialized network file could not be found (not a big deal): ${ySpatNodesFile}`);
@@ -316,7 +321,7 @@ export async function network_layout(date) {
 			}});
 
 			logger
-				.info(`Layout 3/${howManyLayoutSteps} computed.`);
+				.info(`Layout 4/${howManyLayoutSteps} computed.`);
 
 		} catch (error) {
 			console.log("Error", error)
@@ -363,7 +368,7 @@ export async function network_layout(date) {
 			});
 
 			logger
-				.info(`Layout 4/${howManyLayoutSteps} computed.`);
+				.info(`Layout 5/${howManyLayoutSteps} computed.`);
 
 		} catch (error) {
 			console.log("Error", error)
@@ -437,41 +442,47 @@ export async function network_layout(date) {
 			right.x /= right.count
 			right.y /= right.count
 			const angle = Math.atan2(right.y-left.y, right.x-left.x)
-			g.nodes().forEach((nid,i) => {
-				const n = g.getNodeAttributes(nid)
-				let a = Math.atan2(+n.y, +n.x)
-				let d = Math.sqrt(Math.pow(+n.x,2) + Math.pow(+n.y,2))
-				a -= angle
-				n.x = d*Math.cos(a)
-				n.y = d*Math.sin(a)
-			})
 
-			// And finally, let's ensure the center is on top.
-			let center = {x:0, y:0, count:0}
-			g.nodes().forEach((nid,i) => {
-				const n = g.getNodeAttributes(nid)
-				// We only use the official affiliations of MPs.
-				if (n.mp_group != "None") {
-					const block = blockCode[n.mp_group]
-					if (block == "center") {
-						center.count++
-						center.x += +n.x
-						center.y += +n.y
-					}
-				}
-			})
-			center.x /= center.count
-			center.y /= center.count
-			const flip = center.y < 0
-			if (flip) {
+			if (isNaN(angle)) {
+				logger
+					.warn(`No left-right angle found (probably an issue with political parties)`);
+			} else {
 				g.nodes().forEach((nid,i) => {
 					const n = g.getNodeAttributes(nid)
-					n.y = -n.y
+					let a = Math.atan2(+n.y, +n.x)
+					let d = Math.sqrt(Math.pow(+n.x,2) + Math.pow(+n.y,2))
+					a -= angle
+					n.x = d*Math.cos(a)
+					n.y = d*Math.sin(a)
 				})
+
+				// And finally, let's ensure the center is on top.
+				let center = {x:0, y:0, count:0}
+				g.nodes().forEach((nid,i) => {
+					const n = g.getNodeAttributes(nid)
+					// We only use the official affiliations of MPs.
+					if (n.mp_group != "None") {
+						const block = blockCode[n.mp_group]
+						if (block == "center") {
+							center.count++
+							center.x += +n.x
+							center.y += +n.y
+						}
+					}
+				})
+				center.x /= center.count
+				center.y /= center.count
+				const flip = center.y < 0
+				if (flip) {
+					g.nodes().forEach((nid,i) => {
+						const n = g.getNodeAttributes(nid)
+						n.y = -n.y
+					})
+				}
 			}
 
 			logger
-				.info(`Layout 5/${howManyLayoutSteps} computed.`);
+				.info(`Layout 6/${howManyLayoutSteps} computed.`);
 
 		} catch (error) {
 			console.log("Error", error)
