@@ -1,0 +1,108 @@
+{
+	"eras":[
+		{
+			"startDate": "1900-01-01",
+			"endDate": "2100-01-01",
+			"affiliations": [
+				{
+					"id": "LFI",
+					"name": "La France insoumise",
+					"color": "#aa2400",
+					"block": "left",
+					"leftRightAxis": -1,
+					"showInLegend": true,
+					"makeHeatmap": true
+				},
+				{
+					"id": "GDR",
+					"name": "Gauche démocrate et républicaine",
+					"color": "#db3a5d",
+					"block": "left",
+					"leftRightAxis": -0.8,
+					"showInLegend": true,
+					"makeHeatmap": false
+				},
+				{
+					"id": "SOC",
+					"name": "Socialistes et apparentés",
+					"color": "#e882bf",
+					"block": "left",
+					"leftRightAxis": -0.6,
+					"showInLegend": true,
+					"makeHeatmap": true
+				},
+				{
+					"id": "ECO",
+					"name": "Écologiste",
+					"color": "#2db24a",
+					"block": "left",
+					"leftRightAxis": -0.4,
+					"showInLegend": true,
+					"makeHeatmap": true
+				},
+				{
+					"id": "LIOT",
+					"name": "Libertés, Indépendants, Outre-mer et Territoires",
+					"color": "#cacf2b",
+					"block": "",
+					"leftRightAxis": 0,
+					"showInLegend": true,
+					"makeHeatmap": false
+				},
+				{
+					"id": "REN",
+					"name": "Renaissance",
+					"color": "#ffaf00",
+					"block": "center",
+					"leftRightAxis": 0,
+					"showInLegend": true,
+					"makeHeatmap": true
+				},
+				{
+					"id": "MODEM",
+					"name": "Démocrate (MoDem et Indépendants)",
+					"color": "#e28813",
+					"block": "center",
+					"leftRightAxis": -0.2,
+					"showInLegend": true,
+					"makeHeatmap": true
+				},
+				{
+					"id": "HOR",
+					"name": "Horizons et apparentés",
+					"color": "#3199aa",
+					"block": "center",
+					"leftRightAxis": 0.2,
+					"showInLegend": true,
+					"makeHeatmap": true
+				},
+				{
+					"id": "LR",
+					"name": "Les Républicains",
+					"color": "#4747a0",
+					"block": "right",
+					"leftRightAxis": 0.8,
+					"showInLegend": true,
+					"makeHeatmap": true
+				},
+				{
+					"id": "RN",
+					"name": "Rassemblement National",
+					"color": "#604a45",
+					"block": "right",
+					"leftRightAxis": 1,
+					"showInLegend": true,
+					"makeHeatmap": true
+				},
+				{
+					"id": "NI",
+					"name": "Non inscrits",
+					"color": "#9d9d9d",
+					"leftRightAxis": 0,
+					"showInLegend": false,
+					"makeHeatmap": false
+				}
+			]
+		}
+	]
+}

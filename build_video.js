@@ -3,8 +3,8 @@ import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
-settings.sdate = "2022-07-22"
-settings.edate = "2022-10-04"
+settings.sdate = "2022-09-22"
+settings.edate = "2022-10-06"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -19,7 +19,7 @@ const ctx = canvas.getContext("2d")
 
 
 const cartoFilename = "Carto 4K no labels.png"
-let encoder, uint8Array, year, month, datem, path, img, imgd
+let encoder, uint8Array, year, month, datem, path, img, imgd, polAffData
 HME.default.createH264MP4Encoder()
 	.then(enc => {
 		encoder = enc
@@ -77,19 +77,7 @@ function drawLegend(ctx, date, year, month, datem) {
 
 	// Légende couleurs
 	y += 60
-	const colorCode = [
-		{abb:"LFI", name:"La France insoumise", color: "#aa2400"}, // Dark red
-		{abb:"GDR", name:"Gauche démocrate et républicaine", color: "#db3a5d"}, // Dark red-pink
-		{abb:"SOC", name:"Socialistes et apparentés", color: "#e882bf"}, // Old pink
-		{abb:"ECO", name:"Écologiste", color: "#2db24a"}, // Green
-		{abb:"LIOT", name:"Libertés, Indépendants, Outre-mer et Territoires", color: "#cacf2b"}, // Yellow (greenish)
-		{abb:"REN", name:"Renaissance", color: "#ffaf00"}, // Orange
-		{abb:"MODEM", name:"Démocrate (MoDem et Indépendants)", color: "#e28813"}, // Dark orange
-		{abb:"HOR", name:"Horizons et apparentés", color: "#3199aa"}, // Teal
-		{abb:"LR", name:"Les Républicains", color: "#4747a0"}, // Blue
-		{abb:"RN", name:"Rassemblement National", color: "#604a45"}, // Brown
-		{abb:"", name:"Autre", color: "#a4a4a4"}, // Grey
-	]
+	const colorCode = getColorCode(date)
 	colorCode.forEach(d => {
 		drawSquare(xOffset, y, 48, d.color)
 		drawText(ctx, d.name, xOffset+60, y+36, "start", "#303040", 0, "32px Raleway")
@@ -238,6 +226,55 @@ function getTimelineData(){
 			ydata.days = ydata.days.length
 		})
 		return tdata
+	}
+}
+
+function getPolAffData(){
+  if (polAffData === undefined) {
+    try {
+      // Load affiliations file as string
+      const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
+
+      try {
+        polAffData = JSON.parse(polAffDataJson)
+        console.log('Political affiliations loaded and parsed');
+
+        return polAffData
+      } catch (error) {
+        console.error("Error: the political affiliations file could not be parsed.", error)
+      }
+    } catch (error) {
+      console.error("Error: the political affiliations file could not be loaded", error)
+    }
+  } else {
+    return polAffData
+  }
+}
+function getColorCode(date){
+	const polAffData = getPolAffData()
+	let era
+	polAffData.eras.forEach(e => {
+		let sdate = new Date(e.startDate)
+		let edate = new Date(e.endDate)
+		if (sdate <= date && date <= edate ) {
+			era = e
+		}
+	})
+
+	if (era===undefined) {
+    console.error(`No corresponding era found in political affiliations file`);
+	} else {
+		let colorCode = []
+		era.affiliations.forEach(a => {
+			if (a.showInLegend) {
+				colorCode.push({
+					name: a.name,
+					color: a.color
+				})
+			}
+		})
+		colorCode.push({name:"Autre", color: "#a4a4a4"})
+		return colorCode
 	}
 }
 

@@ -4,7 +4,7 @@ import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
 settings.sdate = "2022-07-22"
-settings.edate = "2022-10-04"
+settings.edate = "2022-10-06"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -16,18 +16,7 @@ const ctx = canvas.getContext("2d")
 
 let encoder, uint8Array, date, year, month, datem, path, img, imgd, folder, bg, hm
 
-const polGroups = {
-	"LFI": "La France insoumise",
-	"GDR": "Gauche démocrate et républicaine",
-	"SOC": "Socialistes et apparentés",
-	"ECO": "Écologiste",
-	"LIOT": "Libertés, Indépendants, Outre-mer et Territoires",
-	"REN": "Renaissance",
-	"MODEM": "Démocrate (MoDem et Indépendants)",
-	"HOR": "Horizons et apparentés",
-	"LR": "Les Républicains",
-	"RN": "Rassemblement National",
-}
+const polGroups = getPolGroups()
 let polGroupIndex = 0
 let polGroup
 
@@ -306,6 +295,39 @@ async function assembleFrame(folder, bg, hm, ctx, date, year, month, datem) {
 	drawLegend(ctx, date, year, month, datem)
 }
 
+function getPolGroups(){
+	let polGroups = {}
+  try {
+    // Load affiliations file as string
+    const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
+
+    try {
+      const polAffData = JSON.parse(polAffDataJson)
+      console.log('Political affiliations loaded and parsed');
+
+      let era
+      polAffData.eras.forEach(e => {
+        let sdate = new Date(e.startDate)
+        let edate = new Date(e.endDate)
+        if (!( endDate<=sdate || edate<=startDate )) {
+          e.affiliations.forEach(a => {
+	        	if (a.makeHeatmap) {
+		          polGroups[a.id] = a.name
+		        }
+	        })
+        }
+      })
+
+    } catch (error) {
+      console.error("Error: the political affiliations file could not be parsed.", error)
+    }
+  } catch (error) {
+    console.error("Error: the political affiliations file could not be loaded", error)
+  }
+
+  return polGroups
+}
+
 // Test the drawing of the context
 // testAssembleFrame()
 async function testAssembleFrame() {
@@ -324,4 +346,3 @@ async function testAssembleFrame() {
   	console.log("Test done.")
   })
 }
-
