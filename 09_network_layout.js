@@ -14,6 +14,8 @@ dotenv.config();
 
 export async function network_layout(date) {
 
+	let polAffData
+
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
 	const month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
@@ -56,7 +58,7 @@ export async function network_layout(date) {
 	logger.info('Log level is '+logLevel);
 
 	async function main() {
-		
+
 		const nodesFile = `${thisFolder}/network_nodes.csv`
 		let nodes = loadFile(nodesFile, "Nodes")
 		const edgesFile = `${thisFolder}/network_edges.csv`
@@ -137,19 +139,7 @@ export async function network_layout(date) {
 
 		// Set node colors
 		try {
-			const colorCode = {
-				"LFI": d3.color("#aa2400"), // Dark red
-				"GDR": d3.color("#db3a5d"), // Dark red-pink
-				"SOC": d3.color("#e882bf"), // Old pink
-				"ECO": d3.color("#2db24a"), // Green
-				"LIOT": d3.color("#cacf2b"), // Yellow (greenish)
-				"REN": d3.color("#ffaf00"), // Orange
-				"MODEM": d3.color("#e28813"), // Dark orange
-				"HOR": d3.color("#3199aa"), // Teal
-				"LR": d3.color("#4747a0"), // Blue
-				"RN": d3.color("#604a45"), // Brown
-				"NI": d3.color("#9d9d9d"), // Grey
-			}
+			const colorCode = getColorCode(targetDate)
 			const defaultColor = d3.color("#a4a4a4");
 			const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
 			g.nodes().forEach(nid => {
@@ -388,19 +378,7 @@ export async function network_layout(date) {
 
 			// First of all, let's compute barycenters:
 			// Everything, the left, the right, and the center.
-			const blockCode = {
-				"LFI": "left",
-				"GDR": "left",
-				"SOC": "left",
-				"ECO": "left",
-				"LIOT": "",
-				"REN": "center",
-				"MODEM": "center",
-				"HOR": "center",
-				"LR": "right",
-				"RN": "right",
-				"NI": "",
-			}
+			const blockCode = getBlockCode(targetDate)
 
 			// First, let's center on zero.
 			let everything = {x:0, y:0, count:0}
@@ -546,7 +524,6 @@ export async function network_layout(date) {
 				logger.end();
 		  });
 		}
-
 		
 		console.log("Done.")
 	}
@@ -568,6 +545,81 @@ export async function network_layout(date) {
 			logger
 				.child({ context: {filePath, error:error.message} })
 				.error(`The ${title} file could not be loaded`);
+		}
+	}
+
+	function getPolAffData(){
+	  if (polAffData === undefined) {
+	    try {
+	      // Load affiliations file as string
+	      const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
+
+	      try {
+	        polAffData = JSON.parse(polAffDataJson)
+	        logger
+						.info('Political affiliations loaded and parsed');
+
+	        return polAffData
+	      } catch (error) {
+		      console.log("Error", error)
+	        logger
+						.child({ context: {polAffDataJson, error:error.message} })
+						.error(`The political affiliations file could not be parsed`);
+	      }
+	    } catch (error) {
+	      console.log("Error", error)
+				logger
+					.child({ context: {error:error.message} })
+					.error(`The political affiliations file could not be loaded`);
+	    }
+	  } else {
+	    return polAffData
+	  }
+	}
+	function getColorCode(date){
+		const polAffData = getPolAffData()
+		let era
+		polAffData.eras.forEach(e => {
+			let sdate = new Date(e.startDate)
+			let edate = new Date(e.endDate)
+			if (sdate <= date && date <= edate ) {
+				era = e
+			}
+		})
+
+		if (era===undefined) {
+			logger
+				.child({ context: {date, polAffData} })
+				.error(`No corresponding era found in political affiliations file`);
+		} else {
+			let colorCode = {}
+			era.affiliations.forEach(a => {
+				colorCode[a.id] = d3.color(a.color)
+			})
+			return colorCode
+		}
+	}
+	function getBlockCode(date){
+		const polAffData = getPolAffData()
+		let era
+		polAffData.eras.forEach(e => {
+			let sdate = new Date(e.startDate)
+			let edate = new Date(e.endDate)
+			if (sdate <= date && date <= edate ) {
+				era = e
+			}
+		})
+
+		if (era===undefined) {
+			logger
+				.child({ context: {date, polAffData} })
+				.error(`No corresponding era found in political affiliations file`);
+		} else {
+			let blockCode = {}
+			era.affiliations.forEach(a => {
+				blockCode[a.id] = a.block
+			})
+			return blockCode
 		}
 	}
 }

@@ -1057,7 +1057,7 @@ export async function render_pol_heatmaps(date) {
 
 
 
-  const polAffiliations = ["LFI", "GDR", "SOC", "ECO", "LIOT", "REN", "MODEM", "HOR", "LR", "RN"]
+  const polAffiliations = getPolAffiliations(targetDate)
   for (let pai=0; pai<polAffiliations.length; pai++){
     let polGroup = polAffiliations[pai]
     console.log("\n### Pol group: "+polGroup)
@@ -1070,6 +1070,42 @@ export async function render_pol_heatmaps(date) {
     /// FINALLY, RENDER
     let renderer = newRenderer()
     await renderer.renderAndSave(g, settings, thisFolder+'/heatmap pol '+polGroup) // Custom
+  }
+
+  function getPolAffiliations(date){
+    try {
+      // Load affiliations file as string
+      const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
+
+      try {
+        const polAffData = JSON.parse(polAffDataJson)
+        console.log('Political affiliations loaded and parsed');
+
+        let era
+        polAffData.eras.forEach(e => {
+          let sdate = new Date(e.startDate)
+          let edate = new Date(e.endDate)
+          if (sdate <= date && date <= edate ) {
+            era = e
+          }
+        })
+
+        if (era===undefined) {
+          console.error(`No corresponding era found in political affiliations file`);
+        } else {
+          let polAff = []
+          era.affiliations.forEach(a => {
+            polAff.push(a.id)
+          })
+          return polAff
+        }
+
+      } catch (error) {
+        console.error("Error: the political affiliations file could not be parsed.", error)
+      }
+    } catch (error) {
+      console.error("Error: the political affiliations file could not be loaded", error)
+    }
   }
 }
 

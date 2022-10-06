@@ -22,7 +22,14 @@ https://github.com/medialab/minet/releases
 	* URL to the CSV file containing the list of Twitter users we follow as starting points (MPs)
 	* CSV separator (you know, ```,``` or ```;```)
 	* Which columns contain the Twitter handle (**without the @**), the name of the person, and its political affiliation.
-
+3. Duplicate and rename ```default_political_affiliations.json```.  into ```political_affiliations.json``` and edit it:
+	* "Eras" allow you to have different time periods with different parties. You may have just one era like in the default file.
+	* The "id" of a political affiliation is never shown. **It must match the affiliations in the source corpus.**
+	* The "name" is what is shown.
+	* The attribute "block" may be set to "left", "center", "right" or "". It is used to calibrate the map's position, so at least one affiliation must be "left", one must be "center", and one "right".
+	* The "leftRightAxis" is used sometimes when we need a stable order of the affiliations for some visualizations. Only the order matters, not the values themselves, but you may find practical to see it as -1=left, 0=center and 1=right.
+	* "showInLegend" may be set to *false* for edge-case affiliations that you do not want to appear in the legends of the maps.
+	* "makeHeatmap" can similarly be set to *false* if you want to skip building the heatmap of that affiliation.
 # What the script does
 
 1. It sources the list of current parliament members (MPs or "députés" in French) from Regards Citoyens or another source, which contains their Twitter handle (when they have one). Output files: ```twitter_handles.csv```

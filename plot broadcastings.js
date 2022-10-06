@@ -4,7 +4,7 @@ import { createCanvas, loadImage, ImageData } from "canvas"
 import { computeBroadcastingsViz } from "./viz_broadcastings.js";
 
 let settings = {}
-settings.sdate = "2022-07-22"
+settings.sdate = "2022-09-22"
 settings.edate = "2022-10-04"
 
 const startDate = new Date(settings.sdate)
@@ -14,7 +14,7 @@ let date = new Date(startDate)
 let dateOffset = 0
 let dateIndex = {}
 
-let year, month, datem, folder
+let year, month, datem, folder, polAffData
 let broadcastings = []
 while (endDate-date >= 0) {
   year = date.getFullYear()
@@ -71,19 +71,7 @@ broadcastings.forEach(b => {
 })
 
 // Left-right index for political groups
-const lrIndex = {
-  "LFI": -1,
-  "GDR": -0.8,
-  "ECO": -0.6,
-  "SOC": -0.4,
-  "MODEM": -0.2,
-  "REN": 0.0,
-  "LIOT": 0.0,
-  "NI": 0.0,
-  "HOR": 0.2,
-  "LR": 0.8,
-  "RN": 1.0,
-}
+const lrIndex = getLrIndex()
 
 // Compute average score for each resource, so that we can sort them.
 let resources = Object.values(resIndex)
@@ -122,21 +110,6 @@ const maxCount = d3.max(Object.values(countPerDay))
 
 /// Build and draw visualization
 
-// Colors
-const colorCode = {
-  "LFI": "#aa2400",
-  "GDR": "#db3a5d",
-  "SOC": "#e882bf",
-  "ECO": "#2db24a",
-  "LIOT": "#cacf2b",
-  "REN": "#ffaf00",
-  "MODEM": "#e28813",
-  "HOR": "#3199aa",
-  "LR": "#4747a0",
-  "RN": "#604a45",
-  "": "#a4a4a4",
-}
-
 // Additional settings. TODO: move up
 settings.dayPxWidth = 32
 settings.dayPxSep = 6
@@ -150,6 +123,7 @@ resources.forEach(res => {
     return Object.values(res.days[dateOffset]).length > 0
   }))
   for (dateOffset=res.dateOffsetExtent[0]; dateOffset<=res.dateOffsetExtent[1]; dateOffset++) {
+    let colorCode = getColorCode(dateIndex[dateOffset])
     let groupsObj = res.days[dateOffset]
     let pixels = []
     if (groupsObj) {
@@ -283,4 +257,59 @@ function shuffle(array) {
   }
 
   return array;
+}
+
+function getPolAffData(){
+  if (polAffData === undefined) {
+    try {
+      // Load affiliations file as string
+      const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
+
+      try {
+        polAffData = JSON.parse(polAffDataJson)
+        console.log('Political affiliations loaded and parsed');
+
+        return polAffData
+      } catch (error) {
+        console.error("Error: the political affiliations file could not be parsed.", error)
+      }
+    } catch (error) {
+      console.error("Error: the political affiliations file could not be loaded", error)
+    }
+  } else {
+    return polAffData
+  }
+}
+
+function getColorCode(date){
+  const polAffData = getPolAffData()
+  let era
+  polAffData.eras.forEach(e => {
+    let sdate = new Date(e.startDate)
+    let edate = new Date(e.endDate)
+    if (sdate <= date && date <= edate ) {
+      era = e
+    }
+  })
+
+  if (era===undefined) {
+    console.error(`No corresponding era found in political affiliations file`);
+  } else {
+    let colorCode = {"": "#a4a4a4"}
+    era.affiliations.forEach(a => {
+      colorCode[a.id] = a.color
+    })
+    return colorCode
+  }
+}
+
+function getLrIndex(){
+  const polAffData = getPolAffData()
+  let lrIndex = {}
+  polAffData.eras.forEach(e => {
+    e.affiliations.forEach(a => {
+      lrIndex[a.id] = a.leftRightIndex
+    })
+  })
+  return lrIndex
 }
