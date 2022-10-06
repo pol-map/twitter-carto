@@ -14,7 +14,14 @@ https://github.com/medialab/minet/releases
 * Edit the location of the Minet executable in the ```.env``` file (see just below)
 
 ## Config
-Duplicate and rename ```default.env``` into ```.env``` and edit it to inform your own settings (API keys...)
+
+1. Duplicate and rename ```default.env``` into ```.env``` and edit it to inform your own settings:
+	* Twitter API key (you need that, obviously!)
+	* Path to the folder where you downloaded the Minet stuff
+2. Duplicate and rename ```default_corpus_settings.json```.  into ```corpus_settings.json``` and edit it:
+	* URL to the CSV file containing the list of Twitter users we follow as starting points (MPs)
+	* CSV separator (you know, ```,``` or ```;```)
+	* Which columns contain the Twitter handle (**without the @**), the name of the person, and its political affiliation.
 
 # What the script does
 

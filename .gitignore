@@ -2,6 +2,7 @@ node_modules/
 data/
 minet/
 .env
+corpus_settings.json
 
 # Windows image file caches
 Thumbs.db

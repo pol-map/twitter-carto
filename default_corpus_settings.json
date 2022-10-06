@@ -1,0 +1,9 @@
+{
+	"csv_url": "URL TO CSV FILE WITH CORPUS OF TWITTER ACCOUNTS",
+	"csv_separator": ",",
+	"columns": {
+		"name": "Name",
+		"handle": "Twitter Handle",
+		"political_affiliation": "Party"
+	}
+}
