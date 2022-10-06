@@ -39,6 +39,17 @@ export async function update_mp_list(date) {
 	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
+	// Load the source file settings
+	let corpusSettings
+	try {
+		corpusSettings = JSON.parse(fs.readFileSync("corpus_settings.json", "utf8"))
+		logger
+			.info('Corpus settings loaded and parsed');
+	} catch (error) {
+		logger
+			.error('The corpus settings file could not be loaded and parsed', error);
+	}
+	console.log(corpusSettings)
 	/**
 	 * Downloads file from remote HTTP[S] host and puts its contents to the
 	 * specified location.
@@ -81,9 +92,8 @@ export async function update_mp_list(date) {
 	  });
 	}
 
-	const sourceFileURL = "https://www.nosdeputes.fr/deputes/csv"
-	// const sourceFileURL = "https://raw.githubusercontent.com/regardscitoyens/twitter-parlementaires/master/data/deputes.csv"
-	const sourceFileSave = `${thisFolder}/nosdeputes_source.csv`
+	const sourceFileURL = corpusSettings.csv_url
+	const sourceFileSave = `${thisFolder}/source_corpus.csv`
 	const cleanFileSave = `${thisFolder}/twitter_handles.csv`
 
 	logger
@@ -105,12 +115,11 @@ export async function update_mp_list(date) {
 					// Load file as string
 					const csvString = fs.readFileSync(sourceFileSave, "utf8")
 					// Parse string and filter data
-					const cleanData = d3.dsvFormat(";").parse(csvString, (d) => {
+					const cleanData = d3.dsvFormat(corpusSettings.csv_separator).parse(csvString, (d) => {
 					  return {
-					    handle: d.twitter,
-					    name: d.nom,
-					    group: d.groupe_sigle || "Missing",
-					    group_long: d.parti_ratt_financier || "Missing"
+					    handle: d[corpusSettings.columns.handle],
+					    name: d[corpusSettings.columns.name],
+					    group: d[corpusSettings.columns.political_affiliation] || "Missing",
 					  };
 					});
 					logger
