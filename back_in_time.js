@@ -23,14 +23,69 @@ dotenv.config();
 
 let settings = {}
 settings.sdate = "2022-10-01"
-settings.edate = "2022-10-06"
+settings.edate = "2022-10-01"
+settings.update = true // Set to true if you want to re-run scripts even though the files are there. It will not re-harvest uselessly.
 
 const startDate = new Date(settings.sdate)
 const endDate = new Date(settings.edate)
 
 const twitterClient = new Client(process.env.BEARER_TOKEN);
 
-let targetDate = new Date(startDate)
+let targetDate
+
+// If in update mode, we want to delete obsolete files
+if (settings.update) {
+	console.log("UPDATE MODE: deleting obsolete files...")
+	targetDate = new Date(startDate)
+	while (targetDate <= endDate) {
+		let year = targetDate.getFullYear()
+		let month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+		let datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+		let folder = `data/${year}/${month}/${datem}`
+
+		// Files to delete for that day
+		let filesToDelete = [
+			'source_corpus.csv',
+			'twitter_handles.csv',
+			'twitter_valid_users.csv',
+			'resources_7days_aggregated.csv',
+			'broadcastings.csv',
+		]
+		filesToDelete.forEach(f => {
+			let fileName = `${folder}/${f}`
+			if (fs.existsSync(fileName)) {
+				fs.unlinkSync(fileName)
+			}
+		})
+
+		// Files to delete from the 7-day window
+		for (let dateOffset = 0; dateOffset >= -6; dateOffset--) {
+			let date2 = new Date(targetDate.getTime());
+			date2.setDate(date2.getDate() + dateOffset);
+			let year2 = date2.getFullYear()
+			let month2 = (1+date2.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+			let datem2 = (date2.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+			let folder2 = `data/${year2}/${month2}/${datem2}`
+			let filesToDelete = [
+				'resources_cited_by_mps.csv',
+				'resources_cited_by_mps_normalized.csv',
+				'resources_cited_by_mps_parsed.csv',
+				'resources_cited_by_mps_resolved.csv',
+			]
+			filesToDelete.forEach(f => {
+				let fileName = `${folder2}/${f}`
+				if (fs.existsSync(fileName)) {
+					fs.unlinkSync(fileName)
+				}
+			})
+		}
+		targetDate.setDate(targetDate.getDate() + 1)
+	}
+	console.log("...done.")
+}
+
+// Harvest & compute data
+targetDate = new Date(startDate)
 while (targetDate <= endDate) {
 	await retrieveBroadcastings(targetDate)
 	targetDate.setDate(targetDate.getDate() + 1)
@@ -49,9 +104,43 @@ async function retrieveBroadcastings(date) {
 	// and the 6 days before. Let's check that we have that for each of them.
 	for (let dateOffset = 0; dateOffset >= -6; dateOffset--) {
 		let date2 = new Date(date.getTime());
-		date2.setDate(date.getDate() + dateOffset);
+		date2.setDate(date2.getDate() + dateOffset);
+		let year2 = date2.getFullYear()
+		let month2 = (1+date2.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+		let datem2 = (date2.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+		let folder2 = `data/${year2}/${month2}/${datem2}`
+
 		await getResourcesCitedByMPs(date2)
+
+		let resourcesCitedPath = `${folder2}/resources_cited_by_mps.csv`
+		if (fs.existsSync(resourcesCitedPath)) {
+			console.log("Resources cited by MPs found.")
+		} else {
+			await extract_cited_resources(date2)
+		}
+
+		let resourcesNormPath = `${folder2}/resources_cited_by_mps_normalized.csv`
+		if (fs.existsSync(resourcesNormPath)) {
+			console.log("Normalized resources cited by MPs found.")
+		} else {
+			await normalize_urls(date2)
+		}
 	}
+
+	let resources7daysPath = `${folder}/resources_7days_aggregated.csv`
+	if (fs.existsSync(resources7daysPath)) {
+		console.log("Resources aggregated over 7 days found.")
+	} else {
+		await aggregate_main_resources(date)
+	}
+	
+	let broadcastingsPath = `${folder}/broadcastings.csv`
+	if (fs.existsSync(broadcastingsPath)) {
+		console.log("Broadcastings file for the day found.")
+	} else {
+		await get_political_tweets(date, true)
+	}
+
 }
 
 async function getResourcesCitedByMPs(date) {
@@ -128,21 +217,27 @@ async function getResourcesCitedByMPs(date) {
 				return {success:false, msg:"The valid users file could not be saved."}
 			}
 
+	  	// Create the tweets directory if necessary
+	  	const tweetsDir = `${folder}/tweets`
+	  	if (!fs.existsSync(tweetsDir)){
+			  fs.mkdirSync(tweetsDir);
+			}
+
 			// For each user, load the day before's tweets
 		  for (let i in users) {
 		  	const id = users[i].id
-		  	const tweetData = await getDayBeforesTweets(date, id)
-		  	// Save data as JSON
-		  	const tweetsDir = `${folder}/tweets`
-		  	if (!fs.existsSync(tweetsDir)){
-				  fs.mkdirSync(tweetsDir);
-				}
 		  	const tweetsFile = `${tweetsDir}/${id}.json`
-				const tweetsString = JSON.stringify(tweetData)
-				try {
-					fs.writeFileSync(tweetsFile, tweetsString)
-				} catch(error) {
-					console.error(`The tweets file for user ${id} could not be saved`);
+		  	if (fs.existsSync(tweetsFile)) {
+		  		console.log(`Tweets file for user ${id} found.`);
+		  	} else {
+			  	const tweetData = await getDayBeforesTweets(date, id)
+			  	// Save data as JSON
+					const tweetsString = JSON.stringify(tweetData)
+					try {
+						fs.writeFileSync(tweetsFile, tweetsString)
+					} catch(error) {
+						console.error(`The tweets file for user ${id} could not be saved`, error);
+					}
 				}
 		  }
 		  console.log('Tweets of the day before for all valid handles retrieved.');
@@ -152,183 +247,6 @@ async function getResourcesCitedByMPs(date) {
 		}
 	}
 }
-
-/*
-console.log("\n\n# 01. UPDATE MP LIST #####################################")
-update_mp_list(date)
-	.then(result => {
-		if (result.success) {
-			console.info("# UPDATE MP LIST SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# UPDATE MP LIST FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# UPDATE MP LIST ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 02. GET LAST MP TWEETS #################################")
-		return get_last_mp_tweets(date)
-	})
-	.then(result => {
-		if (result.success) {
-			console.info("# GET LAST MP TWEETS SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# GET LAST MP TWEETS FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# GET LAST MP TWEETS ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 03. EXTRACT CITED RESOURCES ############################")
-		return extract_cited_resources(date)
-	})
-	.then(result => {
-		if (result.success) {
-			console.info("# EXTRACT CITED RESOURCES SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# EXTRACT CITED RESOURCES FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# EXTRACT CITED RESOURCES ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 04. NORMALIZE URLS #####################################")
-		return normalize_urls(date)
-	})
-	.then(result => {
-		if (result.success) {
-			console.info("# NORMALIZE URLS SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# NORMALIZE URLS FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# NORMALIZE URLS ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 05. AGGREGATE MAIN RESOURCES ###########################")
-		return aggregate_main_resources(date)
-	})
-	.then(result => {
-		if (result.success) {
-			console.info("# AGGREGATE MAIN RESOURCES SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# AGGREGATE MAIN RESOURCES FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# AGGREGATE MAIN RESOURCES ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 06. GET POLITICAL TWEETS ###############################")
-		return get_political_tweets(date)
-	})
-	.then(result => {
-		if (result.success) {
-			console.info("# GET POLITICAL TWEETS SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# GET POLITICAL TWEETS FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# GET POLITICAL TWEETS ERROR", error)
-	})
-	
-	.then(() => {
-		console.log("\n\n# 07. BUILD CORPUS #######################################")
-		return build_corpus(date)
-	})
-	.then(result => {
-		if (result.success) {
-			console.info("# BUILD CORPUS SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# BUILD CORPUS FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# BUILD CORPUS ERROR", error)
-	})
-	
-	.then(() => {
-		console.log("\n\n# 08. NETWORK ############################################")
-		return network(date)
-	})
-	.then(result => {
-		if (result.success) {
-			console.info("# NETWORK SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# NETWORK FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# NETWORK ERROR", error)
-	})
-	
-	.then(() => {
-		console.log("\n\n# 09. NETWORK LAYOUT #####################################")
-		return network_layout(date)
-	})
-	.then(result => {
-		if (result.success) {
-			console.info("# NETWORK LAYOUT SUCCESSFUL.",result.msg)
-		} else {
-			console.error("# NETWORK LAYOUT FAILED", result.msg)
-		}
-	}, error => {
-		console.error("# NETWORK LAYOUT ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 10. RENDER MAP TWITTER #################################")
-		return render_map_twitter(date)
-	})
-	.then(() => {
-		console.info("# RENDER MAP TWITTER DONE.")
-	}, error => {
-		console.error("# RENDER MAP TWITTER ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 11. RENDER MAP 4k NO LABELS ############################")
-		return render_map_4k_no_labels(date)
-	})
-	.then(() => {
-		console.info("# RENDER MAP 4K NO LABELS DONE.")
-	}, error => {
-		console.error("# RENDER MAP 4K NO LABELS ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 12. RENDER MAP 4k TOP LABELS ###########################")
-		return render_map_4k_top_labels(date)
-	})
-	.then(() => {
-		console.info("# RENDER MAP 4K TOP LABELS DONE.")
-	}, error => {
-		console.error("# RENDER MAP 4K TOP LABELS ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 13. RENDER MAP LARGE ###################################")
-		return render_map_large(date)
-	})
-	.then(() => {
-		console.info("# RENDER MAP LARGE SUCCESSFUL.")
-	}, error => {
-		console.error("# RENDER MAP LARGE ERROR", error)
-	})
-
-	.then(() => {
-		console.log("\n\n# 14. RENDER POL HEATMAPS ################################")
-		return render_pol_heatmaps(date)
-	})
-	.then(() => {
-		console.info("# RENDER POL HEATMAPS SUCCESSFUL.")
-	}, error => {
-		console.error("# RENDER POL HEATMAPS ERROR", error)
-	})
-*/
-
 
 // Functions
 function loadHandles(filePath) {

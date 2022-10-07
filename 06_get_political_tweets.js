@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export async function get_political_tweets(date) {
+export async function get_political_tweets(date, useFullArchive) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -310,15 +310,25 @@ export async function get_political_tweets(date) {
 	}
 
 	async function getSearchQueryTweets(settings, pageToken) {
-		// User rate limit: 450 queries per 15 minutes. So we wait the right amount of time to throttle.
-		await new Promise(resolve => setTimeout(resolve, 15*60*1000/450))
+    if (useFullArchive) {
+			// User rate limit: 300 queries per 15 minutes. So we wait the right amount of time to throttle.
+			await new Promise(resolve => setTimeout(resolve, 15*60*1000/300))
+  	} else {
+			// User rate limit: 450 queries per 15 minutes. So we wait the right amount of time to throttle.
+			await new Promise(resolve => setTimeout(resolve, 15*60*1000/450))
+    }
 
 	  if (pageToken) {
 	  	settings.pagination_token = pageToken
 	  }
 		try {
 
-	    const tweets = await twitterClient.tweets.tweetsRecentSearch(settings);
+	    let tweets
+	    if (useFullArchive) {
+	    	tweets = await twitterClient.tweets.tweetsFullarchiveSearch(settings);
+    	} else {
+	    	tweets = await twitterClient.tweets.tweetsRecentSearch(settings);
+	    }
 
 	    if (tweets.errors) {
 		    logger
