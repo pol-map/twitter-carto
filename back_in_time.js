@@ -22,9 +22,9 @@ import * as d3 from 'd3';
 dotenv.config();
 
 let settings = {}
-settings.sdate = "2022-10-01"
-settings.edate = "2022-10-01"
-settings.update = true // Set to true if you want to re-run scripts even though the files are there. It will not re-harvest uselessly.
+settings.sdate = "2022-09-06"
+settings.edate = "2022-10-06"
+settings.update = false // Set to true if you want to re-run scripts even though the files are there. It will not re-harvest uselessly.
 
 const startDate = new Date(settings.sdate)
 const endDate = new Date(settings.edate)
@@ -228,7 +228,7 @@ async function getResourcesCitedByMPs(date) {
 		  	const id = users[i].id
 		  	const tweetsFile = `${tweetsDir}/${id}.json`
 		  	if (fs.existsSync(tweetsFile)) {
-		  		console.log(`Tweets file for user ${id} found.`);
+		  		console.log(`\tTweets file for user ${id} found.`);
 		  	} else {
 			  	const tweetData = await getDayBeforesTweets(date, id)
 			  	// Save data as JSON
