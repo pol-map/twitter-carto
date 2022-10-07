@@ -24,7 +24,7 @@ dotenv.config();
 let settings = {}
 settings.sdate = "2022-09-06"
 settings.edate = "2022-10-06"
-settings.update = false // Set to true if you want to re-run scripts even though the files are there. It will not re-harvest uselessly.
+settings.forceRerun = false // Set to true if you want to re-run scripts even though the files are there. It will not re-harvest uselessly.
 
 const startDate = new Date(settings.sdate)
 const endDate = new Date(settings.edate)
@@ -34,7 +34,7 @@ const twitterClient = new Client(process.env.BEARER_TOKEN);
 let targetDate
 
 // If in update mode, we want to delete obsolete files
-if (settings.update) {
+if (settings.forceRerun) {
 	console.log("UPDATE MODE: deleting obsolete files...")
 	targetDate = new Date(startDate)
 	while (targetDate <= endDate) {
