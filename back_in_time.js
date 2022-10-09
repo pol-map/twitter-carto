@@ -22,9 +22,9 @@ import * as d3 from 'd3';
 dotenv.config();
 
 let settings = {}
-settings.sdate = "2022-09-06"
-settings.edate = "2022-09-06"
-settings.forceRerun = false // Set to true if you want to re-run scripts even though the files are there. It will not re-harvest uselessly.
+settings.sdate = "2022-09-01"
+settings.edate = "2022-10-09"
+settings.forceRerun = true // Set to true if you want to re-run scripts even though the files are there. It will not re-harvest uselessly.
 
 const startDate = new Date(settings.sdate)
 const endDate = new Date(settings.edate)
@@ -45,9 +45,6 @@ if (settings.forceRerun) {
 
 		// Files to delete for that day
 		let filesToDelete = [
-			'source_corpus.csv',
-			'twitter_handles.csv',
-			'twitter_valid_users.csv',
 			'resources_7days_aggregated.csv',
 			'broadcastings.csv',
 		]
@@ -67,6 +64,9 @@ if (settings.forceRerun) {
 			let datem2 = (date2.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 			let folder2 = `data/${year2}/${month2}/${datem2}`
 			let filesToDelete = [
+				'source_corpus.csv',
+				'twitter_handles.csv',
+				'twitter_valid_users.csv',
 				'resources_cited_by_mps.csv',
 				'resources_cited_by_mps_normalized.csv',
 				'resources_cited_by_mps_parsed.csv',
