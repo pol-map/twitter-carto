@@ -52,6 +52,7 @@ export async function network_layout(date) {
 	  	new transports.File({ filename: `${thisFolder}/09_network_layout.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
 	console.log("Log level is", logLevel)
