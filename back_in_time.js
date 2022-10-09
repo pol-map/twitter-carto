@@ -23,7 +23,7 @@ dotenv.config();
 
 let settings = {}
 settings.sdate = "2022-09-06"
-settings.edate = "2022-10-06"
+settings.edate = "2022-09-06"
 settings.forceRerun = false // Set to true if you want to re-run scripts even though the files are there. It will not re-harvest uselessly.
 
 const startDate = new Date(settings.sdate)
