@@ -169,7 +169,7 @@ update_mp_list(date)
 		console.error("# RENDER MAP 4K TOP LABELS ERROR", error)
 	})
 
-	.then(() => {
+/*	.then(() => {
 		console.log("\n\n# 13. RENDER MAP LARGE ###################################")
 		return render_map_large(date)
 	})
@@ -177,7 +177,7 @@ update_mp_list(date)
 		console.info("# RENDER MAP LARGE SUCCESSFUL.")
 	}, error => {
 		console.error("# RENDER MAP LARGE ERROR", error)
-	})
+	})*/
 
 	.then(() => {
 		console.log("\n\n# 14. RENDER POL HEATMAPS ################################")
