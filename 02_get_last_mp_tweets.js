@@ -114,24 +114,30 @@ export async function get_last_mp_tweets(date) {
 		  // For each user, load yesterday's tweets
 		  for (let i in users) {
 		  	const id = users[i].id
-		  	const tweetData = await getYesterdaysTweets(id)
-		  	// Save data as JSON
-		  	const tweetsDir = `${thisFolder}/tweets`
-		  	if (!fs.existsSync(tweetsDir)){
-				  fs.mkdirSync(tweetsDir);
-				}
 		  	const tweetsFile = `${tweetsDir}/${id}.json`
-				const tweetsString = JSON.stringify(tweetData)
-				try {
-					fs.writeFileSync(tweetsFile, tweetsString)
-					logger
+		  	if (fs.existsSync(tweetsFile)) {
+		  		logger
 						.child({ context: {id, tweetsFile} })
-						.debug('Tweets file saved successfully');
-						tweetsFilesSavecSuccessfully++
-				} catch(error) {
-					logger
-						.child({ context: {id, tweetsFile, error} })
-						.error(`The tweets file for user ${id} could not be saved`);
+						.info('Tweets file found');
+		  	} else {
+			  	const tweetData = await getYesterdaysTweets(id)
+			  	// Save data as JSON
+			  	const tweetsDir = `${thisFolder}/tweets`
+			  	if (!fs.existsSync(tweetsDir)){
+					  fs.mkdirSync(tweetsDir);
+					}
+			  	const tweetsString = JSON.stringify(tweetData)
+					try {
+						fs.writeFileSync(tweetsFile, tweetsString)
+						logger
+							.child({ context: {id, tweetsFile} })
+							.debug('Tweets file saved successfully');
+							tweetsFilesSavecSuccessfully++
+					} catch(error) {
+						logger
+							.child({ context: {id, tweetsFile, error} })
+							.error(`The tweets file for user ${id} could not be saved`);
+					}
 				}
 		  }
 		  logger

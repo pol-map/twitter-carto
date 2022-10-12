@@ -116,8 +116,13 @@ export async function update_mp_list(date) {
 					const csvString = fs.readFileSync(sourceFileSave, "utf8")
 					// Parse string and filter data
 					const cleanData = d3.dsvFormat(corpusSettings.csv_separator).parse(csvString, (d) => {
+						let h = d[corpusSettings.columns.handle]
+						// Remove the @ if there is one at the beginning of the handle
+						if (h.substr(0,1) == "@") {
+							h = h.substr(1, h.length - 1)
+						}
 					  return {
-					    handle: d[corpusSettings.columns.handle],
+					    handle: h,
 					    name: d[corpusSettings.columns.name],
 					    group: d[corpusSettings.columns.political_affiliation] || "Missing",
 					  };
