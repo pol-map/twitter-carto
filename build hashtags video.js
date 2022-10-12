@@ -1,25 +1,24 @@
 import * as HME from "h264-mp4-encoder";
 import * as fs from "fs";
+import * as d3 from 'd3';
 import { createCanvas, loadImage, ImageData } from "canvas"
+import { computeHashtagsOverlay } from "./viz_hashtags.js";
+import * as StackBlur from "stackblur-canvas";
 
 let settings = {}
 settings.sdate = "2022-07-22"
-settings.edate = "2022-10-06"
+settings.edate = "2022-10-07"
 settings.framesPerSecond = 30; // FPS (frame rate)
-settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
+settings.framesPerImage = 30; // How long in frames does each image stay. 1=quick, 15=slow.
 
 const startDate = new Date(settings.sdate)
 const endDate = new Date(settings.edate)
 
 let date = new Date(startDate)
 let canvas = createCanvas(3840, 2160)
-canvas.width = 3840
-canvas.height = 2160
 const ctx = canvas.getContext("2d")
 
-
-const cartoFilename = "Carto 4K no labels.png"
-let encoder, uint8Array, year, month, datem, path, img, imgd, polAffData
+let encoder, uint8Array, year, month, datem, folder, path, img, imgd
 HME.default.createH264MP4Encoder()
 	.then(enc => {
 		encoder = enc
@@ -27,7 +26,7 @@ HME.default.createH264MP4Encoder()
     encoder.width = 3840;
     encoder.height = 2160;
     encoder.frameRate = settings.framesPerSecond;
-    encoder.quantizationParameter = 12 // Default 33. Higher means better compression, and lower means better quality [10..51].
+    encoder.quantizationParameter = 18 // Default 33. Higher means better compression, and lower means better quality [10..51].
     encoder.initialize();
   })
   .then(encodeFrame)
@@ -37,15 +36,13 @@ async function encodeFrame() {
 		year = date.getFullYear()
 		month = (1+date.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 		datem = (date.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-  	path = `data/${year}/${month}/${datem}/${cartoFilename}`
+  	folder = `data/${year}/${month}/${datem}`
 
-		console.log("Add frames for "+path)
-  	const img = await loadImage(path)
-    ctx.drawImage(img, 0, 0, 3840, 2160)
-    drawLegend(ctx, date, year, month, datem)
-    imgd = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
-
-    for (let i=0; i<settings.framesPerImage; i++) {
+		console.log("\n# Add frames for "+folder)
+  	const bg = "Carto 4K no labels.png"
+	  await assembleFrame(folder, bg, ctx, date, year, month, datem)
+		imgd = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
+  	for (let i=0; i<settings.framesPerImage; i++) {
   	  encoder.addFrameRgba(imgd.data);
 		}
     date.setDate(date.getDate() + 1)
@@ -54,35 +51,41 @@ async function encodeFrame() {
   	encoder.finalize();
     uint8Array = encoder.FS.readFile(encoder.outputFilename);
     encoder.delete();
-    fs.writeFileSync(`data/${cartoFilename.replace(".png","")} from ${settings.sdate} to ${settings.edate}.mp4`, Buffer.from(uint8Array));
+    fs.writeFileSync(`data/Main hashtags from ${settings.sdate} to ${settings.edate}.mp4`, Buffer.from(uint8Array));
     console.log("Done.")
   }
+}
+
+async function getOverlay(date, folder) {
+  // Load broadcastings
+	let broadcastings = []
+  let filePath = `${folder}/broadcastings.csv`
+  if (fs.existsSync(filePath)) {
+    try {
+      // Load file as string
+      let csvString = fs.readFileSync(filePath, "utf8")
+      // Parse string
+      broadcastings = d3.csvParse(csvString);
+      console.log(`Broadcastings loaded (${broadcastings.length} rows)`)
+
+    } catch (error) {
+      console.error(`An error occurred during the loading and parsing of broadcastings`, error)
+    }
+  } else {
+    console.warn(`Broadcastings not found`)
+  }
+
+  // Get heatmap
+  const oImgd = await computeHashtagsOverlay(date, broadcastings)
+  return oImgd
 }
 
 function drawLegend(ctx, date, year, month, datem) {
 	const xOffset = 12
 	// Draw the title and info
 	let y = 84
-	drawText(ctx, "QUI DÉBAT DE POLITIQUE FR. SUR TWITTER", xOffset, y, "start", "#303040", 0, "66px Raleway")
-	y += 60
-	drawText(ctx, "Carte des interactions Twitter mentionnant des documents du débat politique.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-	y += 36
-	drawText(ctx, "Le débat politique est défini comme les tweets ou pages web les plus mentionnés par les députés de France.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-	y += 36
-	drawText(ctx, "Les comptes Twitter visualisés sont les plus représentés dans les interactions des 30 jours précédents.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-	y += 36
-	drawText(ctx, "La couleur approxime l'affiliation politique. Elle est dérivée de la similarité avec ce que tweetent les députés.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-	y += 36
-	drawText(ctx, "La position est dérivée des tweets : on est proche des comptes avec qui on interagit dans le débat politique.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-
-	// Légende couleurs
-	y += 60
-	const colorCode = getColorCode(date)
-	colorCode.forEach(d => {
-		drawSquare(xOffset, y, 48, d.color)
-		drawText(ctx, d.name, xOffset+60, y+36, "start", "#303040", 0, "32px Raleway")
-		y += 60
-	})
+	drawText(ctx, `Hashtag le plus partagé`, xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+	y += 80
 
 	// Légende timeline
   ctx.lineCap="round";
@@ -97,19 +100,9 @@ function drawLegend(ctx, date, year, month, datem) {
   Object.values(timelineData.years).forEach(yd => {
   	let x = timelineBox.x + timelineBox.w * yd.daymin / timelineData.days
   	if (x < timelineBox.x + timelineBox.w - 50) {
-	  	drawText(ctx, yd.id, x, timelineBox.y+22, "start", "#303040", 0, "bold 36px Raleway")
+	  	drawText(ctx, yd.id, x, timelineBox.y+22, "start", "#EEEEEE", 0, "bold 36px Raleway")
 	  }
   })
-  let day = (date-startDate)/(1000*3600*24)
-  let x = timelineBox.x + timelineBox.w * day / timelineData.days
-  let l = timelineBox.w * 31 / timelineData.days
-	ctx.strokeStyle = "#303040";
-  ctx.fillStyle = "#545664";
-  ctx.lineWidth = 0;
-  ctx.beginPath();
-  ctx.fillRect(x, timelineBox.y+58, l, 24);
-  ctx.rect(x, timelineBox.y+58, l, 24);
-  ctx.stroke();
   const mnames = {
   	"01": "JAN",
   	"02": "FEV",
@@ -128,17 +121,36 @@ function drawLegend(ctx, date, year, month, datem) {
   	let x = timelineBox.x + timelineBox.w * md.daymin / timelineData.days
   	let l = timelineBox.w * md.days / timelineData.days
   	if (l > 50) {
-	  	drawText(ctx, mnames[md.id]||"???", x, timelineBox.y+50, "start", "#303040", 0, "bold 24px Raleway")
+	  	drawText(ctx, mnames[md.id]||"???", x, timelineBox.y+50, "start", "#EEEEEE", 0, "bold 24px Raleway")
 	  }
-	  ctx.strokeStyle = "#303040";
+	  ctx.strokeStyle = "#EEEEEE";
 	  ctx.lineWidth = 3;
 	  ctx.beginPath();
 	  ctx.rect(x, timelineBox.y+58, l, 24);
 	  ctx.stroke();
   })
-	drawText(ctx, `${datem} ${mnames[month]} ${year}`, x+l, timelineBox.y+164, "end", "#303040", 0, "bold 80px Raleway")
-	drawText(ctx, `et les 30 jours précédents`, x+l, timelineBox.y+206, "end", "#303040", 0, "32px Raleway")
 
+  let day = (date-startDate)/(1000*3600*24)
+  let x, l
+  // 30 days
+  x = timelineBox.x + timelineBox.w * day / timelineData.days
+  l = timelineBox.w * 31 / timelineData.days
+  ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
+  ctx.lineWidth = 0;
+  ctx.beginPath();
+  ctx.fillRect(x, timelineBox.y+58, l, 24);
+  // 1 day
+  x = timelineBox.x + timelineBox.w * (day+30) / timelineData.days
+  l = timelineBox.w / timelineData.days
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.lineWidth = 0;
+  ctx.beginPath();
+  ctx.fillRect(x, timelineBox.y+58, l, 24);
+  ctx.rect(x, timelineBox.y+58, l, 24);
+  ctx.stroke();
+
+	drawText(ctx, `${datem} ${mnames[month]} ${year}`, x+l, timelineBox.y+164, "end", "#EEEEEE", 0, "bold 80px Raleway")
 
 	// Internal methods
   function drawText(ctx, txt, x, y, textAlign, text_color, text_border_thickness, font) {
@@ -229,72 +241,77 @@ function getTimelineData(){
 	}
 }
 
-function getPolAffData(){
-  if (polAffData === undefined) {
-    try {
-      // Load affiliations file as string
-      const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
+function compositeHeatmap(bgImg, hmImg, ctx) {
+	let tempCanvas = createCanvas(3840, 2160)
+	const tempCtx = tempCanvas.getContext("2d")
 
-      try {
-        polAffData = JSON.parse(polAffDataJson)
-        console.log('Political affiliations loaded and parsed');
+	// Draw base map (background)
+  ctx.drawImage(bgImg, 0, 0, 3840, 2160)
 
-        return polAffData
-      } catch (error) {
-        console.error("Error: the political affiliations file could not be parsed.", error)
-      }
-    } catch (error) {
-      console.error("Error: the political affiliations file could not be loaded", error)
-    }
-  } else {
-    return polAffData
-  }
-}
-function getColorCode(date){
-	const polAffData = getPolAffData()
-	let era
-	polAffData.eras.forEach(e => {
-		let sdate = new Date(e.startDate)
-		let edate = new Date(e.endDate)
-		if (sdate <= date && date <= edate ) {
-			era = e
-		}
-	})
+  // Luminosity layer
+  tempCtx.beginPath()
+  tempCtx.rect(0, 0, tempCtx.canvas.width, tempCtx.canvas.height)
+  tempCtx.fillStyle = "rgba(89, 94, 100)"
+  tempCtx.fill()
+  tempCtx.closePath()
+  ctx.globalCompositeOperation = "luminosity"
+  ctx.globalAlpha = 0.15;
+  ctx.drawImage(tempCanvas, 0, 0)
 
-	if (era===undefined) {
-    console.error(`No corresponding era found in political affiliations file`);
-	} else {
-		let colorCode = []
-		era.affiliations.forEach(a => {
-			if (a.showInLegend) {
-				colorCode.push({
-					name: a.name,
-					color: a.color
-				})
-			}
-		})
-		colorCode.push({name:"Autre", color: "#a4a4a4"})
-		return colorCode
-	}
+  // Multiply layer
+  tempCtx.beginPath()
+  tempCtx.rect(0, 0, tempCtx.canvas.width, tempCtx.canvas.height)
+  tempCtx.fillStyle = "#000000"
+  tempCtx.fill()
+  tempCtx.closePath()
+  ctx.globalCompositeOperation = "multiply"
+  ctx.globalAlpha = 0.25;
+  ctx.drawImage(tempCanvas, 0, 0)
+
+  tempCtx.drawImage(hmImg, 0, 0)
+
+  // Superpose heatmap
+  ctx.globalCompositeOperation = "lighten"
+  ctx.globalAlpha = 1;
+  ctx.drawImage(tempCtx.canvas, 0, 0)
+
+  // Post adjustments
+  ctx.globalCompositeOperation = "multiply"
+  ctx.globalAlpha = 0.8;
+  ctx.drawImage(ctx.canvas, 0, 0)
 }
 
-// Test the drawing of the context
-// testDrawLegend()
-async function testDrawLegend() {
+async function assembleFrame(folder, bg, ctx, date, year, month, datem) {
+	// Background
+	const bgPath = `${folder}/${bg}`
+	const bgImg = await loadImage(bgPath)
+	
+	// Heatmap
+	const hmImgd = await getOverlay(date, folder)
+	let hmCanvas = createCanvas(3840, 2160)
+	const hmCtx = hmCanvas.getContext("2d")
+	hmCtx.putImageData(hmImgd, 0, 0)
+	
+	compositeHeatmap(bgImg, hmCanvas, ctx)
+
+  ctx.globalCompositeOperation = "source-over"
+  ctx.globalAlpha = 1;
+	drawLegend(ctx, date, year, month, datem)
+}
+
+// testAssembleFrame()
+async function testAssembleFrame() {
 	date = endDate
 	year = date.getFullYear()
 	month = (1+date.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 	datem = (date.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-	path = `data/${year}/${month}/${datem}/${cartoFilename}`
-	const img = await loadImage(path)
-  ctx.drawImage(img, 0, 0, 3840, 2160)
-  drawLegend(ctx, date, year, month, datem)
-  imgd = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
-  const out = fs.createWriteStream('data/test draw legend.png')
+	folder = `data/${year}/${month}/${datem}`
+	const bg = "Carto 4K no labels.png"
+  assembleFrame(folder, bg, ctx, date, year, month, datem)
+  const out = fs.createWriteStream('data/test assemble frame.png')
   const stream = canvas.createPNGStream()
   stream.pipe(out)
   out.on('finish', () => {
   	console.log("Test done.")
   })
 }
-
