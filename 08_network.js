@@ -55,7 +55,7 @@ export async function network(date) {
 
 		// Build network
 		let g
-		const k = 3 // k-core
+		const k = process.env.K_CORE_K || 4 // k-core
 		try {
 			let userIndex = {}
 			g = new Graph({type: "directed", allowSelfLoops: false});

@@ -30,6 +30,7 @@ https://github.com/medialab/minet/releases
 	* The "leftRightAxis" is used sometimes when we need a stable order of the affiliations for some visualizations. Only the order matters, not the values themselves, but you may find practical to see it as -1=left, 0=center and 1=right.
 	* "showInLegend" may be set to *false* for edge-case affiliations that you do not want to appear in the legends of the maps.
 	* "makeHeatmap" can similarly be set to *false* if you want to skip building the heatmap of that affiliation.
+
 # What the script does
 
 1. It sources the list of current parliament members (MPs or "députés" in French) from Regards Citoyens or another source, which contains their Twitter handle (when they have one). Output files: ```twitter_handles.csv```
@@ -39,7 +40,7 @@ https://github.com/medialab/minet/releases
 5. It aggregates the (most cited) resources in a 7-day window (cited by MPs). Intuitively, these resources represent the current state of the political debate in the last 7 days, as seen from the parliament. Output file: ```resources_7days_aggregated.csv```
 6. For the resources the most cited by MPs in the last 7 days, it retrieves up to 2.5K users who also "broadcasted" that resource yesterday, i.e. either mentioned it in a reply, retweet or quote. We stop harvesting at 33K broadcasting, so that we get ~1M broadcastings monthly. Output files: ```broadcastings/[id]-[page].json``` (API responses) and ```broadcastings.csv``` for the aggregated result.
 7. It extracts the list of the users that broadcasted during the 30 days, capped at 1 million and keeping those with that had the most interactions. It tracks the affiliation of the MPs that broadcasted the same resources, if any affiliation is present in the source file. When one affiliation accounts for two thirds or more of those alignments, it marks it as the main affiliation of that person. That just means that this person is particularly aligned with the themes broadcasted by the MPs of that group, regardless of whether or not they agree on a political or ideological level. For convenience, let us call this set of users "the corpus". Output file: ```user_corpus_1month.csv```
-8. It extracts the network of users that have at least 4 interactions (mentioning or being mentioned in broadcastings) with other users of the network. Output files: ```network_edges.csv``` and ```network_nodes.csv```.
+8. It extracts the network of users that have at least 4 interactions (mentioning or being mentioned in broadcastings; that number is configurable) with other users of the network. Output files: ```network_edges.csv``` and ```network_nodes.csv```.
 9. It applies a layout to the network, and sets node sizes and colors. A color is applied if the account has at least 10 broadcastings similar to those of MPs with colored affiliations (those colors are blended with respective weights). Output files: ```network_spat.gexf``` and ```network_nodes_spat.csv```.
 
 # In short
