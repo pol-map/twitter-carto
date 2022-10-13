@@ -112,6 +112,7 @@ export async function get_last_mp_tweets(date) {
 			}
 
 		  // For each user, load yesterday's tweets
+	  	const tweetsDir = `${thisFolder}/tweets`
 		  for (let i in users) {
 		  	const id = users[i].id
 		  	const tweetsFile = `${tweetsDir}/${id}.json`
@@ -122,7 +123,6 @@ export async function get_last_mp_tweets(date) {
 		  	} else {
 			  	const tweetData = await getYesterdaysTweets(id)
 			  	// Save data as JSON
-			  	const tweetsDir = `${thisFolder}/tweets`
 			  	if (!fs.existsSync(tweetsDir)){
 					  fs.mkdirSync(tweetsDir);
 					}
