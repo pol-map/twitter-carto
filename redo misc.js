@@ -1,7 +1,7 @@
 import { get_political_tweets } from "./06_get_political_tweets.js";
 
-const startingDate = new Date("2022-07-22")
-const endDate = new Date("2022-10-03")
+const startingDate = new Date("2022-09-01")
+const endDate = new Date("2022-10-13")
 
 let date = new Date(startingDate)
 const redraw = function(){

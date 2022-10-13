@@ -101,6 +101,7 @@ export async function build_corpus(date) {
 					groups:{},
 					resources:[],
 					cited:{},
+					lang:{},
 				}
 				userData.resources.push(b.resource_id)
 				JSON.parse(b.tweet_mentions).forEach(u2 => {
@@ -113,6 +114,10 @@ export async function build_corpus(date) {
 					count += bgroups[g]
 					userData.groups[g] = count
 				})
+
+				let lang = userData.lang
+				lang[b.tweet_lang] = (lang[b.tweet_lang] || 0) + 1
+				userData.lang = lang
 
 				userIndex[b.broadcaster_id] = userData
 			})
@@ -188,6 +193,7 @@ export async function build_corpus(date) {
 				u.mp_align__TOTAL = total
 				u.resources = JSON.stringify(u.resources)
 				u.cited = JSON.stringify(u.cited)
+				u.lang = JSON.stringify(u.lang)
 				return u
 			})
 

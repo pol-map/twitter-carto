@@ -229,6 +229,7 @@ export async function get_political_tweets(date, useFullArchive) {
 									tweet_text: d.text,
 									tweet_hashtags: JSON.stringify(hashtags),
 									tweet_media: JSON.stringify(media),
+									tweet_lang: ""+d.lang,
 								}
 								broadcastings.push(broadcasting)
 							}
