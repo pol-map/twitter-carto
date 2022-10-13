@@ -17,6 +17,9 @@
 		],
 		"dateSubtitle": "et les 30 jours précédents"
 	},
+	"videoHashtags":{
+		"title": "Hashtag le plus partagé"
+	},
 	"monthNames": {
   	"01": "JAN",
   	"02": "FEV",
