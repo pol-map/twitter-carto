@@ -127,9 +127,11 @@ export async function network_layout(date) {
 		// Set node size
 		try {
 			const inDegreeMax = d3.max(g.nodes().map(nid => g.inDegree(nid)))
+			const minSize = +process.env.LAYOUT_NODE_SIZE_MIN || 2
+			const maxSize = +process.env.LAYOUT_NODE_SIZE_MAX || 30
 			g.nodes().forEach(nid => {
 				let n = g.getNodeAttributes(nid)
-				n.size = 2 + ( (30-2) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
+				n.size = minSize + ( (maxSize-minSize) * Math.pow(g.inDegree(nid)/inDegreeMax, 0.7) )
 			})
 		} catch (error) {
 			console.log("Error", error)
