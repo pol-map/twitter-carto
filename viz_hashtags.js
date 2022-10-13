@@ -3,6 +3,9 @@ import gexf from "graphology-gexf";
 import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 import * as d3 from 'd3';
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export async function computeHashtagsOverlay(date, broadcastings) {
   const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
@@ -1264,7 +1267,7 @@ export async function computeHashtagsOverlay(date, broadcastings) {
         console.log("Rescale ratio: "+ratio)
       }
 
-      ratio = 0.42 // CUSTOM: we fix it so that it is constant from one map to another (since this is 4K with about the same number of nodes)
+      ratio = +process.env.BASEMAP_ZOOM_RATIO || 0.42 // CUSTOM: we fix it so that it is constant from one map to another (since this is 4K with about the same number of nodes)
       
       // Resize
       /*g.nodes().forEach(function(nid){
