@@ -3,8 +3,8 @@ import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
-settings.sdate = "2022-07-22"
-settings.edate = "2022-10-06"
+settings.sdate = "2022-09-30"
+settings.edate = "2022-10-13"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -14,7 +14,7 @@ const endDate = new Date(settings.edate)
 let canvas = createCanvas(3840, 2160)
 const ctx = canvas.getContext("2d")
 
-let encoder, uint8Array, date, year, month, datem, path, img, imgd, folder, bg, hm
+let encoder, uint8Array, date, year, month, datem, path, img, imgd, folder, bg, hm, localeData
 
 const polGroups = getPolGroups()
 let polGroupIndex = 0
@@ -72,12 +72,14 @@ async function encodeFrame() {
 }
 
 function drawLegend(ctx, date, year, month, datem) {
+	const locale = getLocaleData()
 	const xOffset = 12
 	// Draw the title and info
 	let y = 84
-	drawText(ctx, "Qui tweete les mêmes ressources", xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
-	y += 80
-	drawText(ctx, `qu'un député ${polGroups[polGroup]}?`, xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+	locale.videoHeatmap.titleRows.forEach(txt => {
+		drawText(ctx, txt.replace("{POLGROUP}", polGroups[polGroup]), xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+		y += 80
+	})
 
 	// Légende timeline
   ctx.lineCap="round";
@@ -105,25 +107,12 @@ function drawLegend(ctx, date, year, month, datem) {
   ctx.fillRect(x, timelineBox.y+58, l, 24);
   ctx.rect(x, timelineBox.y+58, l, 24);
   ctx.stroke();
-  const mnames = {
-  	"01": "JAN",
-  	"02": "FEV",
-  	"03": "MARS",
-  	"04": "AVR",
-  	"05": "MAI",
-  	"06": "JUIN",
-  	"07": "JUIL",
-  	"08": "AOUT",
-  	"09": "SEPT",
-  	"10": "OCT",
-  	"11": "NOV",
-  	"12": "DEC",
-  }
+  const mnames = locale.monthNames
   Object.values(timelineData.months).forEach(md => {
   	let x = timelineBox.x + timelineBox.w * md.daymin / timelineData.days
   	let l = timelineBox.w * md.days / timelineData.days
   	if (l > 50) {
-	  	drawText(ctx, mnames[md.id]||"???", x, timelineBox.y+50, "start", "#EEEEEE", 0, "bold 24px Raleway")
+	  	drawText(ctx, mnames[md.id] || "???", x, timelineBox.y+50, "start", "#EEEEEE", 0, "bold 24px Raleway")
 	  }
 	  ctx.strokeStyle = "#EEEEEE";
 	  ctx.lineWidth = 3;
@@ -132,7 +121,7 @@ function drawLegend(ctx, date, year, month, datem) {
 	  ctx.stroke();
   })
 	drawText(ctx, `${datem} ${mnames[month]} ${year}`, x+l, timelineBox.y+164, "end", "#EEEEEE", 0, "bold 80px Raleway")
-	drawText(ctx, `et les 30 jours précédents`, x+l, timelineBox.y+206, "end", "#EEEEEE", 0, "32px Raleway")
+	drawText(ctx, locale.video.dateSubtitle, x+l, timelineBox.y+206, "end", "#EEEEEE", 0, "32px Raleway")
 
 
 	// Internal methods
@@ -293,6 +282,28 @@ async function assembleFrame(folder, bg, hm, ctx, date, year, month, datem) {
   ctx.globalCompositeOperation = "source-over"
   ctx.globalAlpha = 1;
 	drawLegend(ctx, date, year, month, datem)
+}
+
+function getLocaleData() {
+  if (localeData === undefined) {
+    try {
+      // Load affiliations file as string
+      const localeDataJson = fs.readFileSync('locale.json', "utf8")
+
+      try {
+        localeData = JSON.parse(localeDataJson)
+        console.log('Locale loaded and parsed');
+
+        return localeData
+      } catch (error) {
+        console.error("Error: the locale file could not be parsed.", error)
+      }
+    } catch (error) {
+      console.error("Error: the locale file could not be loaded", error)
+    }
+  } else {
+    return localeData
+  }
 }
 
 function getPolGroups(){

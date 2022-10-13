@@ -10,6 +10,13 @@
 			"La position est dérivée des tweets : on est proche des comptes avec qui on interagit dans le débat politique."
 		]
 	},
+	"videoHeatmap":{
+		"titleRows": [
+			"Qui tweete les mêmes ressources",
+			"qu'un député {POLGROUP}?"
+		],
+		"dateSubtitle": "et les 30 jours précédents"
+	},
 	"monthNames": {
   	"01": "JAN",
   	"02": "FEV",

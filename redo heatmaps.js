@@ -1,7 +1,7 @@
 import { render_pol_heatmaps } from "./14_render_pol_heatmaps.js";
 
-const startingDate = new Date("2022-07-22")
-const endDate = new Date("2022-09-26")
+const startingDate = new Date("2022-09-30")
+const endDate = new Date("2022-10-13")
 
 let date = startingDate
 const redraw = function(){

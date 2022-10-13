@@ -4,7 +4,7 @@ import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
 settings.sdate = "2022-09-30"
-settings.edate = "2022-10-04"
+settings.edate = "2022-10-13"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -111,7 +111,7 @@ function drawLegend(ctx, date, year, month, datem) {
   	let x = timelineBox.x + timelineBox.w * md.daymin / timelineData.days
   	let l = timelineBox.w * md.days / timelineData.days
   	if (l > 50) {
-	  	drawText(ctx, mnames[md.id]||"???", x, timelineBox.y+50, "start", "#303040", 0, "bold 24px Raleway")
+	  	drawText(ctx, mnames[md.id] || "???", x, timelineBox.y+50, "start", "#303040", 0, "bold 24px Raleway")
 	  }
 	  ctx.strokeStyle = "#303040";
 	  ctx.lineWidth = 3;
