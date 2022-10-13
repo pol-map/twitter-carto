@@ -3,8 +3,8 @@ import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
-settings.sdate = "2022-07-22"
-settings.edate = "2022-10-06"
+settings.sdate = "2022-09-01"
+settings.edate = "2022-10-13"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
 

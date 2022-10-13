@@ -2,8 +2,8 @@ import { build_corpus } from "./07_build_corpus.js";
 import { network } from "./08_network.js";
 import { network_layout } from "./09_network_layout.js";
 
-const startingDate = new Date("2022-07-22")
-const endDate = new Date("2022-09-25")
+const startingDate = new Date("2022-09-01")
+const endDate = new Date("2022-10-13")
 
 let date = startingDate
 const redraw = function(){
