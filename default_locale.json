@@ -1,0 +1,30 @@
+{
+	"video":{
+		"title":"QUI DÉBAT DE POLITIQUE FR. SUR TWITTER",
+		"dateSubtitle": "et les 30 jours précédents",
+		"textRows": [
+			"Carte des interactions Twitter mentionnant des documents du débat politique.",
+			"Le débat politique est défini comme les tweets ou pages web les plus mentionnés par les députés de France.",
+			"Les comptes Twitter visualisés sont les plus représentés dans les interactions des 30 jours précédents.",
+			"La couleur approxime l'affiliation politique. Elle est dérivée de la similarité avec ce que tweetent les députés.",
+			"La position est dérivée des tweets : on est proche des comptes avec qui on interagit dans le débat politique."
+		]
+	},
+	"monthNames": {
+  	"01": "JAN",
+  	"02": "FEV",
+  	"03": "MARS",
+  	"04": "AVR",
+  	"05": "MAI",
+  	"06": "JUIN",
+  	"07": "JUIL",
+  	"08": "AOUT",
+  	"09": "SEPT",
+  	"10": "OCT",
+  	"11": "NOV",
+  	"12": "DEC"
+  },
+  "misc": {
+  	"otherAffiliation":"Autre"
+  }
+}
