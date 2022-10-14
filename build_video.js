@@ -3,8 +3,8 @@ import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
-settings.sdate = "2022-07-22"
-settings.edate = "2022-10-06"
+settings.sdate = "2022-09-30"
+settings.edate = "2022-10-13"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -19,7 +19,7 @@ const ctx = canvas.getContext("2d")
 
 
 const cartoFilename = "Carto 4K no labels.png"
-let encoder, uint8Array, year, month, datem, path, img, imgd, polAffData
+let encoder, uint8Array, year, month, datem, path, img, imgd, polAffData, localeData
 HME.default.createH264MP4Encoder()
 	.then(enc => {
 		encoder = enc
@@ -60,20 +60,16 @@ async function encodeFrame() {
 }
 
 function drawLegend(ctx, date, year, month, datem) {
+	const locale = getLocaleData()
 	const xOffset = 12
 	// Draw the title and info
 	let y = 84
-	drawText(ctx, "QUI DÉBAT DE POLITIQUE FR. SUR TWITTER", xOffset, y, "start", "#303040", 0, "66px Raleway")
+	drawText(ctx, locale.video.title, xOffset, y, "start", "#303040", 0, "66px Raleway")
 	y += 60
-	drawText(ctx, "Carte des interactions Twitter mentionnant des documents du débat politique.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-	y += 36
-	drawText(ctx, "Le débat politique est défini comme les tweets ou pages web les plus mentionnés par les députés de France.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-	y += 36
-	drawText(ctx, "Les comptes Twitter visualisés sont les plus représentés dans les interactions des 30 jours précédents.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-	y += 36
-	drawText(ctx, "La couleur approxime l'affiliation politique. Elle est dérivée de la similarité avec ce que tweetent les députés.", xOffset, y, "start", "#303040", 0, "26px Raleway")
-	y += 36
-	drawText(ctx, "La position est dérivée des tweets : on est proche des comptes avec qui on interagit dans le débat politique.", xOffset, y, "start", "#303040", 0, "26px Raleway")
+	locale.video.textRows.forEach(txt => {
+		drawText(ctx, txt, xOffset, y, "start", "#303040", 0, "26px Raleway")
+		y += 36		
+	})
 
 	// Légende couleurs
 	y += 60
@@ -110,25 +106,12 @@ function drawLegend(ctx, date, year, month, datem) {
   ctx.fillRect(x, timelineBox.y+58, l, 24);
   ctx.rect(x, timelineBox.y+58, l, 24);
   ctx.stroke();
-  const mnames = {
-  	"01": "JAN",
-  	"02": "FEV",
-  	"03": "MARS",
-  	"04": "AVR",
-  	"05": "MAI",
-  	"06": "JUIN",
-  	"07": "JUIL",
-  	"08": "AOUT",
-  	"09": "SEPT",
-  	"10": "OCT",
-  	"11": "NOV",
-  	"12": "DEC",
-  }
+  const mnames = locale.monthNames
   Object.values(timelineData.months).forEach(md => {
   	let x = timelineBox.x + timelineBox.w * md.daymin / timelineData.days
   	let l = timelineBox.w * md.days / timelineData.days
   	if (l > 50) {
-	  	drawText(ctx, mnames[md.id]||"???", x, timelineBox.y+50, "start", "#303040", 0, "bold 24px Raleway")
+	  	drawText(ctx, mnames[md.id] || "???", x, timelineBox.y+50, "start", "#303040", 0, "bold 24px Raleway")
 	  }
 	  ctx.strokeStyle = "#303040";
 	  ctx.lineWidth = 3;
@@ -137,7 +120,7 @@ function drawLegend(ctx, date, year, month, datem) {
 	  ctx.stroke();
   })
 	drawText(ctx, `${datem} ${mnames[month]} ${year}`, x+l, timelineBox.y+164, "end", "#303040", 0, "bold 80px Raleway")
-	drawText(ctx, `et les 30 jours précédents`, x+l, timelineBox.y+206, "end", "#303040", 0, "32px Raleway")
+	drawText(ctx, locale.video.dateSubtitle, x+l, timelineBox.y+206, "end", "#303040", 0, "32px Raleway")
 
 
 	// Internal methods
@@ -229,7 +212,29 @@ function getTimelineData(){
 	}
 }
 
-function getPolAffData(){
+function getLocaleData() {
+  if (localeData === undefined) {
+    try {
+      // Load affiliations file as string
+      const localeDataJson = fs.readFileSync('locale.json', "utf8")
+
+      try {
+        localeData = JSON.parse(localeDataJson)
+        console.log('Locale loaded and parsed');
+
+        return localeData
+      } catch (error) {
+        console.error("Error: the locale file could not be parsed.", error)
+      }
+    } catch (error) {
+      console.error("Error: the locale file could not be loaded", error)
+    }
+  } else {
+    return localeData
+  }
+}
+
+function getPolAffData() {
   if (polAffData === undefined) {
     try {
       // Load affiliations file as string
@@ -250,7 +255,9 @@ function getPolAffData(){
     return polAffData
   }
 }
+
 function getColorCode(date){
+	const locale = getLocaleData()
 	const polAffData = getPolAffData()
 	let era
 	polAffData.eras.forEach(e => {
@@ -273,7 +280,7 @@ function getColorCode(date){
 				})
 			}
 		})
-		colorCode.push({name:"Autre", color: "#a4a4a4"})
+		colorCode.push({name:locale.misc.otherAffiliation, color: "#a4a4a4"})
 		return colorCode
 	}
 }
@@ -281,7 +288,7 @@ function getColorCode(date){
 // Test the drawing of the context
 // testDrawLegend()
 async function testDrawLegend() {
-	date = endDate
+	date = startDate
 	year = date.getFullYear()
 	month = (1+date.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 	datem = (date.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})

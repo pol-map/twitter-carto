@@ -55,7 +55,7 @@ export async function get_political_tweets(date, useFullArchive) {
 			.child({ context: {resources} })
 			.trace('Sorted resources');
 
-		const maxResources = 10000 // This is just backup, in practice it's never met
+		const maxResources = 2500 // This is just backup, in practice it's never met
 		const maxTweets = 33000
 		let harvestedTweetsCount = 0
 
@@ -229,6 +229,7 @@ export async function get_political_tweets(date, useFullArchive) {
 									tweet_text: d.text,
 									tweet_hashtags: JSON.stringify(hashtags),
 									tweet_media: JSON.stringify(media),
+									tweet_lang: ""+d.lang,
 								}
 								broadcastings.push(broadcasting)
 							}

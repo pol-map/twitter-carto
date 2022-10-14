@@ -55,7 +55,7 @@ export async function network(date) {
 
 		// Build network
 		let g
-		const k = 4 // k-core
+		const k = process.env.K_CORE_K || 4 // k-core
 		try {
 			let userIndex = {}
 			g = new Graph({type: "directed", allowSelfLoops: false});
@@ -65,6 +65,11 @@ export async function network(date) {
 				delete u2.id
 				delete u2.resources
 				delete u2.cited
+				delete u2.lang
+				if (process.env.FOCUS_LANG) {
+					let lang = JSON.parse(u.lang)
+					u2.focus_lang = +(u2.focus_lang || 0) + lang[process.env.FOCUS_LANG]
+				}
 				g.addNode(u.id, u2)
 			})
 			users.forEach(u => {
@@ -78,6 +83,21 @@ export async function network(date) {
 			g.edges().forEach(eid => {
 				g.setEdgeAttribute(eid, "weight", 1) // We omit duplicates
 			})
+			// Delete nodes that do not match criteria (focus language)
+			if (process.env.FOCUS_LANG && process.env.FOCUS_LANG_THRESHOLD && process.env.FOCUS_LANG_THRESHOLD>0) {
+
+				const threshold = +process.env.FOCUS_LANG_THRESHOLD
+				let nodesRemoved = 0
+				g.nodes().filter(nid => {
+					if (!g.getNodeAttribute(nid, 'focus_lang') >= threshold) {
+						nodesRemoved++
+						g.dropNode(nid)
+					}
+				})
+				logger
+					.info(`Language focus: ${nodesRemoved} nodes have been removed from the raw network.`);
+
+			}
 			logger
 				.child({ context: {"nodes":g.order, "edges":g.size} })
 				.info(`Network built (${g.order} nodes, ${g.size} edges).`);

@@ -6,8 +6,8 @@ import { computeHashtagsOverlay } from "./viz_hashtags.js";
 import * as StackBlur from "stackblur-canvas";
 
 let settings = {}
-settings.sdate = "2022-07-22"
-settings.edate = "2022-10-07"
+settings.sdate = "2022-09-30"
+settings.edate = "2022-10-13"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 30; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -18,7 +18,7 @@ let date = new Date(startDate)
 let canvas = createCanvas(3840, 2160)
 const ctx = canvas.getContext("2d")
 
-let encoder, uint8Array, year, month, datem, folder, path, img, imgd
+let encoder, uint8Array, year, month, datem, folder, path, img, imgd, localeData
 HME.default.createH264MP4Encoder()
 	.then(enc => {
 		encoder = enc
@@ -81,10 +81,11 @@ async function getOverlay(date, folder) {
 }
 
 function drawLegend(ctx, date, year, month, datem) {
+	const locale = getLocaleData()
 	const xOffset = 12
 	// Draw the title and info
 	let y = 84
-	drawText(ctx, `Hashtag le plus partagé`, xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+	drawText(ctx, locale.videoHashtags.title, xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
 	y += 80
 
 	// Légende timeline
@@ -103,20 +104,7 @@ function drawLegend(ctx, date, year, month, datem) {
 	  	drawText(ctx, yd.id, x, timelineBox.y+22, "start", "#EEEEEE", 0, "bold 36px Raleway")
 	  }
   })
-  const mnames = {
-  	"01": "JAN",
-  	"02": "FEV",
-  	"03": "MARS",
-  	"04": "AVR",
-  	"05": "MAI",
-  	"06": "JUIN",
-  	"07": "JUIL",
-  	"08": "AOUT",
-  	"09": "SEPT",
-  	"10": "OCT",
-  	"11": "NOV",
-  	"12": "DEC",
-  }
+  const mnames = locale.monthNames
   Object.values(timelineData.months).forEach(md => {
   	let x = timelineBox.x + timelineBox.w * md.daymin / timelineData.days
   	let l = timelineBox.w * md.days / timelineData.days
@@ -191,6 +179,28 @@ function drawLegend(ctx, date, year, month, datem) {
     ctx.fillRect(x, y, size, size);
     ctx.rect(x, y, size, size);
     ctx.stroke();
+  }
+}
+
+function getLocaleData() {
+  if (localeData === undefined) {
+    try {
+      // Load affiliations file as string
+      const localeDataJson = fs.readFileSync('locale.json', "utf8")
+
+      try {
+        localeData = JSON.parse(localeDataJson)
+        console.log('Locale loaded and parsed');
+
+        return localeData
+      } catch (error) {
+        console.error("Error: the locale file could not be parsed.", error)
+      }
+    } catch (error) {
+      console.error("Error: the locale file could not be loaded", error)
+    }
+  } else {
+    return localeData
   }
 }
 
