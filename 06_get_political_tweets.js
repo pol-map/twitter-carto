@@ -55,7 +55,7 @@ export async function get_political_tweets(date, useFullArchive) {
 			.child({ context: {resources} })
 			.trace('Sorted resources');
 
-		const maxResources = 2500 // This is just backup, in practice it's never met
+		const maxResources = +process.env.MAX_RESOURCES || 2500
 		const maxTweets = 33000
 		let harvestedTweetsCount = 0
 
