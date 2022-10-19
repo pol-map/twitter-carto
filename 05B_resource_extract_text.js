@@ -28,7 +28,7 @@ export async function resource_extract_text(date) {
 	  trace: 5,
 	};
 
-	const logLevel = "debug"
+	const logLevel = "info"
 
 	const logger = createLogger({
 		level: logLevel,
@@ -63,7 +63,7 @@ export async function resource_extract_text(date) {
 		resources = resources.filter((d,i) => { return i < (+process.env.MAX_RESOURCES || 2500) })
 
 		// Load yesterday's resources_7days_aggregated.csv if any
-		const resFile_agg_Y = `${yesterdaysFolder}/resources_7days_aggregated.csv`
+		const resFile_agg_Y = `${yesterdaysFolder}/resources_7days_aggregated_text.csv`
 		let resources_Y = []
 		if (fs.existsSync(resFile_agg_Y)) {
 			resources_Y = loadFile(resFile_agg_Y, 'yesterday\'s resources')
@@ -77,6 +77,11 @@ export async function resource_extract_text(date) {
 		let newResources = resources.filter(r => {
 			return resourcesOld[r] === undefined
 		})
+		logger
+			.child({ context: {resources, newResources, resourcesOld} })
+			.debug(`${resources.length} resources for today, ${newResources.length} new ones, ${Object.values(resourcesOld).length} old.`);
+		logger
+			.info(`Of today's ${resources.length} resources, ${newResources.length} are new.`);
 
 		// Save the new Twitter resources
 		let newResourcesTwitter = newResources.filter(r => r.type == "tweet")
@@ -269,9 +274,48 @@ export async function resource_extract_text(date) {
 				}
 			}
 		}
+		// Aggregate with existing resources
+		let newResourcesTwitterFetchedIndex = {}
+		newResourcesTwitterFetched.forEach(r => {
+			newResourcesTwitterFetchedIndex[r.id] = r
+		})
+		let newResourcesTwitterExtracted = newResourcesTwitter.map(r => {
+			let r2 = newResourcesTwitterFetchedIndex[r.id]
+			if (r2 === undefined) {
+				logger
+					.error(`Aggregation error: new twitter resource ${r} could not be found in fetched resources index.`);
+				return r
+			} else {
+				let result = {...r}
+				result.text = r2.text
+				result.lang = r2.lang
+				if (r2.attachments && r2.attachments.media_keys) {
+					result.media_keys = JSON.stringify(r2.attachments.media_keys)
+				}
+				return result
+			}
+		})
+
+		// Save the file with infos
+		const resFile_twitter_extracted = `${thisFolder}/resources_7days_new_twitter_text.csv`
+		const newResourcesTwitterExtractedString = d3.csvFormat(newResourcesTwitterExtracted)
+		try {
+			fs.writeFileSync(resFile_twitter_extracted, newResourcesTwitterExtractedString)
+			logger
+				.child({ context: {resFile_twitter_extracted} })
+				.info('New Twitter resources with text file saved successfully');
+		} catch(error) {
+			logger
+				.child({ context: {resFile_twitter_extracted, error} })
+				.error('The new Twitter resources with text file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The new Twitter resources with text file could not be saved.`}));
+				logger.end();
+			})
+		}
 
 
-		/*// Fetch the text content from URL resources
+		// Fetch the text content from URL resources
 		const fetchUrlSettings = ["fetch", "url", resFile_URL]
 		let fetchUrlDataString
 		try {
@@ -338,11 +382,56 @@ export async function resource_extract_text(date) {
 				logger.once('finish', () => resolve({success:false, msg:`The new URL resources with text file could not be saved.`}));
 				logger.end();
 			})
-		}*/
+		}
 
-
-		// TODO:
+		// Load Minet result
+		let newResourcesUrlExtracted = loadFile(resFile_URL_extracted, "new URL resources with text");
+		// Aggregate new extracted information
+		let newResourcesWithTextIndex = {}
+		// From URLs
+		newResourcesUrlExtracted.forEach(res => {
+			newResourcesWithTextIndex[res.id] = {
+				text: `${res.title}. ${res.description}`,
+				text_long: `${res.title}. \n${res.description}. \n${res.raw_content}`,
+			}
+		})
+		// From Twitter
+		newResourcesTwitterExtracted.forEach(res => {
+			newResourcesWithTextIndex[res.id] = {
+				text: res.text,
+				text_long: `${res.text}`,
+				lang: res.lang,
+				media_keys: res.media_keys,
+			}
+		})
 		// Save the resources with text content
+		let resourcesWithText = resources.map(res => {
+			let r2 = newResourcesWithTextIndex[res.id]
+			if (r2===undefined) {
+				return res
+			} else {
+				return {...res, ...r2}
+			}
+		})
+		const resFile_aggregated_withText = `${thisFolder}/resources_7days_aggregated_text.csv`
+		const resourcesWithTextString = d3.csvFormat(resourcesWithText)
+		try {
+			fs.writeFileSync(resFile_aggregated_withText, resourcesWithTextString)
+			logger
+				.info(`Aggregated resources with text file saved successfully (${resourcesWithText.length} rows).`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:true, msg:`${resourcesWithText.length} with text saved successfully.`}));
+				logger.end();
+			})
+		} catch(error) {
+			logger
+				.child({ context: {resourcesWithTextString, error} })
+				.error('Aggregated resources with text file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The aggregated resources with text could not be saved.`}));
+				logger.end();
+			})
+		}
 
 		console.log("Done.")
 	}
