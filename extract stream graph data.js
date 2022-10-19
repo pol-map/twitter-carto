@@ -5,7 +5,7 @@ import { computeBroadcastingsViz } from "./viz_broadcastings.js";
 
 let settings = {}
 settings.sdate = "2022-07-22"
-settings.edate = "2022-10-03"
+settings.edate = "2022-08-03"
 
 const startDate = new Date(settings.sdate)
 const endDate = new Date(settings.edate)

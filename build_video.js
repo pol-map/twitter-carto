@@ -3,8 +3,8 @@ import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 
 let settings = {}
-settings.sdate = "2022-09-30"
-settings.edate = "2022-10-13"
+settings.sdate = "2022-07-22"
+settings.edate = "2022-10-14"
 settings.framesPerSecond = 30; // FPS (frame rate)
 settings.framesPerImage = 3; // How long in frames does each image stay. 1=quick, 15=slow.
 
@@ -42,6 +42,7 @@ async function encodeFrame() {
 		console.log("Add frames for "+path)
   	const img = await loadImage(path)
     ctx.drawImage(img, 0, 0, 3840, 2160)
+
     drawLegend(ctx, date, year, month, datem)
     imgd = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
 
@@ -60,7 +61,7 @@ async function encodeFrame() {
 }
 
 function drawLegend(ctx, date, year, month, datem) {
-	const locale = getLocaleData()
+  const locale = getLocaleData()
 	const xOffset = 12
 	// Draw the title and info
 	let y = 84
