@@ -1,24 +1,24 @@
-import { get_political_tweets } from "./06_get_political_tweets.js";
+import { resource_extract_text } from "./05B_resource_extract_text.js";
 
-const startingDate = new Date("2022-09-01")
-const endDate = new Date("2022-10-13")
+const startingDate = new Date("2022-08-25")
+const endDate = new Date("2022-10-19")
 
 let date = new Date(startingDate)
 const redraw = function(){
 	let year = date.getFullYear()
 	let month = (1+date.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 	let datem = (date.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-	console.log(`\n\n# REDO RESOURCES FOR ${year}-${month}-${datem} ##############################`)
+	console.log(`\n\n# REDO TXT EXTRACT FOR ${year}-${month}-${datem} ##############################`)
 
-	get_political_tweets(date)
+	resource_extract_text(date)
 		.then(result => {
 			if (result.success) {
-				console.info("# REDO RESOURCES SUCCESSFUL.",result.msg)
+				console.info("# REDO TXT EXTRACT SUCCESSFUL.",result.msg)
 			} else {
-				console.error("# REDO RESOURCES FAILED", result.msg)
+				console.error("# REDO TXT EXTRACT FAILED", result.msg)
 			}
 		}, error => {
-			console.error("# REDO RESOURCES ERROR", error)
+			console.error("# REDO TXT EXTRACT ERROR", error)
 		})
 
 		.then(() => {
