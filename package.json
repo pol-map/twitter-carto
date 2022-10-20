@@ -4,6 +4,7 @@
   "description": "Mapping Twitter landscapes with networks",
   "type": "module",
   "dependencies": {
+    "@shopping24/rake-js": "^2.2.1",
     "canvas": "^2.10.1",
     "csv-parser": "^3.0.0",
     "d3": "^7.6.1",
@@ -21,7 +22,9 @@
     "node-nlp": "^4.24.0",
     "sharp": "^0.30.7",
     "stackblur-canvas": "^2.5.0",
+    "talisman": "^1.1.4",
     "twitter-api-sdk": "^1.1.0",
+    "wink-tokenizer": "^5.3.0",
     "winston": "^3.8.2"
   },
   "scripts": {
