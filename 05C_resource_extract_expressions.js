@@ -6,6 +6,7 @@ import * as d3 from 'd3';
 import { Client, auth } from "twitter-api-sdk";
 import dotenv from "dotenv";
 import { spawn } from "child_process";
+import { Language } from 'node-nlp'
 
 dotenv.config();
 
@@ -59,7 +60,11 @@ export async function resource_extract_expressions(date) {
 		const resFile_agg = `${thisFolder}/resources_7days_aggregated_text.csv`
 		let resources = loadFile(resFile_agg, 'resources')
 
-		console.log(resources[0].text)
+		// Test
+		let text = resources[0].text
+		const language = new Language();
+	  const guess = language.guess(text);
+	  console.log("LANGUAGE",guess[0], "for "+resources[0].text);
 
 
 		console.log("Done.")
