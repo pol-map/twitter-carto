@@ -283,7 +283,7 @@ export async function resource_extract_text(date) {
 			let r2 = newResourcesTwitterFetchedIndex[r.id]
 			if (r2 === undefined) {
 				logger
-					.error(`Aggregation error: new twitter resource ${r} could not be found in fetched resources index.`);
+					.warn(`Aggregation error: new twitter resource ${r.id} could not be found in fetched resources index.`);
 				return r
 			} else {
 				let result = {...r}
@@ -472,11 +472,9 @@ export async function resource_extract_text(date) {
 	    }
 	    if (tweets.data) {
 		    logger
-		  		.child({ context: {settings} })
 					.info(`${tweets.data.length} tweets retrieved.`);
 	    } else {
 		    logger
-		  		.child({ context: {settings} })
 					.warn(`No tweets retrieved.`);
 	    }
 	    logger
