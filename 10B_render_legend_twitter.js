@@ -12,6 +12,12 @@ export async function render_legend_twitter(date) {
   const datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
   const thisFolder = `data/${year}/${month}/${datem}`
 
+  let yesterday = new Date(targetDate.getTime());
+  yesterday.setDate(targetDate.getDate() - 1);
+  const yyear = yesterday.getFullYear()
+  const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+  const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+
   let localeData, polAffData
 
   const width = 3590
@@ -26,7 +32,7 @@ export async function render_legend_twitter(date) {
   const xOffset = 12
   // Draw the title and info
   let y = 100
-  drawText(ctx, `${locale.legendTwitter.title} ${year}-${month}-${datem}`, xOffset, y, "start", "#303040", 0, "104px Raleway")
+  drawText(ctx, `${locale.legendTwitter.title} ${yyear}-${ymonth}-${ydatem}`, xOffset, y, "start", "#303040", 0, "104px Raleway")
   y += 24 // Margin
   locale.legendTwitter.textRows.forEach(txt => {
     y += 54
