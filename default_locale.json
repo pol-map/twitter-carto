@@ -1,6 +1,15 @@
 {
+	"legendTwitter":{
+		"title":"Débat politique sur Twitter",
+		"textRows":[
+			"Point = Compte Twitter",
+			"Proximité = Similarité des interactions",
+			"Couleur = Similarité des contenus diffusés"
+		],
+		"footer":"@PolMapFR - Plus d'infos sur https://bit.ly/PolMapFR"
+	},
 	"video":{
-		"title":"QUI DÉBAT DE POLITIQUE FR. SUR TWITTER",
+		"title":"QUI DÉBAT DE POLITIQUE SUR TWITTER FRANCE",
 		"dateSubtitle": "et les 30 jours précédents",
 		"textRows": [
 			"Carte des interactions Twitter mentionnant des documents du débat politique.",
