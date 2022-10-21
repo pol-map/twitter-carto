@@ -7,11 +7,13 @@ Mapping Twitter landscapes with networks
 npm install
 ```
 
-Then a small but necessary thing: you also need to install Minet, which depends on your OS. Check the releases there:
-https://github.com/medialab/minet/releases
+Then two small but necessary things:
 
-* Install the Minet binaries in your a ```minet``` folder to create at the root of the repository (or somewhere else... It's just a matter of .gitignore)
-* Edit the location of the Minet executable in the ```.env``` file (see just below)
+1. You need to install Minet, which depends on your OS. Check the releases there: https://github.com/medialab/minet/releases
+	* Install the Minet binaries in your a ```minet``` folder to create at the root of the repository (or somewhere else... It's just a matter of .gitignore)
+	* Edit the location of the Minet executable in the ```.env``` file (see just below)
+
+2. Download and install the Raleway font family (all of it). It is necessary to drawing the maps: https://www.fontsquirrel.com/fonts/raleway
 
 ## Config
 
