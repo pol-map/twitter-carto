@@ -23,6 +23,7 @@ export let frameBuilder = (()=>{
 		options.reuseIfExists = (options.reuseIfExists===undefined) ? false : options.reuseIfExists
 		options.fileFormat = (options.fileFormat===undefined) ? 'jpg' : options.fileFormat
 		options.filtering = (options.filtering===undefined) ? {shortName:"All", filter:d=>true} : options.filtering
+		options.remember = (options.remember===undefined) ? true : options.remember
 
 		switch(type) {
 		  case "broadcasting":
@@ -32,7 +33,8 @@ export let frameBuilder = (()=>{
 		    		options.labels,
 		    		options.fileFormat,
 		    		options.reuseIfExists,
-		    		options.filtering
+		    		options.filtering,
+		    		options.remember
 		    	)
 		    break;
 		  default:
