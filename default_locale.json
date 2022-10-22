@@ -29,6 +29,9 @@
 	"videoHashtags":{
 		"title": "Hashtag le plus partagé"
 	},
+	"videoBroadcastings":{
+		"title": "Diffusion: {FILTER_NAME}"
+	},
 	"monthNames": {
   	"01": "JAN",
   	"02": "FEV",

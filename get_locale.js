@@ -6,7 +6,7 @@ export function getLocale() {
     const localeDataJson = fs.readFileSync('locale.json', "utf8")
 
     try {
-      localeData = JSON.parse(localeDataJson)
+      const localeData = JSON.parse(localeDataJson)
       console.log('Locale loaded and parsed');
 
       return localeData
