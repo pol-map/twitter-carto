@@ -13,15 +13,19 @@ const program = new Command();
 program
 	.name('frame-builder')
 	.description('Utility usable as a CLI. Build video frames by assembling already rendered images into frames that can be made into a video.')
-  .option('-t, --type <frametype>', 'Frame type: regular, broadcasting')
-  .option('-d, --date <date>', 'Date as "YYYY-MM-DD"')
+  .option('-t, --type <frametype>', 'Required. Frame types: regular, broadcasting, polheatmap')
+  .option('-d, --date <date>', 'Date as "YYYY-MM-DD". Defaults to today.')
   .option('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
+  .option('-p, --polgroup <group-id>', 'ID of the political affiliation. Necessary to the polheatmap mode.')
   .showHelpAfterError()
   .parse(process.argv);
 
 const options = program.opts();
 
 if (!options.type) {
+	program.help()
+} else if(options.type == "polheatmap" && !options.polgroup) {
+	console.error("/!\\ The polheatmap mode requires a polgroup.\n")
 	program.help()
 }
 
@@ -58,6 +62,16 @@ export let frameBuilder = (()=>{
 		    		options.reuseIfExists
 		    	)
 		    break;
+			case "polheatmap":
+		    return await ns.buildPolHeatmapFrame(
+		    		date,
+		    		options.dateRange,
+		    		options.labels,
+		    		options.fileFormat,
+		    		options.reuseIfExists,
+		    		options.heatmapPolGroup
+		    	)
+		    break;
 		  case "broadcasting":
 		    return await ns.buildBroadcastingFrame(
 		    		date,
@@ -72,6 +86,114 @@ export let frameBuilder = (()=>{
 		  default:
 		    console.error(`ERROR: Unknown frame type "${type}". The frame could not be built.`)
 		}
+	}
+
+
+	/// TYPE: HEATMAP
+
+	ns.buildPolHeatmapFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists, polGroup) {
+		let fileTitle = `Heatmap ${polGroup} from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
+
+		// Check existing
+		if (reuseIfExists && fs.existsSync(ns.getFrameFilePath(fileFormat, fileTitle))) {
+			let filePath = ns.getFrameFilePath(fileFormat, fileTitle)
+			console.info("Frame reused from "+filePath)
+			return filePath
+		}
+
+		// Main canvas
+		let canvas = createCanvas(3840, 2160)
+		const ctx = canvas.getContext("2d")
+
+		// Get background
+		const bgPath = ns.getBgPath(date, labels)
+		const bgImg = await loadImage(bgPath)
+		
+		// Heatmap
+		const hmPath = `${ns.getSourceFolder(date)}/heatmap pol ${polGroup}.png`
+		const hmImg = await loadImage(hmPath)
+
+		ns.compositeHeatmap(ctx, bgImg, hmImg)
+
+	  ctx.globalCompositeOperation = "source-over"
+	  ctx.globalAlpha = 1;
+		ns.drawHeatmapLegend(ctx, date, dateRange, polGroup)
+		return await ns.saveFrame(canvas, fileFormat, fileTitle)
+	}
+
+	ns.drawHeatmapLegend = function(ctx, date, dateRange, polGroup) {
+		let polGroups = ns.getPolGroups(dateRange)
+		const xOffset = 12
+
+		// Draw the title and info
+		let y = 84
+		ns.locale.videoHeatmap.titleRows.forEach(txt => {
+			ns.drawText(ctx, txt.replace("{POLGROUP}", polGroups[polGroup]), xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+			y += 80
+		})
+
+		let timelineBox = {
+			x: 2*1280,
+			y: 12,
+			w: 1280-24,
+			h: 200
+		}
+		ns.drawTimeline(ctx, timelineBox, false, date, dateRange, false)
+	}
+
+	ns.compositeHeatmap = function(ctx, bgImg, hmImg) {
+		let tempCanvas = createCanvas(3840, 2160)
+		const tempCtx = tempCanvas.getContext("2d")
+
+		// Draw base map (background)
+	  ctx.drawImage(bgImg, 0, 0, 3840, 2160)
+
+	  // Luminosity layer
+	  tempCtx.beginPath()
+	  tempCtx.rect(0, 0, tempCtx.canvas.width, tempCtx.canvas.height)
+	  tempCtx.fillStyle = "rgba(89, 94, 100)"
+	  tempCtx.fill()
+	  tempCtx.closePath()
+	  ctx.globalCompositeOperation = "luminosity"
+	  ctx.globalAlpha = 0.15;
+	  ctx.drawImage(tempCanvas, 0, 0)
+
+	  // Multiply layer
+	  tempCtx.beginPath()
+	  tempCtx.rect(0, 0, tempCtx.canvas.width, tempCtx.canvas.height)
+	  tempCtx.fillStyle = "#000000"
+	  tempCtx.fill()
+	  tempCtx.closePath()
+	  ctx.globalCompositeOperation = "multiply"
+	  ctx.globalAlpha = 0.25;
+	  ctx.drawImage(tempCanvas, 0, 0)
+
+		tempCtx.drawImage(hmImg, 0, 0)
+
+	  // Multiply heatmap to itself for reinforcing the darker areas
+	  tempCtx.globalCompositeOperation = "multiply"
+	  tempCtx.globalAlpha = 1;
+	  tempCtx.drawImage(tempCtx.canvas, 0, 0)
+	  tempCtx.globalAlpha = 1;
+
+		// Lighten up a little bit the heatmap
+	  tempCtx.globalCompositeOperation = "source-over"
+	  tempCtx.globalAlpha = 0.36;
+	  tempCtx.beginPath()
+	  tempCtx.rect(0, 0, tempCtx.canvas.width, tempCtx.canvas.height)
+	  tempCtx.fillStyle = "#FFFFFF"
+	  tempCtx.fill()
+	  tempCtx.closePath()
+
+	  // Superpose heatmap
+	  ctx.globalCompositeOperation = "lighten"
+	  ctx.globalAlpha = 1;
+	  ctx.drawImage(tempCtx.canvas, 0, 0)
+
+	  // Post adjustments
+	  ctx.globalCompositeOperation = "multiply"
+	  ctx.globalAlpha = 0.8;
+	  ctx.drawImage(ctx.canvas, 0, 0)
 	}
 
 
@@ -368,6 +490,24 @@ export let frameBuilder = (()=>{
 			return colorCode
 		}
 	}
+
+	ns.getPolGroups = function(dateRange){
+		let polGroups = {}
+	  ns.polAffData.eras.forEach(e => {
+      let sdate = new Date(e.startDate)
+      let edate = new Date(e.endDate)
+      if (!( dateRange[1]<=sdate || edate<=dateRange[0] )) {
+        e.affiliations.forEach(a => {
+        	if (a.makeHeatmap) {
+	          polGroups[a.id] = a.name
+	        }
+        })
+      }
+    })
+
+	  return polGroups
+	}
+
 	ns.drawTimeline = function(ctx, timelineBox, blackOnWhite, date_original, dateRange_original, oneDay){
 		// Shift the dates:
 		// Most of the time in these scripts, when one gives a date, it is the date of the harvesting.
@@ -592,11 +732,14 @@ export let frameBuilder = (()=>{
 
 /// CLI execution
 // Checks
-const validTypes = ["regular", "broadcasting"]
+const validTypes = ["regular", "broadcasting", "polheatmap"]
 if (options.type && validTypes.indexOf(options.type)>=0) {
 	let fbOptions = {}
-	if (options.dateRange) {
-		fbOptions = options.dateRange.split(" ").map(d => new Date(d))
+	if (options.range) {
+		fbOptions.dateRange = options.range.split(" ").map(d => new Date(d))
+	}
+	if (options.polgroup) {
+		fbOptions.heatmapPolGroup = options.polgroup
 	}
 	await frameBuilder.build(options.type, options.date ? new Date(options.date) : new Date(), fbOptions)
 }
