@@ -6,6 +6,7 @@
   "dependencies": {
     "@shopping24/rake-js": "^2.2.1",
     "canvas": "^2.10.1",
+    "commander": "^9.4.1",
     "csv-parser": "^3.0.0",
     "d3": "^7.6.1",
     "d3-contour": "^2.0.0",
