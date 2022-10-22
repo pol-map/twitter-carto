@@ -5,7 +5,28 @@ import * as d3 from 'd3';
 import * as StackBlur from "stackblur-canvas";
 import { computeBroadcastingsViz } from "./viz_broadcastings.js"
 import { getLocale } from "./get_locale.js"
+import { getPolAffiliation } from "./get_pol_affiliation.js"
 
+/// CLI config
+const program = new Command();
+
+program
+	.name('frame-builder')
+	.description('Utility usable as a CLI. Build video frames by assembling already rendered images into frames that can be made into a video.')
+  .option('-t, --type <frametype>', 'Frame type: regular, broadcasting')
+  .option('-d, --date <date>', 'Date as "YYYY-MM-DD"')
+  .option('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
+  .showHelpAfterError()
+  .parse(process.argv);
+
+const options = program.opts();
+
+if (!options.type) {
+	program.help()
+}
+
+
+/// MAIN
 export let frameBuilder = (()=>{
 	let ns = {} // Namespace
 
@@ -14,18 +35,29 @@ export let frameBuilder = (()=>{
     fs.mkdirSync(ns.framesFolder, { recursive: true });
 	}
 
-	// Get locale
+	// Get locale and affiliation data
 	ns.locale = getLocale()
+	ns.polAffData = getPolAffiliation()
 
 	ns.build = async function(type, date, options) {
 		// Default options
 		options = options || {}
+		options.dateRange = (options.dateRange===undefined) ? [new Date(date),new Date(date)] : options.dateRange
 		options.reuseIfExists = (options.reuseIfExists===undefined) ? false : options.reuseIfExists
 		options.fileFormat = (options.fileFormat===undefined) ? 'jpg' : options.fileFormat
 		options.filtering = (options.filtering===undefined) ? {shortName:"All", filter:d=>true} : options.filtering
 		options.remember = (options.remember===undefined) ? true : options.remember
 
 		switch(type) {
+			case "regular":
+		    return await ns.buildRegularFrame(
+		    		date,
+		    		options.dateRange,
+		    		options.labels,
+		    		options.fileFormat,
+		    		options.reuseIfExists
+		    	)
+		    break;
 		  case "broadcasting":
 		    return await ns.buildBroadcastingFrame(
 		    		date,
@@ -40,6 +72,63 @@ export let frameBuilder = (()=>{
 		  default:
 		    console.error(`ERROR: Unknown frame type "${type}". The frame could not be built.`)
 		}
+	}
+
+
+	/// TYPE: REGULAR
+	
+	ns.buildRegularFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists) {
+		let fileTitle = `Regular from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
+
+		// Check existing
+		if (reuseIfExists && fs.existsSync(ns.getFrameFilePath(fileFormat, fileTitle))) {
+			let filePath = ns.getFrameFilePath(fileFormat, fileTitle)
+			console.info("Frame reused from "+filePath)
+			return filePath
+		}
+
+		// Main canvas
+		let canvas = createCanvas(3840, 2160)
+		const ctx = canvas.getContext("2d")
+
+		// Get background
+		const bgPath = ns.getBgPath(date, labels)
+		const bgImg = await loadImage(bgPath)
+		ctx.drawImage(bgImg, 0, 0)
+		
+		ns.drawRegularLegend(ctx, date, dateRange)
+
+		return await ns.saveFrame(canvas, fileFormat, fileTitle)
+	}
+
+	ns.drawRegularLegend = function(ctx, date, dateRange) {
+		const xOffset = 12
+
+		// Draw the title and info
+		let y = 84
+		ns.drawText(ctx, ns.locale.video.title, xOffset, y, "start", "#303040", 0, "66px Raleway")
+		y += 30 // Margin
+		ns.locale.video.textRows.forEach(txt => {
+			y += 36
+			ns.drawText(ctx, txt, xOffset, y, "start", "#303040", 0, "26px Raleway")
+		})
+
+		// Colors legend
+		y += 60
+		const colorCode = ns.getColorCode(date)
+		colorCode.forEach(d => {
+			ns.drawSquare(ctx, xOffset, y, 48, d.color, 2, "#303040")
+			ns.drawText(ctx, d.name, xOffset+60, y+36, "start", "#303040", 0, "32px Raleway")
+			y += 60
+		})
+
+		let timelineBox = {
+			x: 2*1280,
+			y: 12,
+			w: 1280-24,
+			h: 200
+		}
+		ns.drawTimeline(ctx, timelineBox, true, date, dateRange, false)
 	}
 
 
@@ -68,7 +157,7 @@ export let frameBuilder = (()=>{
 		const bgPath = ns.getBgPath(date, labels)
 		const bgImg = await loadImage(bgPath)
 		
-		// Boradcastings overlay
+		// Broadcastings overlay
 		const boImgd = await ns.getBroadcastingsOverlay(date, filtering.filter)
 		let boCanvas = createCanvas(3840, 2160)
 		const boCtx = boCanvas.getContext("2d")
@@ -253,6 +342,32 @@ export let frameBuilder = (()=>{
 
 	/// COMMON
 
+	ns.getColorCode = function(date){
+		let era
+		ns.polAffData.eras.forEach(e => {
+			let sdate = new Date(e.startDate)
+			let edate = new Date(e.endDate)
+			if (sdate <= date && date <= edate ) {
+				era = e
+			}
+		})
+
+		if (era===undefined) {
+	    console.error(`No corresponding era found in political affiliations file`);
+		} else {
+			let colorCode = []
+			era.affiliations.forEach(a => {
+				if (a.showInLegend) {
+					colorCode.push({
+						name: a.name,
+						color: a.color
+					})
+				}
+			})
+			colorCode.push({name:ns.locale.misc.otherAffiliation, color: "#a4a4a4"})
+			return colorCode
+		}
+	}
 	ns.drawTimeline = function(ctx, timelineBox, blackOnWhite, date_original, dateRange_original, oneDay){
 		// Shift the dates:
 		// Most of the time in these scripts, when one gives a date, it is the date of the harvesting.
@@ -396,7 +511,7 @@ export let frameBuilder = (()=>{
     }
   }
 
-  ns.drawSquare = function(x, y, size, color, strokeSize, strokeColor) {
+  ns.drawSquare = function(ctx, x, y, size, color, strokeSize, strokeColor) {
     ctx.strokeStyle = strokeColor || "#303040";
     ctx.lineCap="round";
     ctx.lineJoin="round";
@@ -475,18 +590,14 @@ export let frameBuilder = (()=>{
 	return ns
 })()
 
-
-/// CLI logic
-const program = new Command();
-
-program
-	.name('frame-builder')
-	.description('Utility usable as a CLI. Build video frames by assembling already rendered images into frames that can be made into a video.')
-  .option('-a, --auto', 'Auto mode.')
-  .parse(process.argv);
-
-const options = program.opts();
-
-if (options.auto) {
-	frameBuilder.helloWorld()
+/// CLI execution
+// Checks
+const validTypes = ["regular", "broadcasting"]
+if (options.type && validTypes.indexOf(options.type)>=0) {
+	let fbOptions = {}
+	if (options.dateRange) {
+		fbOptions = options.dateRange.split(" ").map(d => new Date(d))
+	}
+	await frameBuilder.build(options.type, options.date ? new Date(options.date) : new Date(), fbOptions)
 }
+
