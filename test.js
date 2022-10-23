@@ -1,8 +1,10 @@
 import { Command } from 'commander';
+import { createCanvas, loadImage, ImageData } from "canvas"
 import { createLogger, format, transports } from "winston";
 import * as fs from "fs";
 import * as d3 from 'd3';
 import dotenv from "dotenv";
+import { computeCellsOverlay } from "./viz_cells.js";
 
 dotenv.config();
 
@@ -182,24 +184,59 @@ export async function whoSaysWhat(date) {
 			quad.resources.sort(function(a,b){return b.count-a.count})
 		})
 
-		console.log("Quads", finalQuads.map((q,i) => `${i} - ${q.users.length} users - ${q.resources.length} resources - ${q.weight} weight`))
-
 		// Sort the top resources of each quad by count
 		let keyResourcesIndex = {}
 		finalQuads.forEach(quad => {
 			let res = quad.resources[0]
 			if (res) {
-				keyResourcesIndex[res.id] = (keyResourcesIndex[res.id] || 0) + res.count
+				let res2 = keyResourcesIndex[res.id] || {...res, quads:[], quadWeight:0}
+				res2.count += res.count
+				res2.quads.push(quad)
+				res2.quadWeight += quad.weight
+				keyResourcesIndex[res.id] = res2
 			}
 		})
-		let keyResources = []
-		for (let resId in keyResourcesIndex) {
-			keyResources.push({id:resId, count:keyResourcesIndex[resId]})
-		}
+		let keyResources = Object.values(keyResourcesIndex)
 		keyResources.sort(function(a,b){return b.count-a.count})
-		// console.log("Key resources", keyResources)
+		
+		// Truncate to what resources cover at least 80% of the broadcastings
+		const countTotal = d3.sum(keyResources.map(res => res.quadWeight))
+		const countThreshold = 0.8 * countTotal
+		let countTemp = 0
+		let flag = true
+		keyResources = keyResources.filter(res => {
+			let flagTemp = flag
+			countTemp += res.quadWeight
+			if (countTemp > countThreshold) {
+				flag = false
+			}
+			return flagTemp
+		})
+
+	  // Main canvas
+		let canvas = createCanvas(3840, 2160)
+		const ctx = canvas.getContext("2d")
+
+	  // Get background
+	  const bgPath = `${thisFolder}/Carto 4K no labels.png`
+		const bgImg = await loadImage(bgPath)
+	  ctx.drawImage(bgImg, 0, 0)
+
+	  // Get overlay
+	  const oImgd = await computeCellsOverlay(date, keyResources)
+	  let oCanvas = createCanvas(3840, 2160)
+	  const oCtx = oCanvas.getContext("2d")
+	  oCtx.putImageData(oImgd, 0, 0)
+
+	  ctx.drawImage(oCanvas, 0, 0)
+
+		// Print in console
+		keyResources.forEach((res, i) => {
+			console.log(i+1, res.id)
+		})
 
 		console.log("Done.")
+	  return await saveFrame(canvas, `${thisFolder}/Key resources.png`)
 	}
 
 	return main();
@@ -222,6 +259,17 @@ export async function whoSaysWhat(date) {
 		}
 	}
 
+	async function saveFrame(canvas, filePath) {
+		const stream = canvas.createPNGStream()
+		return new Promise(resolve => {
+      const out = fs.createWriteStream(filePath)
+      stream.pipe(out)
+      out.on("finish", () => {
+        console.log("The PNG file was created.")
+        resolve(filePath)
+      });
+    });
+	}
 }
 
 /// CLI logic
