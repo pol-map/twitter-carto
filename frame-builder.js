@@ -8,27 +8,27 @@ import { getLocale } from "./get_locale.js"
 import { getPolAffiliation } from "./get_pol_affiliation.js"
 
 /// CLI config
-const program = new Command();
+let program, options
+let thisFile = "frame-builder.js" // Prevent the CLI logic to trigger when used as a module
+if (process.argv[1].split(/[/\\]/).pop()==thisFile) {
+	program = new Command();
+	program
+		.name('frame-builder')
+		.description('Utility usable as a CLI. Build frames that can be made into a video.')
+	  .requiredOption('-f, --type <type>', 'Type of frame. Choices: regular, broadcasting, polheatmap.')
+	  .option('-d, --date <date>', 'Date as "YYYY-MM-DD". Defaults to today.')
+	  .option('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
+	  .option('-p, --polgroup <group-id>', 'ID of the political affiliation. Necessary to the polheatmap mode.')
+	  .showHelpAfterError()
+	  .parse(process.argv);
 
-program
-	.name('frame-builder')
-	.description('Utility usable as a CLI. Build video frames by assembling already rendered images into frames that can be made into a video.')
-  .option('-t, --type <frametype>', 'Required. Frame types: regular, broadcasting, polheatmap')
-  .option('-d, --date <date>', 'Date as "YYYY-MM-DD". Defaults to today.')
-  .option('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
-  .option('-p, --polgroup <group-id>', 'ID of the political affiliation. Necessary to the polheatmap mode.')
-  .showHelpAfterError()
-  .parse(process.argv);
+	options = program.opts();
 
-const options = program.opts();
-
-if (!options.type) {
-	program.help()
-} else if(options.type == "polheatmap" && !options.polgroup) {
-	console.error("/!\\ The polheatmap mode requires a polgroup.\n")
-	program.help()
+	if (options.type == "polheatmap" && !options.polgroup) {
+		console.error("/!\\ The polheatmap mode requires a polgroup.\n")
+		process.exit()
+	}
 }
-
 
 /// MAIN
 export let frameBuilder = (()=>{
@@ -731,16 +731,17 @@ export let frameBuilder = (()=>{
 })()
 
 /// CLI execution
-// Checks
-const validTypes = ["regular", "broadcasting", "polheatmap"]
-if (options.type && validTypes.indexOf(options.type)>=0) {
-	let fbOptions = {}
-	if (options.range) {
-		fbOptions.dateRange = options.range.split(" ").map(d => new Date(d))
+if (process.argv[1].split(/[/\\]/).pop()==thisFile) { // Prevent the CLI logic to trigger when used as a module
+	// Checks
+	const validTypes = ["regular", "broadcasting", "polheatmap"]
+	if (options.type && validTypes.indexOf(options.type)>=0) {
+		let fbOptions = {}
+		if (options.range) {
+			fbOptions.dateRange = options.range.split(" ").map(d => new Date(d))
+		}
+		if (options.polgroup) {
+			fbOptions.heatmapPolGroup = options.polgroup
+		}
+		await frameBuilder.build(options.type, options.date ? new Date(options.date) : new Date(), fbOptions)
 	}
-	if (options.polgroup) {
-		fbOptions.heatmapPolGroup = options.polgroup
-	}
-	await frameBuilder.build(options.type, options.date ? new Date(options.date) : new Date(), fbOptions)
 }
-
