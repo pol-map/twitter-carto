@@ -123,26 +123,30 @@ export async function computeCellsOverlay(date, resources) {
       var ctx = ns.createCanvas().getContext("2d")
       ns.scaleContext(ctx)
 
-      // // Paint nodes, for reference
-      // g.nodes().forEach(nid => {
-      //   var n = g.getNodeAttributes(nid)
-      //   var color = "#303040"
-      //   var radius = n.size
-
-      //   // Custom: we add an offset to the node radius
-      //   radius += ns.mm_to_px(0.025 /* in mm */)
-
-      //   ctx.lineCap="round"
-      //   ctx.lineJoin="round"
-
-      //   ctx.beginPath()
-      //   ctx.arc(n.x, n.y, radius, 0, 2 * Math.PI, false)
-      //   ctx.lineWidth = 0
-      //   ctx.fillStyle = color.toString()
-      //   ctx.shadowColor = 'transparent'
-      //   ctx.fill()
-
-      // })
+      // Paint nodes for contour masking
+      let maskCtx = ns.createCanvas().getContext("2d")
+      ns.scaleContext(maskCtx)
+      ns.paintAll(maskCtx, "#000000")
+      maskCtx.lineCap="round"
+      maskCtx.lineJoin="round"
+      const radius = ns.mm_to_px(8)
+      g.nodes().forEach(nid => {
+        var n = g.getNodeAttributes(nid)
+        maskCtx.beginPath()
+        maskCtx.arc(n.x, n.y, radius, 0, 2 * Math.PI, false)
+        maskCtx.lineWidth = 0
+        maskCtx.fillStyle = "#FFFFFF"
+        maskCtx.shadowColor = 'transparent'
+        maskCtx.fill()
+      })
+      StackBlur.canvasRGBA(
+        maskCtx.canvas,
+        0,
+        0,
+        maskCtx.canvas.width,
+        maskCtx.canvas.height,
+        100 // Blur radius
+      );
 
       let rescale = function(xy) {
         ns.rescaler.forEach(f => {
@@ -151,23 +155,30 @@ export async function computeCellsOverlay(date, resources) {
         return xy
       }
 
-      // Paint quads
-      let color = "#FFFFFF"
+      // Paint quads resource by resource
       resources.forEach((res, i) => {
         let resCtx = ns.createCanvas().getContext("2d")
-        resCtx.strokeStyle = color
-        resCtx.lineWidth = 2;
         ns.scaleContext(resCtx)
+        ns.paintAll(resCtx, "#000000")
+        resCtx.strokeStyle = "#FFFFFF"
+        resCtx.lineWidth = 2;
         res.quads.forEach(quad => {
+          // Paint quad
           let xy = rescale([quad.x, quad.y])
           let xy2 = rescale([quad.x+quad.w, quad.y+quad.w])
           resCtx.beginPath()
           resCtx.rect(xy[0], xy[1], xy2[0]-xy[0], xy2[1]-xy[1])
-          resCtx.fillStyle = color
+          resCtx.fillStyle = "#FFFFFF"
           resCtx.fill()
           resCtx.stroke()
           resCtx.closePath()
         })
+
+        // Mask
+        resCtx.globalCompositeOperation = "multiply"
+        resCtx.drawImage(maskCtx.canvas, 0, 0)
+        resCtx.globalCompositeOperation = "source-over"
+
         // Blur res canvas a bit
         StackBlur.canvasRGBA(
           resCtx.canvas,
@@ -181,7 +192,7 @@ export async function computeCellsOverlay(date, resources) {
         var imgd = resCtx.getImageData(0, 0, resCtx.canvas.width, resCtx.canvas.height)
 
         // Find contour
-        var values = imgd.data.filter(function(d,i){ return i%4==3 })
+        var values = imgd.data.filter(function(d,i){ return i%4==1 })
         var contour = d3.contours()
           .size([resCtx.canvas.width, resCtx.canvas.height])
           .thresholds(d3.range(0, 255))
@@ -201,9 +212,55 @@ export async function computeCellsOverlay(date, resources) {
         // Reset
         ctx.globalAlpha = 1;
 
-        // Draw label
-        var centroid = path.centroid(contour)
-        drawText(ctx, i+1, centroid[0], centroid[1]+30, "center", "#303040", 0, "bold 120px Raleway")
+        // Blur again the otherwise useless resCtx to help fixing edge case.
+        // In short, it will shrink the polygon to help having the label
+        // not on its edge, but more in the middle. (see below)
+        StackBlur.canvasRGBA(
+          resCtx.canvas,
+          0,
+          0,
+          resCtx.canvas.width,
+          resCtx.canvas.height,
+          48 // Blur radius
+        );
+        // To test whether a polygon contains a point, we actually look whether the
+        // pixel is white in the canvas where we drew that polygon
+        function polygonContains(point) {
+          const pixel = resCtx.getImageData(point[0], point[1], 1, 1).data;
+          return pixel[0] == 255 // Just check the Red channel
+        }
+
+        // The contour is a multipolygon (disjoint)
+        // We must draw labels for each polygon
+        contour.coordinates.forEach(points => {
+          // Find the polygon's centroid
+          let polygon = d3.polygonHull(points[0])
+          let centroid = d3.polygonCentroid(polygon)
+
+          // Fix edge case: centroid outside of the polygon.
+          // This happens when polygons have hollow parts, which is not that rare.
+          if (!polygonContains(centroid)) {
+            /// Strategy: sample space with a grid, test which points
+            /// are conatined by the polygon, and pick the closest one.
+            let d2Centroid = Infinity
+            let newCentroid
+            const gridStep = 50
+            for (let x=0; x<=resCtx.canvas.width; x += gridStep) {
+              for (let y=0; y<=resCtx.canvas.height; y += gridStep) {
+                const point = [x,y]
+                const d2 = Math.pow(x-centroid[0], 2) + Math.pow(y-centroid[1], 2)
+                const isIn = polygonContains(point)
+                if (d2<d2Centroid && isIn) {
+                  d2Centroid = d2
+                  newCentroid = point
+                }
+              }
+            }
+            centroid = newCentroid || centroid
+          }
+          
+          drawText(ctx, i+1, centroid[0], centroid[1]+30, "center", "#303040", 0, "bold 120px Raleway")          
+        })
 
       })
 
