@@ -198,7 +198,7 @@ export async function computeCellsOverlay(date, resources) {
           .thresholds(d3.range(0, 255))
           .contour(values, Math.round(255*0.9));
 
-        // Draw contour
+        // // Draw contour
         ctx.globalAlpha = 0.666;
         const path = d3.geoPath(null, ctx)
         ctx.lineCap = "round"
@@ -212,30 +212,45 @@ export async function computeCellsOverlay(date, resources) {
         // Reset
         ctx.globalAlpha = 1;
 
-        // Blur again the otherwise useless resCtx to help fixing edge case.
-        // In short, it will shrink the polygon to help having the label
-        // not on its edge, but more in the middle. (see below)
-        StackBlur.canvasRGBA(
-          resCtx.canvas,
-          0,
-          0,
-          resCtx.canvas.width,
-          resCtx.canvas.height,
-          48 // Blur radius
-        );
-        // To test whether a polygon contains a point, we actually look whether the
-        // pixel is white in the canvas where we drew that polygon
-        function polygonContains(point) {
-          const pixel = resCtx.getImageData(point[0], point[1], 1, 1).data;
-          return pixel[0] == 255 // Just check the Red channel
-        }
-
         // The contour is a multipolygon (disjoint)
-        // We must draw labels for each polygon
+        // We draw each part separately
         contour.coordinates.forEach(points => {
-          // Find the polygon's centroid
-          let polygon = d3.polygonHull(points[0])
-          let centroid = d3.polygonCentroid(polygon)
+
+          // Find the polygon's fallback centroid
+          let polygonHull = d3.polygonHull(points[0])
+          let centroid = d3.polygonCentroid(polygonHull)
+
+          // Draw polygon into invisible canvas to find the better centroid
+          let polygon = {type:"MultiPolygon", value:230, coordinates:[points]}
+          let polyCtx = ns.createCanvas().getContext("2d")
+          ns.paintAll(polyCtx, "#000000")
+          polyCtx.lineCap = "round"
+          polyCtx.lineJoin = "round"
+          polyCtx.fillStyle = "#FFFFFF"
+          polyCtx.lineWidth = 0
+          let path = d3.geoPath(null, polyCtx)
+          polyCtx.beginPath()
+          path(polygon)
+          polyCtx.fill()
+          polyCtx.closePath()
+
+          // In short, it will shrink the polygon to help having the label
+          // not on its edge, but more in the middle. (see below)
+          StackBlur.canvasRGBA(
+            polyCtx.canvas,
+            0,
+            0,
+            polyCtx.canvas.width,
+            polyCtx.canvas.height,
+            64 // Blur radius
+          );
+    
+          // To test whether a polygon contains a point, we actually look whether the
+          // pixel is white in the canvas where we drew that polygon
+          function polygonContains(point) {
+            const pixel = polyCtx.getImageData(point[0], point[1], 1, 1).data;
+            return pixel[0] == 255 // Just check the Red channel
+          }
 
           // Fix edge case: centroid outside of the polygon.
           // This happens when polygons have hollow parts, which is not that rare.
@@ -244,7 +259,7 @@ export async function computeCellsOverlay(date, resources) {
             /// are conatined by the polygon, and pick the closest one.
             let d2Centroid = Infinity
             let newCentroid
-            const gridStep = 50
+            const gridStep = 33
             for (let x=0; x<=resCtx.canvas.width; x += gridStep) {
               for (let y=0; y<=resCtx.canvas.height; y += gridStep) {
                 const point = [x,y]
