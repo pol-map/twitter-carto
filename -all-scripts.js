@@ -15,6 +15,7 @@ import { render_map_4k_no_labels } from "./1100_render_map_4K_no_labels.js";
 import { render_map_4k_top_labels } from "./1200_render_map_4K_top_labels.js";
 import { render_map_large } from "./1300_render_map_large.js";
 import { render_pol_heatmaps } from "./1400_render_pol_heatmaps.js";
+import { who_says_what } from "./1500_who_says_what.js";
 
 const _scripts = [
 	{
@@ -101,6 +102,11 @@ const _scripts = [
 		id: 1400,
 		title: "Render political heatmaps",
 		run: render_pol_heatmaps,
+		omit: false,
+	},{
+		id: 1500,
+		title: "Who says what?",
+		run: who_says_what,
 		omit: false,
 	}
 ]

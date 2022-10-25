@@ -274,7 +274,8 @@ export async function computeCellsOverlay(date, resources) {
             centroid = newCentroid || centroid
           }
           
-          drawText(ctx, i+1, centroid[0], centroid[1]+30, "center", "#303040", 0, "bold 120px Raleway")          
+          const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+          drawText(ctx, alphabet[i], centroid[0], centroid[1]+30, "center", "#303040", 0, "bold 120px Raleway")          
         })
 
       })

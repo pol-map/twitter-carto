@@ -8,7 +8,7 @@ import { computeCellsOverlay } from "./-viz-cells.js";
 
 dotenv.config();
 
-export async function whoSaysWhat(date) {
+export async function who_says_what(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -17,7 +17,6 @@ export async function whoSaysWhat(date) {
 	const thisFolder = `data/${year}/${month}/${datem}`
 
 	// Logger
-	// Inspiration: https://blog.appsignal.com/2021/09/01/best-practices-for-logging-in-nodejs.html
 	const logLevels = {
 	  fatal: 0,
 	  error: 1,
@@ -27,7 +26,7 @@ export async function whoSaysWhat(date) {
 	  trace: 5,
 	};
 
-	const logLevel = "trace"
+	const logLevel = "info"
 
 	const logger = createLogger({
 		level: logLevel,
@@ -35,7 +34,7 @@ export async function whoSaysWhat(date) {
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
 	  	new transports.Console(),
-	  	new transports.File({ filename: `${thisFolder}/test.log` })
+	  	new transports.File({ filename: `${thisFolder}/1500_who_says_what.log` })
 	  ],
 	});
 
@@ -230,23 +229,42 @@ export async function whoSaysWhat(date) {
 
 	  ctx.drawImage(oCanvas, 0, 0)
 
-	  // TODO: load useful information if necessary?
-	  // The goal is to build a better tweet or series of tweets.
+		// Load resources file
+		const resourceFile = `${thisFolder}/resources_7days_aggregated_expressions.csv`
+		const resources = loadFile(resourceFile, 'resources')
 
-		// // Load resources file
-		// const resourceFile = `${thisFolder}/resources_7days_aggregated.csv`
-		// const resources = loadFile(resourceFile, 'resources')
-
-		// // Index
-		// let resIndex = {}
-		// resources.forEach(res => {
-		// 	resIndex[res.id] = res
-		// })
-
-		// Print in console
-		keyResources.forEach((res, i) => {
-			console.log(i+1, (resIndex[res.id] || {}).url)
+		// Index
+		let resIndex = {}
+		resources.forEach(res => {
+			resIndex[res.id] = res
 		})
+
+		// Build key resources bundle
+	  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		let keyResourcesBundle = []
+		keyResources.forEach((res, i) => {
+			let row = {rank:alphabet[i], ...resIndex[res.id]}
+			keyResourcesBundle.push(row)
+			console.log(row.rank, row.type, row.url)
+		})
+
+		// Save key resources bundle
+		const keyResFile = `${thisFolder}/key_resources.csv`
+		const keyResString = d3.csvFormat(keyResourcesBundle)
+		try {
+			fs.writeFileSync(keyResFile, keyResString)
+			logger
+				.child({ context: {keyResFile} })
+				.info('Key resources JSON file saved successfully');
+		} catch(error) {
+			logger
+				.child({ context: {keyResFile, error} })
+				.error('The key resources JSON file could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The key resources JSON file could not be saved.`}));
+				logger.end();
+			})
+		}
 
 		console.log("Done.")
 	  return await saveFrame(canvas, `${thisFolder}/Key resources.png`)
@@ -282,24 +300,5 @@ export async function whoSaysWhat(date) {
         resolve(filePath)
       });
     });
-	}
-}
-
-/// CLI logic
-let thisFile = "test.js" // Prevent the CLI logic to trigger when used as a module
-if (process.argv[1].split(/[/\\]/).pop()==thisFile) {
-	const program = new Command();
-	program
-		.name('frame-builder')
-		.description('Utility usable as a CLI. Build frames that can be made into a video.')
-	  .requiredOption('-a, --auto', 'Auto mode.')
-	  .option('-d, --date <date>', 'Date as "YYYY-MM-DD". Defaults to today.')
-	  .showHelpAfterError()
-	  .parse(process.argv);
-
-	const options = program.opts();
-
-	if (options.auto) {
-		await whoSaysWhat(options.date ? new Date(options.date) : new Date())
 	}
 }
