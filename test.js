@@ -230,9 +230,22 @@ export async function whoSaysWhat(date) {
 
 	  ctx.drawImage(oCanvas, 0, 0)
 
+	  // TODO: load useful information if necessary?
+	  // The goal is to build a better tweet or series of tweets.
+
+		// // Load resources file
+		// const resourceFile = `${thisFolder}/resources_7days_aggregated.csv`
+		// const resources = loadFile(resourceFile, 'resources')
+
+		// // Index
+		// let resIndex = {}
+		// resources.forEach(res => {
+		// 	resIndex[res.id] = res
+		// })
+
 		// Print in console
 		keyResources.forEach((res, i) => {
-			console.log(i+1, res.id)
+			console.log(i+1, (resIndex[res.id] || {}).url)
 		})
 
 		console.log("Done.")
