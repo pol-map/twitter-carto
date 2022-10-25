@@ -291,6 +291,7 @@ export async function resource_extract_data(date) {
 				let result = {...r}
 				result.text = r2.text
 				result.lang = r2.lang
+				result.author_id = r2.author_id
 				if (r2.attachments && r2.attachments.media_keys) {
 					result.media_keys = JSON.stringify(r2.attachments.media_keys)
 				}
