@@ -49,21 +49,21 @@ Then two small but necessary things:
 	* It downloads the thumbnails of each media into ```data/media-images/``` (at the root, shared across all dates) and saves the list of media from the Twitter resources new today into ```media_newtoday.csv```.
 	* It fetches the text content of the URL resources with Minet into ```resources_newtoday_URL_fetched.csv```, which also incidendally downloads the HTML at the root into ```downloaded/``` (can be deleted for space, no problem), then extracts the text into ```resources_newtoday_URL_text.csv```
 	* It compiles the new resources with the existing ones into ```resources_7days_aggregated_text.csv``` that contains retrieved text and additional data (media keys...) for the entries new today (and those from the days before are as they were, presumably fetched as well).
-* ```0520``` It extracts expressions from text. It currently uses a mix of tokenization and the RAKE algorithm, that basically finds expressions between the stop words. It loads ```resources_7days_aggregated_text.csv``` and saves ```resources_7days_aggregated_expressions.csv```, which contains additional columns with the expressions extracted.
+* ```0520``` It extracts expressions from text. It currently uses a mix of tokenization and the RAKE algorithm, that basically finds expressions between the stop words. It loads ```resources_7days_aggregated_text.csv``` and saves ```resources_7days_aggregated_expressions.csv```, which contains additional columns with the expressions extracted. *Note: the most present expressions depend on the whole dataset, so we need to recompute it each time even though we had the expressions from the days before.*
 * ```0600``` For the resources the most cited by MPs in the last 7 days, capped to the 1K most broadcasted by MPs (in practice, that cap is never attained), it retrieves up to 1K users who also "broadcasted" that resource yesterday, i.e. either mentioned it in a reply, retweet or quote. We stop harvesting at 33K broadcasting, so that we get ~1M broadcastings monthly. Output files: ```broadcastings/[id]-[page].json``` (API responses) and ```broadcastings.csv``` for the aggregated result. 
 * ```0700``` It extracts the list of the users that broadcasted during the 30 days, capped at 1 million and keeping those with that had the most interactions. It tracks the affiliation of the MPs that broadcasted the same resources, if any affiliation is present in the source file. When one affiliation accounts for two thirds or more of those alignments, it marks it as the main affiliation of that person. That just means that this person is particularly aligned with the themes broadcasted by the MPs of that group, regardless of whether or not they agree on a political or ideological level. For convenience, let us call this set of users "the corpus". Output file: ```user_corpus_1month.csv```
 * ```0800``` It extracts the network of users that have at least 4 interactions (mentioning or being mentioned in broadcastings; that number is configurable) with other users of the network. Output files: ```network_edges.csv``` and ```network_nodes.csv```.
 * ```0900``` It applies a layout to the network, and sets node sizes and colors. A color is applied if the account has at least 10 broadcastings similar to those of MPs with colored affiliations (those colors are blended with respective weights). Output files: ```network_spat.gexf``` and ```network_nodes_spat.csv```.
-* The other scripts (1000+) render images using that data.
+* The other scripts (```1000+```) render images using that data.
 
 # In short
 
-Today's **broadcastings** are yesterday's tweet that mention a resource also tweeted by one or more MP during last week, and that are either a reply, a retweet, or a quote (they are interactions).
+Today's **broadcastings** are yesterday's tweets that mention a resource also tweeted by one or more MP during last week, and that are either a reply, a retweet, or a quote (they are interactions).
 
 The **network** consists of the users mentioning each others in last month's broadcastings, filtered down to the 4-core.
 
 # Out of memory error
-In case the defatul 1 Gb RAM is not enough, specify a higher limit. For instance:
+In case the default 1 Gb RAM is not enough, specify a higher limit. For instance:
 ```
 node --max-old-space-size=16384 01_update_mp_list.js
 ```
