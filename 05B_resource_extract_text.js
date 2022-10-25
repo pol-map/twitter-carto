@@ -122,7 +122,7 @@ export async function resource_extract_text(date) {
 		}
 
 		// Extract the text content from Twitter resources
-  	const tweetsDir = `${thisFolder}/tweets`
+  	const tweetsDir = `${thisFolder}/tweetsData`
   	if (!fs.existsSync(tweetsDir)){
 		  fs.mkdirSync(tweetsDir);
 		}
