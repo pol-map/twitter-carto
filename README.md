@@ -54,6 +54,7 @@ Then two small but necessary things:
 * ```0700``` It extracts the list of the users that broadcasted during the 30 days, capped at 1 million and keeping those with that had the most interactions. It tracks the affiliation of the MPs that broadcasted the same resources, if any affiliation is present in the source file. When one affiliation accounts for two thirds or more of those alignments, it marks it as the main affiliation of that person. That just means that this person is particularly aligned with the themes broadcasted by the MPs of that group, regardless of whether or not they agree on a political or ideological level. For convenience, let us call this set of users "the corpus". Output file: ```user_corpus_1month.csv```
 * ```0800``` It extracts the network of users that have at least 4 interactions (mentioning or being mentioned in broadcastings; that number is configurable) with other users of the network. Output files: ```network_edges.csv``` and ```network_nodes.csv```.
 * ```0900``` It applies a layout to the network, and sets node sizes and colors. A color is applied if the account has at least 10 broadcastings similar to those of MPs with colored affiliations (those colors are blended with respective weights). Output files: ```network_spat.gexf``` and ```network_nodes_spat.csv```.
+* The other scripts (1000+) render images using that data.
 
 # In short
 
