@@ -154,6 +154,7 @@ export async function aggregate_main_resources(date) {
 
 				// If still nothing and it's a tweet, build a dummy Twitter url for convenience
 				if (url == '' && resList[0].resource_type == 'tweet') {
+					// TODO: find the actual source of the tweet
 					url = `https://twitter.com/x/status/${id}`
 				}
 
