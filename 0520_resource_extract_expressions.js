@@ -64,7 +64,7 @@ export async function resource_extract_expressions(date) {
 		let stopwords = {}
     try {
       // Load affiliations file as string
-			const stopwordsJson = fs.readFileSync('stopwords-all.json', "utf8")
+			const stopwordsJson = fs.readFileSync('-stopwords-all.json', "utf8")
       
       try {
         stopwords = JSON.parse(stopwordsJson)
@@ -85,7 +85,7 @@ export async function resource_extract_expressions(date) {
 		let articles = {}
     try {
       // Load affiliations file as string
-			const articlesJson = fs.readFileSync('articles-all.json', "utf8")
+			const articlesJson = fs.readFileSync('-articles-all.json', "utf8")
       
       try {
         articles = JSON.parse(articlesJson)

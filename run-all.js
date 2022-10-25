@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { scripts } from "./_all_scripts.js";
+import { scripts } from "./-all-scripts.js";
 
 /// CLI logic
 let program, options

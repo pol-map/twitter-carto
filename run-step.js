@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import * as fs from "fs";
 
-import { scripts } from "./_all_scripts.js";
+import { scripts } from "./-all-scripts.js";
 
 /// CLI logic
 let program, options
