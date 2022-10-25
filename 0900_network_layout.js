@@ -9,6 +9,7 @@ import Graph from "graphology";
 import gexf from "graphology-gexf";
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
+import { getPolAffiliations } from "./-get-pol-affiliations.js"
 
 dotenv.config();
 
@@ -551,36 +552,8 @@ export async function network_layout(date) {
 		}
 	}
 
-	function getPolAffData(){
-	  if (polAffData === undefined) {
-	    try {
-	      // Load affiliations file as string
-	      const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
-
-	      try {
-	        polAffData = JSON.parse(polAffDataJson)
-	        logger
-						.info('Political affiliations loaded and parsed');
-
-	        return polAffData
-	      } catch (error) {
-		      console.log("Error", error)
-	        logger
-						.child({ context: {polAffDataJson, error:error.message} })
-						.error(`The political affiliations file could not be parsed`);
-	      }
-	    } catch (error) {
-	      console.log("Error", error)
-				logger
-					.child({ context: {error:error.message} })
-					.error(`The political affiliations file could not be loaded`);
-	    }
-	  } else {
-	    return polAffData
-	  }
-	}
 	function getColorCode(date){
-		const polAffData = getPolAffData()
+		const polAffData = getPolAffiliations()
 		let era
 		polAffData.eras.forEach(e => {
 			let sdate = new Date(e.startDate)
@@ -602,8 +575,9 @@ export async function network_layout(date) {
 			return colorCode
 		}
 	}
+	
 	function getBlockCode(date){
-		const polAffData = getPolAffData()
+		const polAffData = getPolAffiliations()
 		let era
 		polAffData.eras.forEach(e => {
 			let sdate = new Date(e.startDate)

@@ -1,6 +1,6 @@
 import * as fs from "fs";
 
-export function getPolAffiliation() {
+export function getPolAffiliations() {
   try {
     // Load affiliations file as string
     const polAffDataJson = fs.readFileSync('-political-affiliations.json', "utf8")

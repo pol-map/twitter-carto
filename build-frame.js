@@ -7,7 +7,7 @@ program = new Command();
 program
 	.name('frame-builder')
 	.description('Utility usable as a CLI. Build frames that can be made into a video.')
-  .requiredOption('-f, --type <type>', 'Type of frame. Choices: regular, broadcasting, polheatmap.')
+  .requiredOption('-t, --type <type>', 'Type of frame. Choices: regular, broadcasting, polheatmap.')
   .option('-d, --date <date>', 'Date as "YYYY-MM-DD". Defaults to today.')
   .option('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
   .option('-p, --polgroup <group-id>', 'ID of the political affiliation. Necessary to the polheatmap mode.')
