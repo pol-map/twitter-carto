@@ -6,6 +6,7 @@ import * as d3 from 'd3';
 import { Client, auth } from "twitter-api-sdk";
 import dotenv from "dotenv";
 import { spawn } from "child_process";
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -85,7 +86,7 @@ export async function resource_extract_data(date) {
 
 		// Save the new Twitter resources
 		let newResourcesTwitter = newResources.filter(r => r.type == "tweet")
-		const resFile_twitter = `${thisFolder}/resources_7days_new_twitter.csv`
+		const resFile_twitter = `${thisFolder}/resources_newtoday_twitter.csv`
 		const resCsvString_twitter = d3.csvFormat(newResourcesTwitter)
 		try {
 			fs.writeFileSync(resFile_twitter, resCsvString_twitter)
@@ -104,7 +105,7 @@ export async function resource_extract_data(date) {
 
 		// Save the new URL resources
 		let newResourcesURL = newResources.filter(r => r.type == "url")
-		const resFile_URL = `${thisFolder}/resources_7days_new_URL.csv`
+		const resFile_URL = `${thisFolder}/resources_newtoday_URL.csv`
 		const resCsvString_URL = d3.csvFormat(newResourcesURL)
 		try {
 			fs.writeFileSync(resFile_URL, resCsvString_URL)
@@ -274,6 +275,7 @@ export async function resource_extract_data(date) {
 				}
 			}
 		}
+
 		// Aggregate with existing resources
 		let newResourcesTwitterFetchedIndex = {}
 		newResourcesTwitterFetched.forEach(r => {
@@ -296,8 +298,8 @@ export async function resource_extract_data(date) {
 			}
 		})
 
-		// Save the file with infos
-		const resFile_twitter_extracted = `${thisFolder}/resources_7days_new_twitter_text.csv`
+		// Save the new Twitter resources file with enrichment
+		const resFile_twitter_extracted = `${thisFolder}/resources_newtoday_twitter_enriched.csv`
 		const newResourcesTwitterExtractedString = d3.csvFormat(newResourcesTwitterExtracted)
 		try {
 			fs.writeFileSync(resFile_twitter_extracted, newResourcesTwitterExtractedString)
@@ -314,6 +316,109 @@ export async function resource_extract_data(date) {
 			})
 		}
 
+		// List media new today
+		let mediaIndex = {}
+		Object.values(newResourcesTwitterFetchedIndex).forEach(r => {
+			if (r.attachments && r.attachments.media_keys) {
+				r.attachments.media_keys.forEach(k => {
+					mediaIndex[k] = true
+				})
+			}
+		})
+
+		// Directory to store media images
+		const mediaImagesDir = `data/media-images`
+		if (!fs.existsSync(mediaImagesDir)){
+		  fs.mkdirSync(mediaImagesDir);
+		}
+
+		// Fetch meta data from file and download images
+		let i = 0
+		let imgTotal = Object.values(mediaIndex).length
+		for (let k in mediaIndex){
+			// Load
+			let dataString
+			try {
+				dataString = fs.readFileSync(`${mediaDir}/${k}.json`, "utf8")
+			} catch (error) {
+				logger
+					.child({ context: {media_key:k, error} })
+					.warn(`ERROR: The file for media ${k} could not be loaded.`);
+			}
+
+			// Parse
+			let data
+			if (dataString) {
+				try {
+					data = JSON.parse(dataString)
+				} catch (error) {
+					logger
+						.child({ context: {media_key:k, error} })
+						.warn(`ERROR: The data for media ${k} could not be parsed.`);
+				}
+			}
+
+			// Analyze and flatten
+			// Goal: media can be different things,
+			// but above all we want the URL with an image.
+			// And we download it.
+			let media = {id: k}
+			media.type = data.type
+			if (data.type == 'video') {
+				media.imgurl = data.preview_image_url
+				media.duration_ms = data.duration_ms
+				media.variants = JSON.stringify(data.variants)
+			} else if (data.type == "photo") {
+				media.imgurl = data.url
+				media.alt_text = data.alt_text || ""
+			}
+
+			if (media.imgurl) {
+				await (async () => {
+					try {
+						const fileFormat = media.imgurl.split('.').pop().toLowerCase()
+						if (fileFormat == "jpg" || fileFormat == "png") {
+							const fileName = `${k}.${fileFormat}`
+							const filePath = `${mediaImagesDir}/${fileName}`
+							if (!fs.existsSync(filePath)){
+								console.log(`Download image ${i}/${imgTotal}`, filePath)
+								const response = await fetch(media.imgurl)
+							  const buffer = await response.arrayBuffer()
+							  fs.writeFileSync(filePath, Buffer.from(buffer));
+							}
+							media.img = fileName
+						}
+					} catch (error) {
+						logger
+							.child({ context: {media:media, error} })
+							.warn(`The image for media ${k} could not be downloaded.`);
+					}
+				})()
+			}
+
+			// Index
+			mediaIndex[k] = media
+
+			i++
+		}
+
+		// Save the new media file
+		const media_extracted = `${thisFolder}/media_newtoday.csv`
+		const newMediaExtractedString = d3.csvFormat(Object.values(mediaIndex))
+		try {
+			fs.writeFileSync(media_extracted, newMediaExtractedString)
+			logger
+				.child({ context: {media_extracted} })
+				.info('Twitter media new today saved successfully');
+		} catch(error) {
+			logger
+				.child({ context: {media_extracted, error} })
+				.error('Twitter media new today could not be saved');
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`The Twitter media new today file could not be saved.`}));
+				logger.end();
+			})
+		}
 
 		// Fetch the text content from URL resources
 		const fetchUrlSettings = ["fetch", "url", resFile_URL]
@@ -334,7 +439,7 @@ export async function resource_extract_data(date) {
 		  });
 		}
 		// Save fetched resources as CSV
-		const resFile_URL_fetched = `${thisFolder}/resources_7days_new_URL_fetched.csv`
+		const resFile_URL_fetched = `${thisFolder}/resources_newtoday_URL_fetched.csv`
 		try {
 			fs.writeFileSync(resFile_URL_fetched, fetchUrlDataString)
 			logger
@@ -368,7 +473,7 @@ export async function resource_extract_data(date) {
 		  });
 		}
 		// Save extracted resources as CSV
-		const resFile_URL_extracted = `${thisFolder}/resources_7days_new_URL_text.csv`
+		const resFile_URL_extracted = `${thisFolder}/resources_newtoday_URL_text.csv`
 		try {
 			fs.writeFileSync(resFile_URL_extracted, textExtractUrlDataString)
 			logger

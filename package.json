@@ -20,6 +20,7 @@
     "graphology-layout-noverlap": "^0.4.2",
     "h264-mp4-encoder": "^1.0.12",
     "jsdom": "^16.7.0",
+    "node-fetch": "^3.2.10",
     "node-nlp": "^4.24.0",
     "sharp": "^0.30.7",
     "stackblur-canvas": "^2.5.0",
