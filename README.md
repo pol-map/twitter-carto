@@ -17,14 +17,14 @@ Then two small but necessary things:
 
 ## Config
 
-1. Duplicate and rename ```default.env``` into ```.env``` and edit it to inform your own settings:
+1. Duplicate and rename ```-default.env``` into ```.env``` and edit it to inform your own settings:
 	* Twitter API key (you need that, obviously!)
 	* Path to the folder where you downloaded the Minet stuff
-2. Duplicate and rename ```default_corpus_settings.json```.  into ```corpus_settings.json``` and edit it:
+2. Duplicate and rename ```-default-corpus-settings.json```.  into ```-corpus-settings.json``` and edit it:
 	* URL to the CSV file containing the list of Twitter users we follow as starting points (MPs)
 	* CSV separator (you know, ```,``` or ```;```)
 	* Which columns contain the Twitter handle (**without the @**), the name of the person, and its political affiliation.
-3. Duplicate and rename ```default_political_affiliations.json```.  into ```political_affiliations.json``` and edit it:
+3. Duplicate and rename ```-default-political-affiliations.json```.  into ```-political-affiliations.json``` and edit it:
 	* "Eras" allow you to have different time periods with different parties. You may have just one era like in the default file.
 	* The "id" of a political affiliation is never shown. **It must match the affiliations in the source corpus.**
 	* The "name" is what is shown.

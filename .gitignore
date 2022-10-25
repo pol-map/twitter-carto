@@ -6,6 +6,9 @@ downloaded/
 corpus_settings.json
 political_affiliations.json
 locale.json
+-corpus-settings.json
+-political-affiliations.json
+-locale.json
 
 # Windows image file caches
 Thumbs.db
