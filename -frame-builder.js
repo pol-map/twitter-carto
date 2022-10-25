@@ -3,9 +3,9 @@ import { createCanvas, loadImage, ImageData } from "canvas"
 import * as fs from "fs";
 import * as d3 from 'd3';
 import * as StackBlur from "stackblur-canvas";
-import { computeBroadcastingsViz } from "./viz_broadcastings.js"
-import { getLocale } from "./get_locale.js"
-import { getPolAffiliation } from "./get_pol_affiliation.js"
+import { computeBroadcastingsViz } from "./-viz-broadcastings.js"
+import { getLocale } from "./-get-locale.js"
+import { getPolAffiliation } from "./-get-pol-affiliations.js"
 
 /// CLI config
 let program, options

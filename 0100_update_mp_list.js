@@ -42,7 +42,7 @@ export async function update_mp_list(date) {
 	// Load the source file settings
 	let corpusSettings
 	try {
-		corpusSettings = JSON.parse(fs.readFileSync("corpus_settings.json", "utf8"))
+		corpusSettings = JSON.parse(fs.readFileSync("-corpus-settings.json", "utf8"))
 		logger
 			.info('Corpus settings loaded and parsed');
 	} catch (error) {

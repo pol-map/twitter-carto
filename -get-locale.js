@@ -3,7 +3,7 @@ import * as fs from "fs";
 export function getLocale() {
   try {
     // Load affiliations file as string
-    const localeDataJson = fs.readFileSync('locale.json', "utf8")
+    const localeDataJson = fs.readFileSync('-locale.json', "utf8")
 
     try {
       const localeData = JSON.parse(localeDataJson)

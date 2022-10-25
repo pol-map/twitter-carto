@@ -4,7 +4,7 @@ import { createLogger, format, transports } from "winston";
 import * as fs from "fs";
 import * as d3 from 'd3';
 import dotenv from "dotenv";
-import { computeCellsOverlay } from "./viz_cells.js";
+import { computeCellsOverlay } from "./-viz-cells.js";
 
 dotenv.config();
 
