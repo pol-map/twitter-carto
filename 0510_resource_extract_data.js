@@ -328,7 +328,7 @@ export async function resource_extract_data(date) {
 		})
 
 		// Directory to store media images
-		const mediaImagesDir = `data/media-images`
+		const mediaImagesDir = `${thisFolder}/media-images`
 		if (!fs.existsSync(mediaImagesDir)){
 		  fs.mkdirSync(mediaImagesDir);
 		}
