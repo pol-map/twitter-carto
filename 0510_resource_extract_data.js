@@ -9,7 +9,7 @@ import { spawn } from "child_process";
 
 dotenv.config();
 
-export async function resource_extract_text(date) {
+export async function resource_extract_data(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -36,7 +36,7 @@ export async function resource_extract_text(date) {
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
 	  	new transports.Console(),
-	  	new transports.File({ filename: `${thisFolder}/05B_resource_extract_data.log` })
+	  	new transports.File({ filename: `${thisFolder}/0510_resource_extract_data.log` })
 	  ],
 	});
 
@@ -530,20 +530,4 @@ export async function resource_extract_text(date) {
 	    }
 	  });
 	}
-}
-
-// Command line arguments
-// Date argument
-let date = undefined
-const dateArgRegexp = /d(ate)?=([0-9]{4}\-[0-9]{2}\-[0-9]{2})/i
-process.argv.forEach(d => {
-	let found = d.match(dateArgRegexp)
-	if (found && found[2]) {
-		date = found[2]
-	}
-})
-// Auto mode (run the script)
-if (process.argv.some(d => ["a","-a","auto","-auto"].includes(d))) {
-	console.log("Run script"+((date)?(" on date "+date):("")))
-	resource_extract_text(date)
 }

@@ -49,7 +49,7 @@ export async function network_layout(date) {
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
 	  	new transports.Console(),
-	  	new transports.File({ filename: `${thisFolder}/09_network_layout.log` })
+	  	new transports.File({ filename: `${thisFolder}/0900_network_layout.log` })
 	  ],
 	});
 	logger.on('error', function (err) { console.log("Logger error :(") });
@@ -625,20 +625,4 @@ export async function network_layout(date) {
 			return blockCode
 		}
 	}
-}
-
-// Command line arguments
-// Date argument
-let date = undefined
-const dateArgRegexp = /d(ate)?=([0-9]{4}\-[0-9]{2}\-[0-9]{2})/i
-process.argv.forEach(d => {
-	let found = d.match(dateArgRegexp)
-	if (found && found[2]) {
-		date = found[2]
-	}
-})
-// Auto mode (run the script)
-if (process.argv.some(d => ["a","-a","auto","-auto"].includes(d))) {
-	console.log("Run script"+((date)?(" on date "+date):("")))
-	network_layout(date)
 }
