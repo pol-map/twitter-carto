@@ -14,7 +14,7 @@ import * as rakejs from '@shopping24/rake-js'
 
 dotenv.config();
 
-export async function resource_extract_expressions(date) {
+export async function resource_download_media(date) {
 
 	const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
 	const year = targetDate.getFullYear()
@@ -41,7 +41,7 @@ export async function resource_extract_expressions(date) {
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
 	  	new transports.Console(),
-	  	new transports.File({ filename: `${thisFolder}/05C_resource_extract_expressions.log` })
+	  	new transports.File({ filename: `${thisFolder}/05D_resource_download_media.log` })
 	  ],
 	});
 
@@ -58,131 +58,12 @@ export async function resource_extract_expressions(date) {
 		// Load resources with text
 		const resFile_agg = `${thisFolder}/resources_7days_aggregated_text.csv`
 		let resources = loadFile(resFile_agg, 'resources')
-
-		// Load stop words in multiple languages
-		// (adapted from https://raw.githubusercontent.com/vgrabovets/multi_rake/master/multi_rake/stopwords.py )
-		let stopwords = {}
-    try {
-      // Load affiliations file as string
-			const stopwordsJson = fs.readFileSync('stopwords-all.json', "utf8")
-      
-      try {
-        stopwords = JSON.parse(stopwordsJson)
-        logger
-					.info(`Stop words loaded and parsed`);
-      } catch (error) {
-        logger
-					.child({ context: {error, stopwordsJson} })
-					.error(`Error: the stop words could not be parsed.`);
-      }
-    } catch (error) {
-      logger
-				.child({ context: {error} })
-				.error(`Error: the stop words could not be loaded.`);
-    }
-
-		// Load articles in multiple languages
-		let articles = {}
-    try {
-      // Load affiliations file as string
-			const articlesJson = fs.readFileSync('articles-all.json', "utf8")
-      
-      try {
-        articles = JSON.parse(articlesJson)
-        logger
-					.info(`Articles loaded and parsed`);
-      } catch (error) {
-        logger
-					.child({ context: {error, articlesJson} })
-					.error(`Error: the articles could not be parsed.`);
-      }
-    } catch (error) {
-      logger
-				.child({ context: {error} })
-				.error(`Error: the articles could not be loaded.`);
-    }
 		
-		// Extract expressions
-		let expressions, expressionsKept
-		try {
-			let expIndex = {}
-			resources.forEach(res => {
-				let lang = res.lang
-				if (lang && lang.length<2) {
-					lang = undefined
-				}
-				let expressions
-				try {
-					expressions = extractExpressions(stopwords, articles, res.text_long, lang)
-				} catch(error) {
-					console.log("Error", error)
-					logger
-						.child({ context: {res, error:error.message} })
-						.error(`Expressions could not be extracted for resource ${res.id}`);
-					expressions = {}
-				}
-				for (let exp in expressions) {
-					let score = expressions[exp]
-					let expObj = expIndex[exp] || {exp:exp, score:0, count:0}
-					expObj.score += score
-					expObj.count += 1
-					expIndex[exp] = expObj
-				}
-				res.raked_exp = Object.keys(expressions)
-			})
-			expressions = Object.values(expIndex)
-			expressions.sort(function(a,b){ return b.score-a.score })
-			
-			// Estimate coverage
-			let countDistribution = []
-			resources.forEach(res => {
-				let maxCount = d3.max(res.raked_exp.map(exp => expIndex[exp].count)) || 0
-				countDistribution[maxCount] = (countDistribution[maxCount] || 0) + 1
-			})
-			let threshold
-			let target = 0.9 * resources.length // We want to keep expressions covering 90% of the corpus
-			let coverage = 0
-			for (let i=countDistribution.length-1; i>=0; i--){
-				coverage += countDistribution[i] || 0
-				threshold = i
-				if (coverage >= target) {
-					break
-				}
-			}
+		
 
-			// Keep the expressions above the threshold
-			resources.forEach(res => {
-				res.covering_exp = res.raked_exp.filter(exp => expIndex[exp].count >= threshold)
-			})
-			expressionsKept = expressions.filter(e => e.count >= threshold)
-		} catch(error) {
-			console.log("Error", error)
-			logger
-				.child({ context: {error:error.message} })
-				.error(`ERROR during the extraction of expressions.`);
-		}
+		// TODO: everything
 
-		/*
-		// Search for each of those expressions in the long text of each resource,
-		// but only if they are long enough, because the small ones can so easily
-		// be there for other reasons.
-		const lengthThreshold = 10
-		resources.forEach(res => {
-			let text = (res.text_long || "").toLowerCase()
-			let expressions = {}
-			res.covering_exp.forEach(exp => {
-				expressions[exp] = true
-			})
-			expressionsKept.forEach(e => {
-				if (e.exp.length >= lengthThreshold && text.indexOf(e.exp.toLowerCase()) >= 0 ){
-					expressions[e.exp] = true
-				}
-			})
-			res.main_exp = Object.keys(expressions)
-		})
-		*/
-
-		let resourcesWithExpressions = resources.map(res => {
+/*		let resourcesWithExpressions = resources.map(res => {
 			res.raked_exp = JSON.stringify(res.raked_exp)
 			res.covering_exp = JSON.stringify(res.covering_exp)
 			return res
@@ -206,7 +87,7 @@ export async function resource_extract_expressions(date) {
 				logger.once('finish', () => resolve({success:false, msg:`The aggregated resources with expressions extracted could not be saved.`}));
 				logger.end();
 			})
-		}
+		}*/
 
 
 
@@ -335,5 +216,5 @@ process.argv.forEach(d => {
 // Auto mode (run the script)
 if (process.argv.some(d => ["a","-a","auto","-auto"].includes(d))) {
 	console.log("Run script"+((date)?(" on date "+date):("")))
-	resource_extract_expressions(date)
+	resource_download_media(date)
 }

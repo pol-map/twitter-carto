@@ -36,7 +36,7 @@ export async function resource_extract_text(date) {
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
 	  	new transports.Console(),
-	  	new transports.File({ filename: `${thisFolder}/05B_resource_extract_text.log` })
+	  	new transports.File({ filename: `${thisFolder}/05B_resource_extract_data.log` })
 	  ],
 	});
 
