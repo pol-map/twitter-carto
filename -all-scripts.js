@@ -5,7 +5,6 @@ import { normalize_urls } from "./0400_normalize_urls.js";
 import { aggregate_main_resources } from "./0500_aggregate_main_resources.js";
 import { resource_extract_data } from "./0510_resource_extract_data.js";
 import { resource_extract_expressions } from "./0520_resource_extract_expressions.js";
-import { resource_download_media } from "./0530_resource_download_media.js";
 import { get_political_tweets } from "./0600_get_political_tweets.js";
 import { build_corpus } from "./0700_build_corpus.js";
 import { network } from "./0800_network.js";
@@ -52,11 +51,6 @@ const _scripts = [
 		id: 520,
 		title: "Resources: extract expressions",
 		run: resource_extract_expressions,
-		omit: false,
-	},{
-		id: 530,
-		title: "Resources: download media",
-		run: resource_download_media,
 		omit: false,
 	},{
 		id: 600,
