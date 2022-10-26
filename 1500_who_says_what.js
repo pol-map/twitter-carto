@@ -213,17 +213,19 @@ export async function who_says_what(date) {
 		})
 
 	  // Main canvas
-		let canvas = createCanvas(3840, 2160)
+		// let canvas = createCanvas(3840, 2160)
+		let canvas = createCanvas(3560, 3590)
 		const ctx = canvas.getContext("2d")
 
 	  // Get background
-	  const bgPath = `${thisFolder}/Carto 4K no labels.png`
+	  const bgPath = `${thisFolder}/Carto Twitter.png`
 		const bgImg = await loadImage(bgPath)
 	  ctx.drawImage(bgImg, 0, 0)
 
 	  // Get overlay
 	  const oImgd = await computeCellsOverlay(date, keyResources)
-	  let oCanvas = createCanvas(3840, 2160)
+	  // let oCanvas = createCanvas(3840, 2160)
+	  let oCanvas = createCanvas(3560, 3590)
 	  const oCtx = oCanvas.getContext("2d")
 	  oCtx.putImageData(oImgd, 0, 0)
 

@@ -5,7 +5,8 @@ import { createCanvas, loadImage, ImageData } from "canvas"
 import * as d3 from 'd3';
 import dotenv from "dotenv";
 import * as StackBlur from "stackblur-canvas";
-import { getRenderer4K } from "./-get-renderer-4k.js";
+// import { getRenderer4K } from "./-get-renderer-4k.js";
+import { getRendererTwitter } from "./-get-renderer-twitter.js";
 
 dotenv.config();
 
@@ -30,7 +31,7 @@ export async function computeCellsOverlay(date, resources) {
   console.log('GEXF parsed');
 
   // RENDER
-  let ns = getRenderer4K()
+  let ns = getRendererTwitter()
 
   ns.drawOverlayLayer = function(options) {
     ns.log("Draw overlay...")
