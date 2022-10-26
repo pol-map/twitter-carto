@@ -38,6 +38,16 @@ export let frameBuilder = (()=>{
 		    		options.reuseIfExists
 		    	)
 		    break;
+			case "regular-1080":
+		    return await ns.buildRegularFrame(
+		    		date,
+		    		options.dateRange,
+		    		options.labels,
+		    		options.fileFormat,
+		    		options.reuseIfExists,
+		    		"1080"
+		    	)
+		    break;
 			case "polheatmap":
 		    return await ns.buildPolHeatmapFrame(
 		    		date,
@@ -175,8 +185,8 @@ export let frameBuilder = (()=>{
 
 	/// TYPE: REGULAR
 	
-	ns.buildRegularFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists) {
-		let fileTitle = `Regular from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
+	ns.buildRegularFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists, imgFormat) {
+		let fileTitle = `Regular ${(imgFormat?(imgFormat+" "):"")}from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
 
 		// Check existing
 		if (reuseIfExists && fs.existsSync(ns.getFrameFilePath(fileFormat, fileTitle))) {
@@ -187,46 +197,105 @@ export let frameBuilder = (()=>{
 
 		// Main canvas
 		let canvas = createCanvas(3840, 2160)
-		const ctx = canvas.getContext("2d")
+		let ctx = canvas.getContext("2d")
 
 		// Get background
 		const bgPath = ns.getBgPath(date, labels)
 		const bgImg = await loadImage(bgPath)
 		ctx.drawImage(bgImg, 0, 0)
 		
-		ns.drawRegularLegend(ctx, date, dateRange)
+		if (imgFormat == "1080") {
+			// Crop 
+			let newCanvas = createCanvas(2160, 2160)
+			const newCtx = newCanvas.getContext("2d")
+			// Check this to understand:
+			// https://stackoverflow.com/questions/26015497/how-to-resize-then-crop-an-image-with-canvas
+			let sx = (3840/2) - (2160/2)
+			let sy = 0
+			let sw = 2160
+			let sh = 2160
+			let dx = 0
+			let dy = 0
+			let dw = 2160
+			let dh = 2160
+			newCtx.drawImage(canvas, sx, sy, sw, sh, dx, dy, dw, dh)
+			canvas = newCanvas
+			ctx = newCtx
+		}
+
+		ns.drawRegularLegend(ctx, date, dateRange, imgFormat)
+
+		if (imgFormat == "1080") {
+			// Rescale 
+			let newCanvas = createCanvas(1080, 1080)
+			const newCtx = newCanvas.getContext("2d")
+			// Check this to understand:
+			// https://stackoverflow.com/questions/26015497/how-to-resize-then-crop-an-image-with-canvas
+			let sx = 0
+			let sy = 0
+			let sw = 2160
+			let sh = 2160
+			let dx = 0
+			let dy = 0
+			let dw = 1080
+			let dh = 1080
+			newCtx.drawImage(canvas, sx, sy, sw, sh, dx, dy, dw, dh)
+			canvas = newCanvas
+			ctx = newCtx
+		}
 
 		return await ns.saveFrame(canvas, fileFormat, fileTitle)
 	}
 
-	ns.drawRegularLegend = function(ctx, date, dateRange) {
+	ns.drawRegularLegend = function(ctx, date, dateRange, imgFormat) {
 		const xOffset = 12
+		let y
 
-		// Draw the title and info
-		let y = 84
-		ns.drawText(ctx, ns.locale.video.title, xOffset, y, "start", "#303040", 0, "66px Raleway")
-		y += 30 // Margin
-		ns.locale.video.textRows.forEach(txt => {
-			y += 36
-			ns.drawText(ctx, txt, xOffset, y, "start", "#303040", 0, "26px Raleway")
-		})
+		if (imgFormat == "1080") {
+			// Draw the title
+			y = 84
+			ns.drawText(ctx, ns.locale.video.titleShort, xOffset, y, "start", "#303040", 0, "66px Raleway")
+		} else {
+			// Draw the title and info
+			y = 84
+			ns.drawText(ctx, ns.locale.video.title, xOffset, y, "start", "#303040", 0, "66px Raleway")
+			y += 30 // Margin
+			ns.locale.video.textRows.forEach(txt => {
+				y += 36
+				ns.drawText(ctx, txt, xOffset, y, "start", "#303040", 0, "26px Raleway")
+			})
 
-		// Colors legend
-		y += 60
-		const colorCode = ns.getColorCode(date)
-		colorCode.forEach(d => {
-			ns.drawSquare(ctx, xOffset, y, 48, d.color, 2, "#303040")
-			ns.drawText(ctx, d.name, xOffset+60, y+36, "start", "#303040", 0, "32px Raleway")
+			// Colors legend
 			y += 60
-		})
+			const colorCode = ns.getColorCode(date)
+			colorCode.forEach(d => {
+				ns.drawSquare(ctx, xOffset, y, 48, d.color, 2, "#303040")
+				ns.drawText(ctx, d.name, xOffset+60, y+36, "start", "#303040", 0, "32px Raleway")
+				y += 60
+			})
+		}
 
-		let timelineBox = {
-			x: 2*1280,
-			y: 12,
-			w: 1280-24,
-			h: 200
+		let timelineBox
+		if (imgFormat == "1080") {
+			timelineBox = {
+				x: ctx.canvas.width/2,
+				y: 12,
+				w: ctx.canvas.width/2 -24,
+				h: 200
+			}
+		} else {
+			timelineBox = {
+				x: ctx.canvas.width*2/3,
+				y: 12,
+				w: ctx.canvas.width/3 - 24,
+				h: 200
+			}
 		}
 		ns.drawTimeline(ctx, timelineBox, true, date, dateRange, false)
+
+	  // Footer
+	  y = ctx.canvas.height - 28
+	  ns.drawText(ctx, ns.locale.legendTwitter.footer, xOffset, y, "start", "#303040", 0, "38px Raleway")
 	}
 
 

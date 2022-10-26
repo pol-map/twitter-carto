@@ -1,19 +1,19 @@
 import { Command } from 'commander';
-import { frameBuilder as fb } from "./frame-builder.js";
+import { frameBuilder as fb } from "./-frame-builder.js";
 import { createCanvas, loadImage, ImageData } from "canvas"
-import * as HME from "h264-mp4-encoder";
+import { Gif } from 'make-a-gif'
 import * as fs from "fs";
 
 /// CLI config
 let program, options
 program = new Command();
 program
-	.name('build-mp4')
-	.description('Build a MP4 video by compiling and rendering frames.')
-  .requiredOption('-t, --type <type>', 'Type of video. Choices: regular, broadcasting, polheatmaps.')
-  .requiredOption('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
+	.name('build-gif')
+	.description('Build a GIF loop by compiling and rendering frames.')
+  .requiredOption('-t, --type <type>', 'Required. Type of gif. Choices: regular, broadcasting, polheatmaps.')
+  .requiredOption('-r, --range <daterange>', 'Required. Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
   .option('-s, --search <expression>', 'For broadcasting mode, which term to look for?')
-  .option('-f, --fpi <frames-per-image>', 'How many frames each rendered image stays (note: the video is 30FPS)')
+  .option('-f, --fduration <frames-duration>', 'How many milliseconds for each rendered frame?')
   .option('-c, --recycle', 'Do not recompute frames already there')
   .showHelpAfterError()
   .parse(process.argv);
@@ -25,19 +25,19 @@ let defaultFpi, fileRootName
 switch (options.type) {
 	case "regular":
 		defaultFpi = 3
-		fileRootName = "MP4 Carto"
+		fileRootName = "GIF Carto"
 		break;
 	case "polheatmaps":
 		defaultFpi = 3
-		fileRootName = "MP4 Heatmap"
+		fileRootName = "GIF Heatmap"
 		break;
 	case "broadcasting":
 		defaultFpi = 3
-		fileRootName = "MP4 "+options.search
+		fileRootName = "GIF "+options.search
 		break;
 	default:
 		defaultFpi = 3
-		fileRootName = "MP4 Video"
+		fileRootName = "GIF loop"
 }
 
 let searchTerm = (options.search || "").toLowerCase()
@@ -45,8 +45,7 @@ let searchTerm = (options.search || "").toLowerCase()
 let settings = {}
 settings.sdate = options.range.split(" ")[0]
 settings.edate = options.range.split(" ")[1]
-settings.framesPerSecond = 30; // FPS (frame rate)
-settings.framesPerImage = options.fpi || defaultFpi; // How long in frames does each image stay. 1=quick, 15=slow.
+// settings.framesPerImage = options.fpi || defaultFpi; // How long in frames does each image stay. 1=quick, 15=slow.
 settings.filtering = {
 	shortName: options.search,
 	filter: b => b.tweet_text.toLowerCase().indexOf(searchTerm) >= 0
@@ -57,21 +56,10 @@ const endDate = new Date(settings.edate)
 
 let date = new Date(startDate)
 
-let encoder
-HME.default.createH264MP4Encoder()
-	.then(enc => {
-		encoder = enc
-    // Must be a multiple of 2.
-    encoder.width = 3840;
-    encoder.height = 2160;
-    encoder.frameRate = settings.framesPerSecond;
-    encoder.quantizationParameter = 12 // Default 33. Higher means better compression, and lower means better quality [10..51].
-    encoder.initialize();
-  })
-  .then(encodeFrame)
-
-async function encodeFrame() {
-	if (endDate-date >= 0) {
+;(async () => {
+	// Build frames
+	let frames = []
+	while(endDate-date >= 0) {
 		let year = date.getFullYear()
 		let month = (1+date.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 		let datem = (date.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
@@ -82,7 +70,7 @@ async function encodeFrame() {
 		let frameFile
 		switch (options.type) {
 			case "regular":
-				frameFile = await fb.build(options.type, date,
+				frameFile = await fb.build("regular-1080", date,
 					{
 						dateRange: [startDate, endDate],
 						labels:false,
@@ -109,21 +97,25 @@ async function encodeFrame() {
 		console.log("Frame generated:",frameFile)
 		let frameImage = await loadImage(frameFile)
 		
-		let canvas = createCanvas(3840, 2160)
+		let canvas = createCanvas(1080, 1080)
 		const ctx = canvas.getContext("2d")
 		ctx.drawImage(frameImage, 0, 0)
-		let imgd = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
-  	for (let i=0; i<settings.framesPerImage; i++) {
-  	  encoder.addFrameRgba(imgd.data);
-		}
-    date.setDate(date.getDate() + 1)
-    return encodeFrame()
-  } else {
-  	encoder.finalize();
-    let uint8Array = encoder.FS.readFile(encoder.outputFilename);
-    encoder.delete();
-    fs.writeFileSync(`data/${fileRootName} from ${settings.sdate} to ${settings.edate}.mp4`, Buffer.from(uint8Array));
-    console.log("Done.")
-  }
-}
+		let buffer = canvas.toBuffer('image/jpeg')
+		frames.push({
+			src:buffer,
+			duration: options.fduration || 500, // ms
+		})
 
+    date.setDate(date.getDate() + 1)
+	}
+
+	// Assemble frames
+	console.log("Build gif")
+	const myGif = new Gif(1080, 1080, 30)
+	await myGif.setFrames(frames)
+
+	// Render
+	const Render = await myGif.encode()
+	fs.writeFileSync(`data/${fileRootName} from ${settings.sdate} to ${settings.edate}.gif`, Render);
+  console.log("Done.")
+})()

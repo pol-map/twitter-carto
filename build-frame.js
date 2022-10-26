@@ -22,7 +22,7 @@ if (options.type == "polheatmap" && !options.polgroup) {
 }
 
 // Checks and execution
-const validTypes = ["regular", "broadcasting", "polheatmap"]
+const validTypes = ["regular", "regular-1080", "broadcasting", "polheatmap"]
 if (options.type && validTypes.indexOf(options.type)>=0) {
 	let fbOptions = {}
 	if (options.range) {
@@ -32,4 +32,6 @@ if (options.type && validTypes.indexOf(options.type)>=0) {
 		fbOptions.heatmapPolGroup = options.polgroup
 	}
 	await frameBuilder.build(options.type, options.date ? new Date(options.date) : new Date(), fbOptions)
+} else {
+	console.error("INVALID TYPE")
 }

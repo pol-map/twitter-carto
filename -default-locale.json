@@ -10,6 +10,7 @@
 	},
 	"video":{
 		"title":"QUI DÉBAT DE POLITIQUE SUR TWITTER FRANCE",
+		"titleShort":"DÉBAT POLITIQUE FRANCE",
 		"dateSubtitle": "et les 30 jours précédents",
 		"textRows": [
 			"Carte des interactions Twitter mentionnant des documents du débat politique.",
