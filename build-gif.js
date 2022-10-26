@@ -10,7 +10,7 @@ program = new Command();
 program
 	.name('build-gif')
 	.description('Build a GIF loop by compiling and rendering frames.')
-  .requiredOption('-t, --type <type>', 'Required. Type of gif. Choices: regular, broadcasting, polheatmaps.')
+  .requiredOption('-t, --type <type>', 'Required. Type of gif. Choices: regular (yes, only one for now).')
   .requiredOption('-r, --range <daterange>', 'Required. Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
   .option('-s, --search <expression>', 'For broadcasting mode, which term to look for?')
   .option('-f, --fduration <frames-duration>', 'How many milliseconds for each rendered frame?')
@@ -26,14 +26,6 @@ switch (options.type) {
 	case "regular":
 		defaultFpi = 3
 		fileRootName = "GIF Carto"
-		break;
-	case "polheatmaps":
-		defaultFpi = 3
-		fileRootName = "GIF Heatmap"
-		break;
-	case "broadcasting":
-		defaultFpi = 3
-		fileRootName = "GIF "+options.search
 		break;
 	default:
 		defaultFpi = 3
@@ -74,19 +66,6 @@ let date = new Date(startDate)
 					{
 						dateRange: [startDate, endDate],
 						labels:false,
-						reuseIfExists:options.recycle,
-					}
-				)
-				break;
-			case "polheatmaps":
-				// TODO
-				break;
-			case "broadcasting":
-				frameFile = await fb.build(options.type, date,
-					{
-						dateRange: [startDate, endDate],
-						labels:false,
-						filtering:settings.filtering,
 						reuseIfExists:options.recycle,
 					}
 				)

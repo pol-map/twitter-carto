@@ -35,7 +35,17 @@ export let frameBuilder = (()=>{
 		    		options.dateRange,
 		    		options.labels,
 		    		options.fileFormat,
-		    		options.reuseIfExists
+		    		options.reuseIfExists,
+		    	)
+		    break;
+			case "regular-720":
+		    return await ns.buildRegularFrame(
+		    		date,
+		    		options.dateRange,
+		    		options.labels,
+		    		options.fileFormat,
+		    		options.reuseIfExists,
+		    		"720"
 		    	)
 		    break;
 			case "regular-1080":
@@ -55,7 +65,7 @@ export let frameBuilder = (()=>{
 		    		options.labels,
 		    		options.fileFormat,
 		    		options.reuseIfExists,
-		    		options.heatmapPolGroup
+		    		options.heatmapPolGroup,
 		    	)
 		    break;
 		  case "broadcasting":
@@ -66,7 +76,7 @@ export let frameBuilder = (()=>{
 		    		options.fileFormat,
 		    		options.reuseIfExists,
 		    		options.filtering,
-		    		options.remember
+		    		options.remember,
 		    	)
 		    break;
 		  default:
@@ -229,8 +239,6 @@ export let frameBuilder = (()=>{
 			// Rescale 
 			let newCanvas = createCanvas(1080, 1080)
 			const newCtx = newCanvas.getContext("2d")
-			// Check this to understand:
-			// https://stackoverflow.com/questions/26015497/how-to-resize-then-crop-an-image-with-canvas
 			let sx = 0
 			let sy = 0
 			let sw = 2160
@@ -242,6 +250,22 @@ export let frameBuilder = (()=>{
 			newCtx.drawImage(canvas, sx, sy, sw, sh, dx, dy, dw, dh)
 			canvas = newCanvas
 			ctx = newCtx
+		} else if (imgFormat == "720") {
+			// Rescale 
+			let newCanvas = createCanvas(1280, 720)
+			const newCtx = newCanvas.getContext("2d")
+			let sx = 0
+			let sy = 0
+			let sw = 3840
+			let sh = 2160
+			let dx = 0
+			let dy = 0
+			let dw = 1280
+			let dh = 720
+			newCtx.drawImage(canvas, sx, sy, sw, sh, dx, dy, dw, dh)
+			canvas = newCanvas
+			ctx = newCtx
+
 		}
 
 		return await ns.saveFrame(canvas, fileFormat, fileTitle)
@@ -251,7 +275,11 @@ export let frameBuilder = (()=>{
 		const xOffset = 12
 		let y
 
-		if (imgFormat == "1080") {
+		if (imgFormat == "720") {
+			// Draw the title
+			y = 120
+			ns.drawText(ctx, ns.locale.video.title, xOffset, y, "start", "#303040", 0, "84px Raleway")
+		} else if (imgFormat == "1080") {
 			// Draw the title
 			y = 84
 			ns.drawText(ctx, ns.locale.video.titleShort, xOffset, y, "start", "#303040", 0, "66px Raleway")

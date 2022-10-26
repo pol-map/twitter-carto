@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { frameBuilder as fb } from "./frame-builder.js";
+import { frameBuilder as fb } from "./-frame-builder.js";
 import { createCanvas, loadImage, ImageData } from "canvas"
 import * as HME from "h264-mp4-encoder";
 import * as fs from "fs";
@@ -10,7 +10,7 @@ program = new Command();
 program
 	.name('build-mp4')
 	.description('Build a MP4 video by compiling and rendering frames.')
-  .requiredOption('-t, --type <type>', 'Type of video. Choices: regular, broadcasting, polheatmaps.')
+  .requiredOption('-t, --type <type>', 'Type of video. Choices: regular, regular-720, broadcasting, polheatmaps.')
   .requiredOption('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
   .option('-s, --search <expression>', 'For broadcasting mode, which term to look for?')
   .option('-f, --fpi <frames-per-image>', 'How many frames each rendered image stays (note: the video is 30FPS)')
@@ -21,19 +21,31 @@ program
 options = program.opts();
 
 // Type-dependent options
-let defaultFpi, fileRootName
+let defaultFpi, fileRootName, width, height
 switch (options.type) {
 	case "regular":
 		defaultFpi = 3
 		fileRootName = "MP4 Carto"
+		width = 3840
+		height = 2160
+		break;
+	case "regular-720":
+		defaultFpi = 3
+		fileRootName = "MP4 720p Carto"
+		width = 1280
+		height = 720
 		break;
 	case "polheatmaps":
 		defaultFpi = 3
 		fileRootName = "MP4 Heatmap"
+		width = 3840
+		height = 2160
 		break;
 	case "broadcasting":
 		defaultFpi = 3
 		fileRootName = "MP4 "+options.search
+		width = 3840
+		height = 2160
 		break;
 	default:
 		defaultFpi = 3
@@ -61,9 +73,8 @@ let encoder
 HME.default.createH264MP4Encoder()
 	.then(enc => {
 		encoder = enc
-    // Must be a multiple of 2.
-    encoder.width = 3840;
-    encoder.height = 2160;
+    encoder.width = width;
+    encoder.height = height;
     encoder.frameRate = settings.framesPerSecond;
     encoder.quantizationParameter = 12 // Default 33. Higher means better compression, and lower means better quality [10..51].
     encoder.initialize();
@@ -90,6 +101,16 @@ async function encodeFrame() {
 					}
 				)
 				break;
+			case "regular-720":
+				frameFile = await fb.build(options.type, date,
+					{
+						dateRange: [startDate, endDate],
+						labels:false,
+						reuseIfExists:options.recycle,
+					}
+				)
+				console.log(frameFile)
+				break;
 			case "polheatmaps":
 				// TODO
 				break;
@@ -109,7 +130,7 @@ async function encodeFrame() {
 		console.log("Frame generated:",frameFile)
 		let frameImage = await loadImage(frameFile)
 		
-		let canvas = createCanvas(3840, 2160)
+		let canvas = createCanvas(width, height)
 		const ctx = canvas.getContext("2d")
 		ctx.drawImage(frameImage, 0, 0)
 		let imgd = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
