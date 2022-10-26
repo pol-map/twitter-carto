@@ -2,6 +2,8 @@ import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 import * as d3 from 'd3';
 import dotenv from "dotenv";
+import { getLocale } from "./-get-locale.js"
+import { getPolAffiliations } from "./-get-pol-affiliations.js"
 
 dotenv.config();
 
@@ -18,7 +20,7 @@ export async function render_legend_twitter(date) {
   const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
   const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 
-  let localeData, polAffData
+  const locale = getLocale()
 
   const width = 3590
   const height = 3590
@@ -26,9 +28,6 @@ export async function render_legend_twitter(date) {
   let canvas = createCanvas(width, height)
   const ctx = canvas.getContext("2d")
 
-
-  const locale = getLocaleData()
-  
   const xOffset = 12
   // Draw the title and info
   let y = 100
@@ -102,53 +101,9 @@ export async function render_legend_twitter(date) {
     ctx.stroke();
   }
 
-  function getLocaleData() {
-    if (localeData === undefined) {
-      try {
-        // Load affiliations file as string
-        const localeDataJson = fs.readFileSync('locale.json', "utf8")
-
-        try {
-          localeData = JSON.parse(localeDataJson)
-          console.log('Locale loaded and parsed');
-
-          return localeData
-        } catch (error) {
-          console.error("Error: the locale file could not be parsed.", error)
-        }
-      } catch (error) {
-        console.error("Error: the locale file could not be loaded", error)
-      }
-    } else {
-      return localeData
-    }
-  }
-
-  function getPolAffData() {
-    if (polAffData === undefined) {
-      try {
-        // Load affiliations file as string
-        const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
-
-        try {
-          polAffData = JSON.parse(polAffDataJson)
-          console.log('Political affiliations loaded and parsed');
-
-          return polAffData
-        } catch (error) {
-          console.error("Error: the political affiliations file could not be parsed.", error)
-        }
-      } catch (error) {
-        console.error("Error: the political affiliations file could not be loaded", error)
-      }
-    } else {
-      return polAffData
-    }
-  }
-
   function getColorCode(date){
-    const locale = getLocaleData()
-    const polAffData = getPolAffData()
+    const locale = getLocale()
+    const polAffData = getPolAffiliations()
     let era
     polAffData.eras.forEach(e => {
       let sdate = new Date(e.startDate)
