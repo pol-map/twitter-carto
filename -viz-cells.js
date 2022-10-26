@@ -105,7 +105,7 @@ export async function computeCellsOverlay(date, resources) {
         0,
         resCtx.canvas.width,
         resCtx.canvas.height,
-        24 // Blur radius
+        32 // Blur radius
       );
 
       var imgd = resCtx.getImageData(0, 0, resCtx.canvas.width, resCtx.canvas.height)
@@ -161,7 +161,7 @@ export async function computeCellsOverlay(date, resources) {
           0,
           polyCtx.canvas.width,
           polyCtx.canvas.height,
-          64 // Blur radius
+          96 // Blur radius
         );
   
         // To test whether a polygon contains a point, we actually look whether the
@@ -194,7 +194,7 @@ export async function computeCellsOverlay(date, resources) {
         }
         
         const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        drawText(ctx, alphabet[i], centroid[0], centroid[1]+42, "center", "#303040", 0, "bold 120px Raleway")          
+        drawText(ctx, alphabet[i], centroid[0], centroid[1]+50, "center", "#303040", 0, "bold 150px Raleway")          
       })
 
     })
