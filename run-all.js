@@ -23,36 +23,40 @@ console.log(steps)
 
 async function runNextStep() {
 	let step = steps.shift()
-	
-	// Big marker for the console
-	const line = "################################################################"
-	const hole = "###                                                          ###"
-	console.log("\n\n")
-	console.log(line)
-	console.log(hole)
-	let msg = `###   ${step.id.toLocaleString('en-US', {minimumIntegerDigits: 4, useGrouping: false})}  -  ${step.title.toUpperCase()}   `
-	while (msg.length < line.length) { msg = msg + " " }
-	msg = msg.substring(0, line.length-3) + "###"
-	console.log(msg)
-	console.log(hole)
-	console.log(line)
-	console.log("\n")
 
-	step.run(date)
-		.then(result => {
-			if (result !== undefined && result.success !== undefined) {
-				if (result.success) {
-					console.info(`\n### SUCCESS: ${step.title}.`, result.msg)
+	if (step) {
+		// Big marker for the console
+		const line = "################################################################"
+		const hole = "###                                                          ###"
+		console.log("\n\n")
+		console.log(line)
+		console.log(hole)
+		let msg = `###   ${step.id.toLocaleString('en-US', {minimumIntegerDigits: 4, useGrouping: false})}  -  ${step.title.toUpperCase()}   `
+		while (msg.length < line.length) { msg = msg + " " }
+		msg = msg.substring(0, line.length-3) + "###"
+		console.log(msg)
+		console.log(hole)
+		console.log(line)
+		console.log("\n")
+
+		step.run(date)
+			.then(result => {
+				if (result !== undefined && result.success !== undefined) {
+					if (result.success) {
+						console.info(`\n### SUCCESS: ${step.title}.`, result.msg)
+					} else {
+						console.error(`\n### FAIL: ${step.title}.`, result.msg)
+					}
 				} else {
-					console.error(`\n### FAIL: ${step.title}.`, result.msg)
+					console.info(`\n### DONE: ${step.title}.`)
 				}
-			} else {
-				console.info(`\n### DONE: ${step.title}.`)
-			}
-		}, error => {
-			console.error(`\n### ERROR: ${step.title}.`, error)
-		})
-		.then(runNextStep)
+			}, error => {
+				console.error(`\n### ERROR: ${step.title}.`, error)
+			})
+			.then(runNextStep)
+	}	else {
+		console.log("\n\n### ALL STEPS DONE.\n")
+	}
 }
 
 runNextStep()
