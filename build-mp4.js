@@ -54,6 +54,7 @@ switch (options.type) {
 
 let searchTerm = (options.search || "").toLowerCase()
 
+// Encode video
 let settings = {}
 settings.sdate = options.range.split(" ")[0]
 settings.edate = options.range.split(" ")[1]
@@ -62,6 +63,11 @@ settings.framesPerImage = options.fpi || defaultFpi; // How long in frames does 
 settings.filtering = {
 	shortName: options.search,
 	filter: b => b.tweet_text.toLowerCase().indexOf(searchTerm) >= 0
+}
+
+const outputFolder = "data/video" // Storing built frames (cache)
+if (!fs.existsSync(outputFolder)){
+  fs.mkdirSync(outputFolder, { recursive: true });
 }
 
 const startDate = new Date(settings.sdate)
@@ -143,7 +149,7 @@ async function encodeFrame() {
   	encoder.finalize();
     let uint8Array = encoder.FS.readFile(encoder.outputFilename);
     encoder.delete();
-    fs.writeFileSync(`data/${fileRootName} from ${settings.sdate} to ${settings.edate}.mp4`, Buffer.from(uint8Array));
+    fs.writeFileSync(`${outputFolder}/${fileRootName} from ${settings.sdate} to ${settings.edate}.mp4`, Buffer.from(uint8Array));
     console.log("Done.")
   }
 }
