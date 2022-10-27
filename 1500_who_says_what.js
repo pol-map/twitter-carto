@@ -212,6 +212,8 @@ export async function who_says_what(date) {
 			return flagTemp
 		})
 
+		keyResources = keyResources.filter((d,i)=>i<8) // No more than 8 key resources
+
 	  // Main canvas
 		// let canvas = createCanvas(3840, 2160)
 		let canvas = createCanvas(3560, 3590)
