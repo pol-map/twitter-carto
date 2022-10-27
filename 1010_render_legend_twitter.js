@@ -55,10 +55,14 @@ export async function render_legend_twitter(date) {
   let imgd = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
   const out = fs.createWriteStream(legendFilename)
   const stream = canvas.createPNGStream()
-  stream.pipe(out)
-  out.on('finish', () => {
-    console.log("Legend saved.")
-  })
+  return new Promise(resolve => {
+    const out = fs.createWriteStream(path)
+    stream.pipe(out)
+    out.on("finish", () => {
+      console.log("Legend saved.")
+      resolve(path)
+    });
+  });
 
   // Internal methods
   function drawText(ctx, txt, x, y, textAlign, text_color, text_border_thickness, font) {
