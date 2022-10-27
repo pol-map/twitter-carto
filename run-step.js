@@ -23,8 +23,21 @@ const date = (options.date === undefined)?(new Date()):(new Date(options.date))
 const scriptIndex = scripts.getIndex()
 let step = scriptIndex[+options.step]
 if (step) {
-	console.log(`Run script ${options.step} for the ${date}`)
+	console.log(`### Run script ${options.step} for the ${date}`)
 	step.run(date)
+		.then(result => {
+			if (result !== undefined && result.success !== undefined) {
+				if (result.success) {
+					console.info(`\n### SUCCESS: ${step.title}.`, result.msg)
+				} else {
+					console.error(`\n### FAIL: ${step.title}.`, result.msg)
+				}
+			} else {
+				console.info(`\n### DONE: ${step.title}.`)
+			}
+		}, error => {
+			console.error(`\n### ERROR: ${step.title}.`, error)
+		})
 } else {
 	console.error("ERROR: Unknown step", +options.step)
 	console.info("Valid steps:")
