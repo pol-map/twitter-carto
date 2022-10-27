@@ -35,13 +35,18 @@ export async function normalize_urls(date) {
 	  levels: logLevels,
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
-	  	new transports.Console(),
+	  	new transports.Console({
+	      level: 'info',
+	      format: winston.format.combine(
+	        winston.format.colorize(),
+	        winston.format.simple()
+	      )
+	    }),
 	  	new transports.File({ filename: `${thisFolder}/0400_normalize_urls.log` })
 	  ],
 	});
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	async function main() {
