@@ -36,7 +36,14 @@ export async function resource_extract_data(date) {
 	  levels: logLevels,
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
-	  	new transports.Console(),
+	  	new transports.Console({
+	      // level: 'info',
+	      format: format.combine(
+	        format.colorize(),
+	        format.simple(),
+	        format.printf(log => log.message) // Just show the message
+	      )
+	    }),
 	  	new transports.File({ filename: `${thisFolder}/0510_resource_extract_data.log` })
 	  ],
 	});
@@ -614,7 +621,6 @@ export async function resource_extract_data(date) {
 	      minet.stderr.setEncoding("utf8");
 	      minet.stderr.on("data", (data) => {
 	      	logger
-						.child({ context: {data} })
 						.info('Minet process: '+data.trim().split("\r")[0]);
 	      });
 	      minet.on("close", (code) => {

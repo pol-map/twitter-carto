@@ -34,7 +34,14 @@ export async function get_political_tweets(date, useFullArchive) {
 	  levels: logLevels,
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
-	  	new transports.Console(),
+	  	new transports.Console({
+	      // level: 'info',
+	      format: format.combine(
+	        format.colorize(),
+	        format.simple(),
+	        format.printf(log => log.message) // Just show the message
+	      )
+	    }),
 	  	new transports.File({ filename: `${thisFolder}/0600_get_political_tweets.log` })
 	  ],
 	});

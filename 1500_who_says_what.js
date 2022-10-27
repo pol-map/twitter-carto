@@ -33,7 +33,14 @@ export async function who_says_what(date) {
 	  levels: logLevels,
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
-	  	new transports.Console(),
+	  	new transports.Console({
+	      // level: 'info',
+	      format: format.combine(
+	        format.colorize(),
+	        format.simple(),
+	        format.printf(log => log.message) // Just show the message
+	      )
+	    }),
 	  	new transports.File({ filename: `${thisFolder}/1500_who_says_what.log` })
 	  ],
 	});

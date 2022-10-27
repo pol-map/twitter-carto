@@ -39,7 +39,14 @@ export async function network(date) {
 	  levels: logLevels,
 	  format: format.combine(format.timestamp(), format.json()),
 	  transports: [
-	  	new transports.Console(),
+	  	new transports.Console({
+	      // level: 'info',
+	      format: format.combine(
+	        format.colorize(),
+	        format.simple(),
+	        format.printf(log => log.message) // Just show the message
+	      )
+	    }),
 	  	new transports.File({ filename: `${thisFolder}/0800_network.log` })
 	  ],
 	});
