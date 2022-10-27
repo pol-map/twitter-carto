@@ -37,9 +37,10 @@ export async function normalize_urls(date) {
 	  transports: [
 	  	new transports.Console({
 	      level: 'info',
-	      format: winston.format.combine(
-	        winston.format.colorize(),
-	        winston.format.simple()
+	      format: format.combine(
+	        format.colorize(),
+	        format.simple(),
+	        format.printf(log => log.message)
 	      )
 	    }),
 	  	new transports.File({ filename: `${thisFolder}/0400_normalize_urls.log` })
@@ -212,7 +213,6 @@ export async function normalize_urls(date) {
 	      minet.stderr.setEncoding("utf8");
 	      minet.stderr.on("data", (data) => {
 	      	logger
-						.child({ context: {data} })
 						.info('Minet process: '+data.trim().split("\r")[0]);
 	      });
 	      minet.on("close", (code) => {
