@@ -9,8 +9,8 @@ program = new Command();
 program
 	.name('run-step')
 	.description('Run a single step of the whole process.')
+  .requiredOption('-s, --step <number>', 'Required. Step number.')
   .option('-d, --date <YYYY-MM-DD>', 'Date where to run the step. Defaults to today.')
-  .requiredOption('-s, --step <number>', 'Step number.')
   .showHelpAfterError()
   .parse(process.argv);
 

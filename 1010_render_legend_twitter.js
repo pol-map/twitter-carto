@@ -56,11 +56,11 @@ export async function render_legend_twitter(date) {
   const out = fs.createWriteStream(legendFilename)
   const stream = canvas.createPNGStream()
   return new Promise(resolve => {
-    const out = fs.createWriteStream(path)
+    const out = fs.createWriteStream(legendFilename)
     stream.pipe(out)
     out.on("finish", () => {
       console.log("Legend saved.")
-      resolve(path)
+      resolve(legendFilename)
     });
   });
 
