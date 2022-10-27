@@ -31,7 +31,7 @@ let date = new Date(startingDate)
 let steps
 
 async function runDate() {
-	console.log(`\n\n\n########################################### RUN SCRIPTS for the`, date)
+	console.log(`\n\n\n\n=========================================== RUN SCRIPTS for the`, date)
 	steps = scripts.get().slice(0)
 
 	steps = steps.filter(s => scriptFirst<=+s.id && +s.id<=scriptLast)
@@ -49,7 +49,7 @@ async function runNextStep() {
 		// Big marker for the console
 		const line = "################################################################"
 		const hole = "###                                                          ###"
-		console.log("\n\n")
+		console.log("\n")
 		console.log(line)
 		console.log(hole)
 		let msg = `###   ${step.id.toLocaleString('en-US', {minimumIntegerDigits: 4, useGrouping: false})}  -  ${step.title.toUpperCase()}   `
@@ -80,7 +80,7 @@ async function runNextStep() {
 		if (endDate-date >= 0) {
 			return runDate()
 		} else {
-			console.log("\n\n### DONE.")
+			console.log("\n\n### DONE.\n")
 		}
 	}
 }
