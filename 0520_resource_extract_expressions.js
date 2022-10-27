@@ -51,9 +51,9 @@ export async function resource_extract_expressions(date) {
 	  	new transports.File({ filename: `${thisFolder}/0520_resource_extract_expressions.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	const twitterClient = new Client(process.env.BEARER_TOKEN);

@@ -63,7 +63,6 @@ export async function network_layout(date) {
 	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	async function main() {

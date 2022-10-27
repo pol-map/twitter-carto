@@ -48,7 +48,6 @@ export async function get_political_tweets(date, useFullArchive) {
 	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	const twitterClient = new Client(process.env.BEARER_TOKEN);

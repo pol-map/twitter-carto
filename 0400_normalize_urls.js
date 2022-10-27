@@ -46,6 +46,7 @@ export async function normalize_urls(date) {
 	  	new transports.File({ filename: `${thisFolder}/0400_normalize_urls.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
 	logger.info('Log level is '+logLevel);

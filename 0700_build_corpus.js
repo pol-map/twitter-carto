@@ -45,9 +45,9 @@ export async function build_corpus(date) {
 	  	new transports.File({ filename: `${thisFolder}/0700_build_corpus.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	async function main() {

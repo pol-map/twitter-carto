@@ -45,9 +45,9 @@ export async function extract_cited_resources(date) {
 	  	new transports.File({ filename: `${thisFolder}/0300_extract_cited_resources.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	async function main() {

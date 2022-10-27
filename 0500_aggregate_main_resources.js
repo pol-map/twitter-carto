@@ -45,9 +45,9 @@ export async function aggregate_main_resources(date) {
 	  	new transports.File({ filename: `${thisFolder}/0500_aggregate_main_resources.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	async function main() {

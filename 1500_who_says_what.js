@@ -44,9 +44,9 @@ export async function who_says_what(date) {
 	  	new transports.File({ filename: `${thisFolder}/1500_who_says_what.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	async function main() {

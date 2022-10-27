@@ -41,9 +41,9 @@ export async function update_mp_list(date) {
 	  	new transports.File({ filename: `${thisFolder}/0100_update_mp.log` }),
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	// Load the source file settings

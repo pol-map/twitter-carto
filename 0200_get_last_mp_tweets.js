@@ -45,9 +45,9 @@ export async function get_last_mp_tweets(date) {
 	  	new transports.File({ filename: `${thisFolder}/0200_get_last_mp_tweets.log` })
 	  ],
 	});
+	logger.on('error', function (err) { console.log("Logger error :(") });
 
 	logger.info('***** RUN SCRIPT ****');
-	console.log("Log level is", logLevel)
 	logger.info('Log level is '+logLevel);
 
 	const twitterClient = new Client(process.env.BEARER_TOKEN);
