@@ -19,7 +19,6 @@ const date = (options.date === undefined)?(new Date()):(new Date(options.date))
 console.log(`RUN ALL for the`, date)
 
 let steps = scripts.get().slice(0).filter(s => !s.omit)
-console.log(steps)
 
 async function runNextStep() {
 	let step = steps.shift()
