@@ -1,4 +1,4 @@
-import { createLogger, format, transports } from "winston";
+import { getLogger } from "./-get-logger.js"
 import * as https from "https";
 import * as http from "http";
 import * as fs from "fs";
@@ -32,38 +32,9 @@ export async function network_layout(date) {
 	const yesterdaysFolder = `data/${yyear}/${ymonth}/${ydatem}`
 
 	// Logger
-	// Inspiration: https://blog.appsignal.com/2021/09/01/best-practices-for-logging-in-nodejs.html
-	const logLevels = {
-	  fatal: 0,
-	  error: 1,
-	  warn: 2,
-	  info: 3,
-	  debug: 4,
-	  trace: 5,
-	};
-
-	const logLevel = "trace"
-
-	const logger = createLogger({
-		level: logLevel,
-	  levels: logLevels,
-	  format: format.combine(format.timestamp(), format.json()),
-	  transports: [
-	  	new transports.Console({
-	      // level: 'info',
-	      format: format.combine(
-	        format.colorize(),
-	        format.simple(),
-	        format.printf(log => log.message) // Just show the message
-	      )
-	    }),
-	  	new transports.File({ filename: `${thisFolder}/0900_network_layout.log` })
-	  ],
-	});
-	logger.on('error', function (err) { console.log("Logger error :(") });
-
+	const logger = getLogger(`${thisFolder}/0900_network_layout.log`)
+	logger.level = "info"
 	logger.info('***** RUN SCRIPT ****');
-	logger.info('Log level is '+logLevel);
 
 	async function main() {
 
