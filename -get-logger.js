@@ -41,6 +41,6 @@ export function getLogger(filename) {
 	  	new winston.transports.File({ filename })
 	  ],
 	});
-	logger.on('error', function (err) { console.log("Logger error :(") });
+	logger.on('error', function (err) { console.error("Logger error :(") });
 	return logger
 }
