@@ -291,7 +291,7 @@ export async function resource_extract_data(date) {
 					try {
 				  	usersResponse = JSON.parse(usersResponseRaw);
 				  	logger
-				  		.child({ context: {r, fileName, usersResponse} })
+				  		.child({ context: {uId, fileName, usersResponse} })
 							.trace(`Users data response retrieved from local cache ${fileName}.`);
 			  	} catch (error) {
 						console.log("Error", error)
@@ -628,6 +628,9 @@ export async function resource_extract_data(date) {
 				text_long: `${res.text}`,
 				lang: res.lang,
 				media_keys: res.media_keys,
+				author_username: res.author_username,
+				author_name: res.author_name,
+				url: `https://twitter.com/${res.author_username}/status/${res.id}`, // We rewrite the URL with fetched username
 			}
 		})
 		// Save the resources with text content
