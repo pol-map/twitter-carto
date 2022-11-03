@@ -4,6 +4,7 @@ import * as fs from "fs";
 import { createCanvas, loadImage, ImageData } from "canvas"
 import * as d3 from 'd3';
 import dotenv from "dotenv";
+import { getPolAffiliations } from "./-get-pol-affiliations.js"
 
 dotenv.config();
 
@@ -1060,7 +1061,7 @@ export async function render_pol_heatmaps(date) {
 
 
 
-  const polAffiliations = getPolAffiliations(targetDate)
+  const polAffiliations = getPolAffiliationsAtDate(targetDate)
   for (let pai=0; pai<polAffiliations.length; pai++){
     let polGroup = polAffiliations[pai]
     console.log("\n### Pol group: "+polGroup)
@@ -1075,39 +1076,32 @@ export async function render_pol_heatmaps(date) {
     await renderer.renderAndSave(g, settings, thisFolder+'/heatmap pol '+polGroup) // Custom
   }
 
-  function getPolAffiliations(date){
+  function getPolAffiliationsAtDate(date){
     try {
-      // Load affiliations file as string
-      const polAffDataJson = fs.readFileSync('political_affiliations.json', "utf8")
+      const polAffData = getPolAffiliations()
+      console.log('Political affiliations loaded and parsed');
 
-      try {
-        const polAffData = JSON.parse(polAffDataJson)
-        console.log('Political affiliations loaded and parsed');
-
-        let era
-        polAffData.eras.forEach(e => {
-          let sdate = new Date(e.startDate)
-          let edate = new Date(e.endDate)
-          if (sdate <= date && date <= edate ) {
-            era = e
-          }
-        })
-
-        if (era===undefined) {
-          console.error(`No corresponding era found in political affiliations file`);
-        } else {
-          let polAff = []
-          era.affiliations.forEach(a => {
-            polAff.push(a.id)
-          })
-          return polAff
+      let era
+      polAffData.eras.forEach(e => {
+        let sdate = new Date(e.startDate)
+        let edate = new Date(e.endDate)
+        if (sdate <= date && date <= edate ) {
+          era = e
         }
+      })
 
-      } catch (error) {
-        console.error("Error: the political affiliations file could not be parsed.", error)
+      if (era===undefined) {
+        console.error(`No corresponding era found in political affiliations file`);
+      } else {
+        let polAff = []
+        era.affiliations.forEach(a => {
+          polAff.push(a.id)
+        })
+        return polAff
       }
+
     } catch (error) {
-      console.error("Error: the political affiliations file could not be loaded", error)
+      console.error("Error: the political affiliations file could not be parsed.", error)
     }
   }
 }
