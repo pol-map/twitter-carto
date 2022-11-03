@@ -300,7 +300,7 @@ export async function who_says_what(date) {
 			drawText(ctx, txt, xOffset, y, "start", "#303040", 0, "semibold 46px Raleway")
 		})
 	  // Footer
-	  y = height - 36
+	  y = ctx.canvas.height - 36
 	  drawText(ctx, locale.legendKeyres.footer, xOffset, y, "start", "#303040", 0, "56px Raleway")
 	}
 
