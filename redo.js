@@ -20,7 +20,7 @@ const startingDate = new Date(options.first)
 const endDate = new Date(options.last)
 
 const scriptFirst = +(options.scripts.split("-")[0])
-const scriptLast = +(options.scripts.split("-")[1])
+const scriptLast = +(options.scripts.split("-").pop())
 if (isNaN(scriptFirst) || isNaN(scriptLast) || scriptFirst<0 || scriptLast>9999) {
 	console.error("There is a problem with the script range:", [scriptFirst, scriptLast])
 	process.exit(1)

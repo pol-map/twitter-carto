@@ -1079,7 +1079,6 @@ export async function render_pol_heatmaps(date) {
   function getPolAffiliationsAtDate(date){
     try {
       const polAffData = getPolAffiliations()
-      console.log('Political affiliations loaded and parsed');
 
       let era
       polAffData.eras.forEach(e => {
