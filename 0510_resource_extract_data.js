@@ -109,6 +109,10 @@ export async function resource_extract_data(date) {
 		if (!fs.existsSync(mediaDir)){
 		  fs.mkdirSync(mediaDir);
 		}
+  	const usersDir = `${thisFolder}/usersData`
+		if (!fs.existsSync(usersDir)){
+		  fs.mkdirSync(usersDir);
+		}
   	let newResourcesTwitterFetched = []
 		let batches = []
 		let currentBatch = []
@@ -254,6 +258,136 @@ export async function resource_extract_data(date) {
 			}
 		}
 
+		/// Retrieve tweet-resource author information
+		// Compile authors
+		let authorIndex = {}
+		newResourcesTwitter.forEach(r => {
+			authorIndex[r.author_id] = true
+		})
+		const authorIds = Object.keys(authorIndex)
+		// Build author batches
+		batches = []
+		currentBatch = []
+		let newUsersFetched = []
+		authorIds.forEach(uId => {
+			let fileName = `${usersDir}/${uId}.json`
+			let usersResponse = undefined
+			if (fs.existsSync(fileName)){
+				// The data has been previously downloaded: load it.
+				let usersResponseRaw
+				try {
+					usersResponseRaw = fs.readFileSync(fileName);
+				} catch (error) {
+					console.log("Error", error)
+					logger
+						.child({ context: {res, page, fileName, error:error.message} })
+						.error(`JSON file read error. The data could not be recovered for ${fileName}.`);
+					return new Promise((resolve, reject) => {
+						logger.once('finish', () => resolve({success:false, msg:`JSON file read error. The data could not be recovered.`}));
+						logger.end();
+				  });
+				}
+				if (usersResponseRaw) {
+					try {
+				  	usersResponse = JSON.parse(usersResponseRaw);
+				  	logger
+				  		.child({ context: {r, fileName, usersResponse} })
+							.trace(`Users data response retrieved from local cache ${fileName}.`);
+			  	} catch (error) {
+						console.log("Error", error)
+						logger
+							.child({ context: {r, fileName, usersResponseRaw, error:error.message} })
+							.error(`JSON file cannot be parsed. The data could not be recovered for ${fileName}.`);
+						usersResponse = undefined
+					}
+				}
+			}
+			// If the file does not exist or failed, query Twitter.
+			if (usersResponse === undefined) {
+				// Add the tweet to the batch of tweets to retrieve
+				currentBatch.push(uId)
+				if (currentBatch.length >= 100) {
+					batches.push(currentBatch)
+					currentBatch = []
+				}
+			} else {
+				// Add the retrieved data to the list
+				newUsersFetched.push(usersResponse)
+			}
+		})
+		if (currentBatch.length > 0) {
+			batches.push(currentBatch)
+		}
+		logger
+			.info(`${batches.length} batches built for ${authorIds.length} users (${newUsersFetched.length} already downloaded).`);
+		// Query API
+		if (batches.length > 0) {
+			for (let b in batches) {
+				const batch = batches[b]
+				const settings = {
+					"ids": batch.join(","),
+					"user.fields":[
+						"created_at",
+						"description",
+						"entities",
+						"id",
+						"location",
+						"name",
+						"pinned_tweet_id",
+						"profile_image_url",
+						"protected",
+						"public_metrics",
+						"url",
+						"username",
+						"verified",
+						"withheld",
+					],
+					"tweet.fields": [
+						"attachments",
+			      "author_id",
+			      "context_annotations",
+			      "conversation_id",
+			      "created_at",
+			      "entities",
+			      "geo",
+			      "id",
+			      "in_reply_to_user_id",
+			      "lang",
+			      "possibly_sensitive",
+			      "referenced_tweets",
+			      "reply_settings",
+			      "source",
+			      "text",
+			      "withheld",
+			    ],
+			  }
+				let usersFetched = await getUsers(settings)
+				// Save each user's content
+				for (let u in usersFetched.data) {
+					const user = usersFetched.data[u]
+					newUsersFetched.push(user)
+					// Save
+					const fileName = `${usersDir}/${user.id}.json`
+					const userString = JSON.stringify(user)
+					try {
+						fs.writeFileSync(fileName, userString)
+					  logger
+							.child({ user:user })
+							.debug(`The file for user ${user.id} was saved successfully`);
+					} catch(error) {
+						logger
+							.child({ user:user })
+							.error(`The file for user ${user.id} could not be saved`);	
+					}
+				}
+			}
+		}
+		// Build user index
+		let userIndex = {}
+		newUsersFetched.forEach(u => {
+			userIndex[u.id] = u
+		})
+
 		// Aggregate with existing resources
 		let newResourcesTwitterFetchedIndex = {}
 		newResourcesTwitterFetched.forEach(r => {
@@ -270,6 +404,14 @@ export async function resource_extract_data(date) {
 				result.text = r2.text
 				result.lang = r2.lang
 				result.author_id = r2.author_id
+				let user = userIndex[result.author_id]
+				if (user) {
+					result.author_username = user.username
+					result.author_name = user.name
+				} else {
+					logger
+						.error(`User ${result.author_id} not found in the index. It should be there by design.`);						
+				}
 				if (r2.attachments && r2.attachments.media_keys) {
 					result.media_keys = JSON.stringify(r2.attachments.media_keys)
 				}
@@ -570,6 +712,39 @@ export async function resource_extract_data(date) {
 			logger
 				.child({ context: {settings, error:error.message} })
 				.error('The API call to retrieve tweets failed.');
+			return {}
+	  }
+	}
+
+	async function getUsers(settings) {
+		// Rate limit: 300 queries per 15 minutes. So we wait the right amount of time to throttle.
+		await new Promise(resolve => setTimeout(resolve, 15*60*1000/300))
+
+		try {
+	    let users
+    	users = await twitterClient.users.findUsersById(settings);
+
+	    if (users.errors) {
+		    logger
+		  		.child({ context: {settings} })
+					.warn(`Errors returned for ${users.errors.length} users.`);    	
+	    }
+	    if (users.data) {
+		    logger
+					.info(`${users.data.length} users retrieved.`);
+	    } else {
+		    logger
+					.warn(`No users retrieved.`);
+	    }
+	    logger
+	  		.child({ context: {settings, users} })
+				.trace(`Users data response retrieved.`);
+	    return users || {}
+	  } catch (error) {
+	    console.log("Error", error)
+			logger
+				.child({ context: {settings, error:error.message} })
+				.error('The API call to retrieve users failed.');
 			return {}
 	  }
 	}
