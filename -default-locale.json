@@ -8,6 +8,13 @@
 		],
 		"footer":""
 	},
+	"legendKeyres":{
+		"title":"Ressources clés le",
+		"textRows":[
+			"Chaque ressource est la plus échangée dans sa zone."
+		],
+		"footer":"@PolMapFR - Plus d'infos sur bit.ly/pol-map-fr"
+	},
 	"video":{
 		"title":"QUI DÉBAT DE POLITIQUE SUR TWITTER FRANCE",
 		"titleShort":"DÉBAT POLITIQUE FRANCE",

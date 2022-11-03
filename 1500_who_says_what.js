@@ -5,6 +5,7 @@ import * as fs from "fs";
 import * as d3 from 'd3';
 import dotenv from "dotenv";
 import { computeCellsOverlay } from "./-viz-cells.js";
+import { getLocale } from "./-get-locale.js"
 
 dotenv.config();
 
@@ -212,6 +213,8 @@ export async function who_says_what(date) {
 
 	  ctx.drawImage(oCanvas, 0, 0)
 
+	  drawLegend(ctx, date)
+
 		// Load resources file
 		const resourceFile = `${thisFolder}/resources_7days_aggregated_expressions.csv`
 		const resources = loadFile(resourceFile, 'resources')
@@ -273,6 +276,61 @@ export async function who_says_what(date) {
 		}
 	}
 
+	function drawLegend(ctx, date) {
+	  const targetDate = ((date === undefined)?(new Date() /*Now*/):(new Date(date)))
+	  const year = targetDate.getFullYear()
+	  const month = (1+targetDate.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+	  const datem = (targetDate.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+	  const thisFolder = `data/${year}/${month}/${datem}`
+
+	  let yesterday = new Date(targetDate.getTime());
+	  yesterday.setDate(targetDate.getDate() - 1);
+	  const yyear = yesterday.getFullYear()
+	  const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+	  const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+
+		let locale = getLocale()
+
+		const xOffset = 12
+		let y = 100
+		drawText(ctx, `${locale.legendKeyres.title} ${yyear}-${ymonth}-${ydatem}`, xOffset, y, "start", "#303040", 0, "104px Raleway")
+		y += 24 // Margin
+		locale.legendKeyres.textRows.forEach(txt => {
+			y += 54
+			drawText(ctx, txt, xOffset, y, "start", "#303040", 0, "semibold 46px Raleway")
+		})
+	  // Footer
+	  y = height - 36
+	  drawText(ctx, locale.legendKeyres.footer, xOffset, y, "start", "#303040", 0, "56px Raleway")
+	}
+
+	function drawText(ctx, txt, x, y, textAlign, text_color, text_border_thickness, font) {
+    ctx.textAlign = textAlign || "start";
+    ctx.font = font
+    if (text_border_thickness > 0) {
+	    ctx.lineWidth = text_border_thickness;
+	    ctx.fillStyle = text_color;
+	    ctx.strokeStyle = text_color;
+	    ctx.fillText(
+	      txt,
+	      x,
+	      y
+	    );
+	    ctx.strokeText(
+	      txt,
+	      x,
+	      y
+	    );
+    } else {
+	    ctx.lineWidth = 0;
+	    ctx.fillStyle = text_color;
+	    ctx.fillText(
+	      txt,
+	      x,
+	      y
+	    );
+    }
+  }
 	async function saveFrame(canvas, filePath) {
 		const stream = canvas.createPNGStream()
 		return new Promise(resolve => {
