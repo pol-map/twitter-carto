@@ -261,7 +261,7 @@ export async function resource_extract_data(date) {
 		/// Retrieve tweet-resource author information
 		// Compile authors
 		let authorIndex = {}
-		newResourcesTwitter.forEach(r => {
+		newResourcesTwitterFetched.forEach(r => {
 			authorIndex[r.author_id] = true
 		})
 		const authorIds = Object.keys(authorIndex)
