@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as d3 from 'd3';
 import * as StackBlur from "stackblur-canvas";
 import { computeBroadcastingsViz } from "./-viz-broadcastings.js"
+import { computeUserViz } from "./-viz-user.js"
 import { getLocale } from "./-get-locale.js"
 import { getPolAffiliations } from "./-get-pol-affiliations.js"
 
@@ -27,6 +28,7 @@ export let frameBuilder = (()=>{
 		options.fileFormat = (options.fileFormat===undefined) ? 'jpg' : options.fileFormat
 		options.filtering = (options.filtering===undefined) ? {shortName:"All", filter:d=>true} : options.filtering
 		options.remember = (options.remember===undefined) ? true : options.remember
+		options.user = (options.user===undefined) ? "UnknownUser" : options.user
 
 		switch(type) {
 			case "regular":
@@ -79,11 +81,197 @@ export let frameBuilder = (()=>{
 		    		options.remember,
 		    	)
 		    break;
+			case "user":
+		    return await ns.buildUserFrame(
+		    		date,
+		    		options.dateRange,
+		    		options.labels,
+		    		options.fileFormat,
+		    		options.reuseIfExists,
+		    		options.username,
+		    	)
+		    break;
 		  default:
 		    console.error(`ERROR: Unknown frame type "${type}". The frame could not be built.`)
 		}
 	}
 
+
+		/// TYPE: REGULAR
+	
+	ns.buildUserFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists, username) {
+		let fileTitle = `User ${username} from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
+
+		// Check existing
+		if (reuseIfExists && fs.existsSync(ns.getFrameFilePath(fileFormat, fileTitle))) {
+			let filePath = ns.getFrameFilePath(fileFormat, fileTitle)
+			console.info("Frame reused from "+filePath)
+			return filePath
+		}
+
+		// Main canvas
+		let canvas = createCanvas(3840, 2160)
+		let ctx = canvas.getContext("2d")
+
+		// Get background
+		const bgPath = ns.getBgPath(date, labels)
+		const bgImg = await loadImage(bgPath)
+		ctx.drawImage(bgImg, 0, 0)
+
+		// Darken background
+		let tempCanvas = createCanvas(3840, 2160)
+		const tempCtx = tempCanvas.getContext("2d")
+	  // Luminosity layer
+	  tempCtx.beginPath()
+	  tempCtx.rect(0, 0, tempCtx.canvas.width, tempCtx.canvas.height)
+	  tempCtx.fillStyle = "rgba(89, 94, 100)"
+	  tempCtx.fill()
+	  tempCtx.closePath()
+	  ctx.globalCompositeOperation = "luminosity"
+	  ctx.globalAlpha = 0.15;
+	  ctx.drawImage(tempCanvas, 0, 0)
+	  // Multiply layer
+	  tempCtx.beginPath()
+	  tempCtx.rect(0, 0, tempCtx.canvas.width, tempCtx.canvas.height)
+	  tempCtx.fillStyle = "#000000"
+	  tempCtx.fill()
+	  tempCtx.closePath()
+	  ctx.globalCompositeOperation = "multiply"
+	  ctx.globalAlpha = 0.25;
+	  ctx.drawImage(tempCanvas, 0, 0)
+
+		// Draw overlay
+	  const oImgd = await ns.getUserOverlay(date, username)
+		let oCanvas = createCanvas(ctx.canvas.width, ctx.canvas.height)
+	  const oCtx = oCanvas.getContext("2d")
+	  oCtx.putImageData(oImgd, 0, 0)
+		ctx.globalCompositeOperation = "source-over"
+	  ctx.globalAlpha = 1;
+	  ctx.drawImage(oCanvas, 0, 0)
+	  
+	  // Post adjustments
+	  ctx.globalCompositeOperation = "multiply"
+	  ctx.globalAlpha = 0.8;
+	  ctx.drawImage(ctx.canvas, 0, 0)
+		
+		// Reset
+	  ctx.globalCompositeOperation = "source-over"
+	  ctx.globalAlpha = 1;
+
+		ns.drawUserLegend(ctx, date, dateRange, username)
+
+		return await ns.saveFrame(canvas, fileFormat, fileTitle)
+	}
+
+	ns.drawUserLegend = function(ctx, date, dateRange, username) {
+		const xOffset = 12
+		let y
+
+		// Draw the title and info
+		y = 84
+		ns.drawText(ctx, `@${username}`, xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+		y += 30 // Margin
+
+		let timelineBox
+		timelineBox = {
+			x: ctx.canvas.width*2/3,
+			y: 12,
+			w: ctx.canvas.width/3 - 24,
+			h: 200
+		}
+		ns.drawTimeline(ctx, timelineBox, false, date, dateRange, true)
+
+	  // Footer
+	  y = ctx.canvas.height - 28
+	  ns.drawText(ctx, ns.locale.legendTwitter.footer, xOffset, y, "start", "#303040", 0, "38px Raleway")
+	}
+
+	ns.getUserOverlay = async function(date, username) {
+		const folder = ns.getSourceFolder(date)
+
+		// Load users for 1 month to retrieve the id of username
+		let users = []
+	  let usersFilePath = `${folder}/user_corpus_1month.csv`
+	  if (fs.existsSync(usersFilePath)) {
+	    try {
+	      // Load file as string
+	      let csvString = fs.readFileSync(usersFilePath, "utf8")
+	      // Parse string
+	      users = d3.csvParse(csvString);
+	      console.log(`Users loaded (${users.length} rows)`)
+
+	    } catch (error) {
+	      console.error(`An error occurred during the loading and parsing of users`, error)
+	    }
+	  } else {
+	    console.warn(`Users not found`)
+	  }
+
+	  // Find the id of username
+	  let userId = "0"
+	  let usernameLC = username.toLowerCase()
+	  users.forEach(u => {
+	  	if (u.username.toLowerCase() == usernameLC) {
+	  		userId == ""+u.id
+	  	}
+	  })
+
+		// Load all edges
+		let allEdges = []
+	  let allEdgesFilePath = `${folder}/network_edges.csv`
+	  if (fs.existsSync(allEdgesFilePath)) {
+	    try {
+	      // Load file as string
+	      let csvString = fs.readFileSync(allEdgesFilePath, "utf8")
+	      // Parse string
+	      allEdges = d3.csvParse(csvString);
+	      console.log(`Edges loaded (${allEdges.length} rows)`)
+
+	    } catch (error) {
+	      console.error(`An error occurred during the loading and parsing of edges`, error)
+	    }
+	  } else {
+	    console.warn(`Edges not found`)
+	  }
+
+	  // Filter for those connected to username
+	  allEdges = allEdges.filter(u => u.Source==userId || u.Target==userId)
+
+	  // Load broadcastings
+		let broadcastings = []
+	  let broadcastingsFilePath = `${folder}/broadcastings.csv`
+	  if (fs.existsSync(broadcastingsFilePath)) {
+	    try {
+	      // Load file as string
+	      let csvString = fs.readFileSync(broadcastingsFilePath, "utf8")
+	      // Parse string
+	      broadcastings = d3.csvParse(csvString);
+	      console.log(`Broadcastings loaded (${broadcastings.length} rows)`)
+
+	    } catch (error) {
+	      console.error(`An error occurred during the loading and parsing of broadcastings`, error)
+	    }
+	  } else {
+	    console.warn(`Broadcastings not found`)
+	  }
+
+	  // Build day edges list
+	  let dayEdges = []
+	  broadcastings.forEach(b => {
+	    JSON.parse(b.tweet_mentions).forEach(d => {
+	    	if (d==userId || b.broadcaster_id==userId) {
+		      dayEdges.push({
+		        Source: b.broadcaster_id,
+		        Target: d,
+		      })
+		    }
+	    })
+	  })
+
+	  // Get image
+	  const overlayImgd = await computeUserViz(date, userId, allEdges, dayEdges)
+	  return overlayImgd
+	}
 
 	/// TYPE: HEATMAP
 

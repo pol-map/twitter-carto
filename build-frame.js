@@ -7,10 +7,11 @@ program = new Command();
 program
 	.name('frame-builder')
 	.description('Utility usable as a CLI. Build frames that can be made into a video.')
-  .requiredOption('-t, --type <type>', 'Type of frame. Choices: regular, broadcasting, polheatmap.')
+  .requiredOption('-t, --type <type>', 'Type of frame. Choices: regular, broadcasting, polheatmap, user.')
   .option('-d, --date <date>', 'Date as "YYYY-MM-DD". Defaults to today.')
   .option('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
   .option('-p, --polgroup <group-id>', 'ID of the political affiliation. Necessary to the polheatmap mode.')
+  .option('-u, --user <username>', 'Twitter handle to track. Necessary to the user mode.')
   .showHelpAfterError()
   .parse(process.argv);
 
@@ -22,7 +23,7 @@ if (options.type == "polheatmap" && !options.polgroup) {
 }
 
 // Checks and execution
-const validTypes = ["regular", "regular-720", "regular-1080", "broadcasting", "polheatmap"]
+const validTypes = ["regular", "regular-720", "regular-1080", "broadcasting", "polheatmap", "user"]
 if (options.type && validTypes.indexOf(options.type)>=0) {
 	let fbOptions = {}
 	if (options.range) {
@@ -30,6 +31,9 @@ if (options.type && validTypes.indexOf(options.type)>=0) {
 	}
 	if (options.polgroup) {
 		fbOptions.heatmapPolGroup = options.polgroup
+	}
+	if (options.user) {
+		fbOptions.username = options.user
 	}
 	await frameBuilder.build(options.type, options.date ? new Date(options.date) : new Date(), fbOptions)
 } else {
