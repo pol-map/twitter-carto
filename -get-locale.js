@@ -7,7 +7,7 @@ export function getLocale() {
 
     try {
       const localeData = JSON.parse(localeDataJson)
-      console.log('Locale loaded and parsed');
+      // console.log('Locale loaded and parsed');
 
       return localeData
     } catch (error) {

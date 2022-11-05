@@ -7,7 +7,7 @@ export function getPolAffiliations() {
 
     try {
       const polAffData = JSON.parse(polAffDataJson)
-      console.log('Political affiliations loaded and parsed');
+      // console.log('Political affiliations loaded and parsed');
 
       return polAffData
     } catch (error) {
