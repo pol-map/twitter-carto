@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { frameBuilder as fb } from "./-frame-builder.js";
+import { getPolAffiliations } from "./-get-pol-affiliations.js"
 import { createCanvas, loadImage, ImageData } from "canvas"
 import * as HME from "h264-mp4-encoder";
 import * as fs from "fs";
@@ -20,6 +21,10 @@ program
 
 options = program.opts();
 
+let searchTerm = (options.search || "").toLowerCase()
+let polAffs = getAllPoliticalAffiliations()
+let polAff = polAffs.pop()
+
 // Type-dependent options
 let defaultFpi, fileRootName, width, height
 switch (options.type) {
@@ -37,7 +42,13 @@ switch (options.type) {
 		break;
 	case "polheatmaps":
 		defaultFpi = 3
-		fileRootName = "MP4 Heatmap"
+		fileRootName = getPolheatmapFilerootname(polAff)
+		width = 3840
+		height = 2160
+		break;
+	case "polheatmaps-720":
+		defaultFpi = 3
+		fileRootName = getPolheatmap720Filerootname(polAff)
 		width = 3840
 		height = 2160
 		break;
@@ -58,7 +69,8 @@ switch (options.type) {
 		fileRootName = "MP4 Video"
 }
 
-let searchTerm = (options.search || "").toLowerCase()
+function getPolheatmapFilerootname(polAff){ return "MP4 Pol "+polAff; }
+function getPolheatmap720Filerootname(polAff){ return "MP4 720p Pol "+polAff; }
 
 // Encode video
 let settings = {}
@@ -126,10 +138,16 @@ async function encodeFrame() {
 						reuseIfExists:options.recycle,
 					}
 				)
-				console.log(frameFile)
 				break;
 			case "polheatmaps":
-				// TODO
+				frameFile = await fb.build("polheatmap", date,
+					{
+						dateRange: [startDate, endDate],
+						labels:false,
+						reuseIfExists:options.recycle,
+						heatmapPolGroup: polAff,
+					}
+				)
 				break;
 			case "broadcasting":
 				frameFile = await fb.build(options.type, date,
@@ -169,9 +187,38 @@ async function encodeFrame() {
   } else {
   	encoder.finalize();
     let uint8Array = encoder.FS.readFile(encoder.outputFilename);
-    encoder.delete();
     fs.writeFileSync(`${outputFolder}/${fileRootName} from ${settings.sdate} to ${settings.edate}.mp4`, Buffer.from(uint8Array));
-    console.log("Done.")
+
+    if( (options.type == "polheatmaps" || options.type == "polheatmaps-720") && polAffs.length>0) {
+	  	polAff = polAffs.pop()
+	  	switch (options.type) {
+				case "polheatmaps":
+					fileRootName = getPolheatmapFilerootname(polAff)
+					break;
+				case "polheatmaps-720":
+					fileRootName = getPolheatmap720Filerootname(polAff)
+					break;
+			}
+			date = new Date(startDate)
+			encoder.initialize()
+			return encodeFrame()
+		} else {
+	    encoder.delete();
+	    console.log("Done.")
+		}
   }
 }
 
+function getAllPoliticalAffiliations() {
+	const polAffData = getPolAffiliations()
+	let polAffiliations = {}
+	// TODO: keep only the eras that intersect with the date range
+	polAffData.eras.forEach(era => {
+		era.affiliations.forEach(a => {
+			if (a.makeHeatmap){
+				polAffiliations[a.id] = true
+			}
+		})
+	})
+	return Object.keys(polAffiliations)
+}
