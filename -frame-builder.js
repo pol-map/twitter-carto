@@ -70,6 +70,17 @@ export let frameBuilder = (()=>{
 		    		options.heatmapPolGroup,
 		    	)
 		    break;
+			case "polheatmap-720":
+		    return await ns.buildPolHeatmapFrame(
+		    		date,
+		    		options.dateRange,
+		    		options.labels,
+		    		options.fileFormat,
+		    		options.reuseIfExists,
+		    		options.heatmapPolGroup,
+		    		"720",
+		    	)
+		    break;
 		  case "broadcasting":
 		    return await ns.buildBroadcastingFrame(
 		    		date,
@@ -109,7 +120,7 @@ export let frameBuilder = (()=>{
 	}
 
 
-		/// TYPE: REGULAR
+	/// TYPE: USER
 	
 	ns.buildUserFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists, username) {
 		let fileTitle = `User ${username} from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
@@ -285,10 +296,11 @@ export let frameBuilder = (()=>{
 	  return overlayImgd
 	}
 
+
 	/// TYPE: HEATMAP
 
-	ns.buildPolHeatmapFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists, polGroup) {
-		let fileTitle = `Heatmap ${polGroup} from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
+	ns.buildPolHeatmapFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists, polGroup, imgFormat) {
+		let fileTitle = `Heatmap ${polGroup} ${(imgFormat?(imgFormat+" "):"")}from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
 
 		// Check existing
 		if (reuseIfExists && fs.existsSync(ns.getFrameFilePath(fileFormat, fileTitle))) {
@@ -299,7 +311,7 @@ export let frameBuilder = (()=>{
 
 		// Main canvas
 		let canvas = createCanvas(3840, 2160)
-		const ctx = canvas.getContext("2d")
+		let ctx = canvas.getContext("2d")
 
 		// Get background
 		const bgPath = ns.getBgPath(date, labels)
@@ -313,20 +325,47 @@ export let frameBuilder = (()=>{
 
 	  ctx.globalCompositeOperation = "source-over"
 	  ctx.globalAlpha = 1;
-		ns.drawHeatmapLegend(ctx, date, dateRange, polGroup)
+		ns.drawHeatmapLegend(ctx, date, dateRange, polGroup, imgFormat)
+
+		if (imgFormat == "720") {
+			// Rescale 
+			let newCanvas = createCanvas(1280, 720)
+			const newCtx = newCanvas.getContext("2d")
+			let sx = 0
+			let sy = 0
+			let sw = 3840
+			let sh = 2160
+			let dx = 0
+			let dy = 0
+			let dw = 1280
+			let dh = 720
+			newCtx.drawImage(canvas, sx, sy, sw, sh, dx, dy, dw, dh)
+			canvas = newCanvas
+			ctx = newCtx
+		}
+
 		return await ns.saveFrame(canvas, fileFormat, fileTitle)
 	}
 
-	ns.drawHeatmapLegend = function(ctx, date, dateRange, polGroup) {
+	ns.drawHeatmapLegend = function(ctx, date, dateRange, polGroup, imgFormat) {
 		let polGroups = ns.getPolGroups(dateRange)
 		const xOffset = 12
 
-		// Draw the title and info
-		let y = 84
-		ns.locale.videoHeatmap.titleRows.forEach(txt => {
-			ns.drawText(ctx, txt.replace("{POLGROUP}", polGroups[polGroup]), xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
-			y += 80
-		})
+		// Draw the title
+		let y
+		if (imgFormat == "720") {
+			y = 120
+			ns.locale.videoHeatmap.titleRows.forEach(txt => {
+					ns.drawText(ctx, txt.replace("{POLGROUP}", polGroups[polGroup]), xOffset, y, "start", "#EEEEEE", 0, "84px Raleway")
+					y += 100
+				})
+		} else {
+			y = 84
+			ns.locale.videoHeatmap.titleRows.forEach(txt => {
+				ns.drawText(ctx, txt.replace("{POLGROUP}", polGroups[polGroup]), xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+				y += 80
+			})
+		}
 
 		let timelineBox = {
 			x: 2*1280,

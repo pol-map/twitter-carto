@@ -149,6 +149,16 @@ async function encodeFrame() {
 					}
 				)
 				break;
+			case "polheatmaps-720":
+				frameFile = await fb.build("polheatmap", date,
+					{
+						dateRange: [startDate, endDate],
+						labels:false,
+						reuseIfExists:options.recycle,
+						heatmapPolGroup: polAff,
+					}
+				)
+				break;
 			case "broadcasting":
 				frameFile = await fb.build(options.type, date,
 					{
