@@ -49,8 +49,8 @@ switch (options.type) {
 	case "polheatmaps-720":
 		defaultFpi = 3
 		fileRootName = getPolheatmap720Filerootname(polAff)
-		width = 3840
-		height = 2160
+		width = 1280
+		height = 720
 		break;
 	case "broadcasting":
 		defaultFpi = 3
@@ -150,7 +150,7 @@ async function encodeFrame() {
 				)
 				break;
 			case "polheatmaps-720":
-				frameFile = await fb.build("polheatmap", date,
+				frameFile = await fb.build("polheatmap-720", date,
 					{
 						dateRange: [startDate, endDate],
 						labels:false,
