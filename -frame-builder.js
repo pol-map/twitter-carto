@@ -814,6 +814,11 @@ export let frameBuilder = (()=>{
 		dateRange[0].setDate(dateRange[0].getDate() - 1)
 		dateRange[1].setDate(dateRange[1].getDate() - 1)
 
+		// Draw timeline box (for monitoring)
+		// ctx.fillStyle = "rgba(120,120,120,0.5)"
+		// ctx.lineWidth = 0;
+	 //  ctx.fillRect(timelineBox.x, timelineBox.y, timelineBox.w, timelineBox.h);
+
 		// Get timeline data
 		const timelineData = ns.getTimelineData(dateRange)
 
@@ -883,13 +888,18 @@ export let frameBuilder = (()=>{
 		tdata.start = new Date(dateRange[0])
 		tdata.start.setDate(tdata.start.getDate() - 30)
 		tdata.end = new Date(dateRange[1])
-		tdata.end.setDate(tdata.end.getDate() + 1)
+		// tdata.end.setDate(tdata.end.getDate()+1)
 		tdata.days = 0
 		tdata.months = {}
 		tdata.years = {}
 
 		let d = new Date(tdata.start)
-		while (tdata.end-d >= 0) {
+		// This threshold is used to determine if we're the same day.
+		// It could be zero, but then the leap hour between Summer and Winter times
+		// would cause issues. One hour is 3600 seconds, so 3600000ms.
+		// We use a bit more to account for potential leap seconds and other things if any.
+		const sameDayThreshold = -4000000
+		while (tdata.end-d >= sameDayThreshold) {
 			let y = d.getFullYear()
 			let m = (1+d.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 			let dm = (d.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})

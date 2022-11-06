@@ -43,7 +43,9 @@ if (options.type && validTypes.indexOf(options.type)>=0) {
 			filter: b => b.tweet_text.toLowerCase().indexOf(searchTerm) >= 0
 		}
 	}
-	await frameBuilder.build(options.type, options.date ? new Date(options.date) : new Date(), fbOptions)
+	let today = new Date()
+	today.setHours(0,0,0,0)
+	await frameBuilder.build(options.type, options.date ? new Date(options.date) : today, fbOptions)
 } else {
 	console.error("INVALID TYPE")
 }
