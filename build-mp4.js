@@ -47,6 +47,12 @@ switch (options.type) {
 		width = 3840
 		height = 2160
 		break;
+	case "broadcasting-720":
+		defaultFpi = 3
+		fileRootName = "MP4 720p "+options.search
+		width = 1280
+		height = 720
+		break;
 	default:
 		defaultFpi = 3
 		fileRootName = "MP4 Video"
@@ -88,7 +94,12 @@ HME.default.createH264MP4Encoder()
   .then(encodeFrame)
 
 async function encodeFrame() {
-	if (endDate-date >= 0) {
+	// This threshold is used to determine if we're the same day.
+	// It could be zero, but then the leap hour between Summer and Winter times
+	// would cause issues. One hour is 3600 seconds, so 3600000ms.
+	// We use a bit more to account for potential leap seconds and other things if any.
+	const sameDayThreshold = -4000000
+	if (endDate-date >= sameDayThreshold) {
 		let year = date.getFullYear()
 		let month = (1+date.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 		let datem = (date.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
@@ -121,6 +132,16 @@ async function encodeFrame() {
 				// TODO
 				break;
 			case "broadcasting":
+				frameFile = await fb.build(options.type, date,
+					{
+						dateRange: [startDate, endDate],
+						labels:false,
+						filtering:settings.filtering,
+						reuseIfExists:options.recycle,
+					}
+				)
+				break;
+			case "broadcasting-720":
 				frameFile = await fb.build(options.type, date,
 					{
 						dateRange: [startDate, endDate],

@@ -38,7 +38,7 @@
 		"title": "Hashtag le plus partagé"
 	},
 	"videoBroadcastings":{
-		"title": "Diffusion: {FILTER_NAME}"
+		"title": "Échanges à propos de : {FILTER_NAME}"
 	},
 	"monthNames": {
   	"01": "JAN",

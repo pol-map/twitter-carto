@@ -12,6 +12,7 @@ program
   .option('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
   .option('-p, --polgroup <group-id>', 'ID of the political affiliation. Necessary to the polheatmap mode.')
   .option('-u, --user <username>', 'Twitter handle to track. Necessary to the user mode.')
+	.option('-s, --search <expression>', 'For broadcasting mode, which term to look for?')
   .showHelpAfterError()
   .parse(process.argv);
 
@@ -23,7 +24,7 @@ if (options.type == "polheatmap" && !options.polgroup) {
 }
 
 // Checks and execution
-const validTypes = ["regular", "regular-720", "regular-1080", "broadcasting", "polheatmap", "user"]
+const validTypes = ["regular", "regular-720", "regular-1080", "broadcasting", "broadcasting-720", "polheatmap", "user"]
 if (options.type && validTypes.indexOf(options.type)>=0) {
 	let fbOptions = {}
 	if (options.range) {
@@ -34,6 +35,13 @@ if (options.type && validTypes.indexOf(options.type)>=0) {
 	}
 	if (options.user) {
 		fbOptions.username = options.user
+	}
+	if (options.search) {
+		let searchTerm = (options.search || "").toLowerCase()
+		fbOptions.filtering = {
+			shortName: options.search,
+			filter: b => b.tweet_text.toLowerCase().indexOf(searchTerm) >= 0
+		}
 	}
 	await frameBuilder.build(options.type, options.date ? new Date(options.date) : new Date(), fbOptions)
 } else {

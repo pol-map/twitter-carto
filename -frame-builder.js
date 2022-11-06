@@ -81,6 +81,18 @@ export let frameBuilder = (()=>{
 		    		options.remember,
 		    	)
 		    break;
+		  case "broadcasting-720":
+		    return await ns.buildBroadcastingFrame(
+		    		date,
+		    		options.dateRange,
+		    		options.labels,
+		    		options.fileFormat,
+		    		options.reuseIfExists,
+		    		options.filtering,
+		    		options.remember,
+		    		"720",
+		    	)
+		    break;
 			case "user":
 		    return await ns.buildUserFrame(
 		    		date,
@@ -517,8 +529,8 @@ export let frameBuilder = (()=>{
 
 	/// TYPE: BROADCASTING
 
-	ns.buildBroadcastingFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists, filtering, remember) {
-		let fileTitle = `Broadcasting ${filtering.shortName} from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
+	ns.buildBroadcastingFrame = async function(date, dateRange, labels, fileFormat, reuseIfExists, filtering, remember, imgFormat) {
+		let fileTitle = `Broadcasting ${filtering.shortName} ${(imgFormat?(imgFormat+" "):"")}from ${ns.dashDate(dateRange[0])} to ${ns.dashDate(dateRange[1])} date ${ns.dashDate(date)}`
 
 		// Check existing
 		if (reuseIfExists && fs.existsSync(ns.getFrameFilePath(fileFormat, fileTitle))) {
@@ -534,7 +546,7 @@ export let frameBuilder = (()=>{
 
 		// Main canvas
 		let canvas = createCanvas(3840, 2160)
-		const ctx = canvas.getContext("2d")
+		let ctx = canvas.getContext("2d")
 
 		// Get background
 		const bgPath = ns.getBgPath(date, labels)
@@ -550,18 +562,40 @@ export let frameBuilder = (()=>{
 
 	  ctx.globalCompositeOperation = "source-over"
 	  ctx.globalAlpha = 1;
-		ns.drawBroadcastingsLegend(ctx, date, dateRange, filtering.name || filtering.shortName)
+		ns.drawBroadcastingsLegend(ctx, date, dateRange, filtering.name || filtering.shortName, imgFormat)
+
+		if (imgFormat == "720") {
+			// Rescale 
+			let newCanvas = createCanvas(1280, 720)
+			const newCtx = newCanvas.getContext("2d")
+			let sx = 0
+			let sy = 0
+			let sw = 3840
+			let sh = 2160
+			let dx = 0
+			let dy = 0
+			let dw = 1280
+			let dh = 720
+			newCtx.drawImage(canvas, sx, sy, sw, sh, dx, dy, dw, dh)
+			canvas = newCanvas
+			ctx = newCtx
+		}
 
 		return await ns.saveFrame(canvas, fileFormat, fileTitle)
 	}
 
-	ns.drawBroadcastingsLegend = function(ctx, date, dateRange, filterName) {
+	ns.drawBroadcastingsLegend = function(ctx, date, dateRange, filterName, imgFormat) {
 		const xOffset = 12
+		let y
 
-		// Draw the title and info
-		let y = 84
-		ns.drawText(ctx, ns.locale.videoBroadcastings.title.replace('{FILTER_NAME}', filterName), xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
-		y += 80
+		// Draw the title
+		if (imgFormat == "720") {
+			y = 120
+			ns.drawText(ctx, ns.locale.videoBroadcastings.title.replace('{FILTER_NAME}', filterName), xOffset, y, "start", "#EEEEEE", 0, "84px Raleway")
+		} else {
+			y = 84
+			ns.drawText(ctx, ns.locale.videoBroadcastings.title.replace('{FILTER_NAME}', filterName), xOffset, y, "start", "#EEEEEE", 0, "66px Raleway")
+		}
 
 		let timelineBox = {
 			x: 2*1280,
@@ -849,6 +883,7 @@ export let frameBuilder = (()=>{
 		tdata.start = new Date(dateRange[0])
 		tdata.start.setDate(tdata.start.getDate() - 30)
 		tdata.end = new Date(dateRange[1])
+		tdata.end.setDate(tdata.end.getDate() + 1)
 		tdata.days = 0
 		tdata.months = {}
 		tdata.years = {}
