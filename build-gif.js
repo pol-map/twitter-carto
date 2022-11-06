@@ -51,7 +51,12 @@ let date = new Date(startDate)
 ;(async () => {
 	// Build frames
 	let frames = []
-	while(endDate-date >= 0) {
+	// This threshold is used to determine if we're the same day.
+	// It could be zero, but then the leap hour between Summer and Winter times
+	// would cause issues. One hour is 3600 seconds, so 3600000ms.
+	// We use a bit more to account for potential leap seconds and other things if any.
+	const sameDayThreshold = -4000000
+	while(endDate-date >= sameDayThreshold) {
 		let year = date.getFullYear()
 		let month = (1+date.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 		let datem = (date.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
