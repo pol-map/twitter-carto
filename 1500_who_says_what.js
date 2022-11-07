@@ -196,7 +196,7 @@ export async function who_says_what(date) {
 
 	  // Main canvas
 		// let canvas = createCanvas(3840, 2160)
-		let canvas = createCanvas(3560, 3590)
+		let canvas = createCanvas(3590, 3590)
 		const ctx = canvas.getContext("2d")
 
 	  // Get background
@@ -207,7 +207,7 @@ export async function who_says_what(date) {
 	  // Get overlay
 	  const oImgd = await computeCellsOverlay(date, keyResources)
 	  // let oCanvas = createCanvas(3840, 2160)
-	  let oCanvas = createCanvas(3560, 3590)
+	  let oCanvas = createCanvas(3590, 3590)
 	  const oCtx = oCanvas.getContext("2d")
 	  oCtx.putImageData(oImgd, 0, 0)
 
