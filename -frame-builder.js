@@ -206,7 +206,7 @@ export let frameBuilder = (()=>{
 
 	  // Footer
 	  y = ctx.canvas.height - 28
-	  ns.drawText(ctx, ns.locale.legendTwitter.footer, xOffset, y, "start", "#303040", 0, "38px Raleway")
+	  ns.drawText(ctx, ns.locale.legendTwitter.footer, xOffset, y, "start", "#EEEEEE", 0, "38px Raleway")
 	}
 
 	ns.getUserOverlay = async function(date, username) {

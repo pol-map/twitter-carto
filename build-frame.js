@@ -32,7 +32,7 @@ const validTypes = [
 	"broadcasting-720",
 	"polheatmap",
 	"polheatmap-720",
-	"user"
+	"user",
 ]
 if (options.type && validTypes.indexOf(options.type)>=0) {
 	let fbOptions = {}

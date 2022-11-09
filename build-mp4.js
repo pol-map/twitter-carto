@@ -15,6 +15,7 @@ program
   .requiredOption('-r, --range <daterange>', 'Timeline date range as "YYYY-MM-DD YYYY-MM-DD"')
   .option('-s, --search <expression>', 'For broadcasting mode, which term to look for?')
   .option('-f, --fpi <frames-per-image>', 'How many frames each rendered image stays (note: the video is 30FPS)')
+  .option('-u, --user <username>', 'Twitter handle to track. Necessary to the user mode.')
   .option('-c, --recycle', 'Do not recompute frames already there')
   .showHelpAfterError()
   .parse(process.argv);
@@ -63,6 +64,12 @@ switch (options.type) {
 		fileRootName = "MP4 720p "+options.search
 		width = 1280
 		height = 720
+		break;
+	case "user":
+		defaultFpi = 3
+		fileRootName = "MP4 User "+options.user
+		width = 3840
+		height = 2160
 		break;
 	default:
 		defaultFpi = 3
@@ -175,6 +182,16 @@ async function encodeFrame() {
 						dateRange: [startDate, endDate],
 						labels:false,
 						filtering:settings.filtering,
+						reuseIfExists:options.recycle,
+					}
+				)
+				break;
+			case "user":
+				frameFile = await fb.build(options.type, date,
+					{
+						dateRange: [startDate, endDate],
+						labels:false,
+						username:options.user,
 						reuseIfExists:options.recycle,
 					}
 				)
