@@ -235,7 +235,7 @@ export let frameBuilder = (()=>{
 	  let usernameLC = username.toLowerCase()
 	  users.forEach(u => {
 	  	if (u.username.toLowerCase() == usernameLC) {
-	  		userId == ""+u.id
+	  		userId = ""+u.id
 	  	}
 	  })
 

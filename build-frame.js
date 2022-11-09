@@ -24,7 +24,16 @@ if (options.type == "polheatmap" && !options.polgroup) {
 }
 
 // Checks and execution
-const validTypes = ["regular", "regular-720", "regular-1080", "broadcasting", "broadcasting-720", "polheatmap", "polheatmap-720", "user"]
+const validTypes = [
+	"regular",
+	"regular-720",
+	"regular-1080",
+	"broadcasting",
+	"broadcasting-720",
+	"polheatmap",
+	"polheatmap-720",
+	"user"
+]
 if (options.type && validTypes.indexOf(options.type)>=0) {
 	let fbOptions = {}
 	if (options.range) {
