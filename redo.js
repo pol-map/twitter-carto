@@ -10,7 +10,7 @@ program
   .requiredOption('-f, --first <YYYY-MM-DD>', 'First date to run the scripts. Required.')
   .requiredOption('-l, --last <YYYY-MM-DD>', 'Last date to run the scripts. Required.')
   .requiredOption('-s, --scripts <####-####>', 'The range of scripts, ex: 0100-0300. Required.')
-  .option('-o, --omit <bool>', 'Omit some scripts? Default: true')
+  .option('-o, --omit <bool>', 'Omit some scripts? Default: true', "true")
   .option('-a, --full-archive', 'Use full archive API access (if key allows)')
   .showHelpAfterError()
   .parse(process.argv);
