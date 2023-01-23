@@ -20,6 +20,9 @@ export async function get_political_tweets(date, useFullArchive) {
 	const logger = getLogger(`${thisFolder}/0600_get_political_tweets.log`)
 	logger.level = "info"
 	logger.info('***** RUN SCRIPT ****');
+	if (useFullArchive) {
+		logger.info('Use full archive access (if API key allows).');
+	}
 
 	const twitterClient = new Client(process.env.BEARER_TOKEN);
 
