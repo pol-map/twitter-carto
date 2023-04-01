@@ -5,6 +5,7 @@ import * as fs from "fs";
 import * as d3 from 'd3';
 import { Client, auth } from "twitter-api-sdk";
 import dotenv from "dotenv";
+import { spawn } from "child_process";
 
 dotenv.config();
 
@@ -46,186 +47,214 @@ export async function get_political_tweets(date, useFullArchive) {
 
 		let broadcastings = []
 
+		let yesterday = new Date(targetDate.getTime());
+		yesterday.setDate(targetDate.getDate() - 1);
+		const yyear = yesterday.getFullYear()
+		const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+		const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+
 		for (let i = 0; i<resources.length && i<maxResources; i++) {
 			const res = resources[i]
+			const maxResults = 1000
+			// https://petitions.assemblee-nationale.fr/initiatives/i-1319 include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:2023-03-31 until:2023-04-01
+			// const query = `${res.url} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
+			const query = `${"https://petitions.assemblee-nationale.fr/initiatives/i-1319"} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
+			const fileHandle = res.url.replace(/[^a-zA-Z0-9_-]/gi, '-').slice(0, 100)
+			const minetFile_resolved = `${broadcastingsDir}/${fileHandle}.csv`
 
-			const maxPages = 10 // 100 users per page
-			let page = 0
-			let pageToken
-			while (page<maxPages) {
-				let queryMain
-				let fileHandle
-
-				if (res.type == "tweet") {
-					fileHandle = res.id
-					queryMain = `"${res.id}"`
-				} else if (res.type == "url") {
-					fileHandle = res.id.replace(/[^a-zA-Z0-9_-]/gi, '-').slice(0, 100)
-					queryMain = `url:"${res.id}"`
-				}
-
-				const fileName = `${broadcastingsDir}/${fileHandle}-${page.toLocaleString('en-US', {minimumIntegerDigits: 3, useGrouping: false})}.json`
-				
-				let tweetsResponse
-				// If the file exists, we just load it (recovery system)
-				if (fs.existsSync(fileName)){
-					let tweetsResponseRaw
-					try {
-						tweetsResponseRaw = fs.readFileSync(fileName);
-					} catch (error) {
-						console.log("Error", error)
-						logger
-							.child({ context: {res, page, fileName, error:error.message} })
-							.error(`JSON file read error. The data could not be recovered.`);
-						return new Promise((resolve, reject) => {
-							logger.once('finish', () => resolve({success:false, msg:`JSON file read error. The data could not be recovered.`}));
-							logger.end();
-					  });
-					}
-					if (tweetsResponseRaw) {
-						try {
-					  	tweetsResponse = JSON.parse(tweetsResponseRaw);
-					  	logger
-					  		.child({ context: {res, page, fileName, tweetsResponse} })
-								.trace(`Tweets data response retrieved from local cache ${fileName}`);
-				  	} catch (error) {
-							console.log("Error", error)
-							logger
-								.child({ context: {res, page, fileName, tweetsResponseRaw, error:error.message} })
-								.error(`JSON file cannot be parsed. The data could not be recovered.`);
-							tweetsResponse = undefined
-						}
-					}
-				}
-
-				// If the file does not exist or failed, query Twitter.
-				if (tweetsResponse === undefined) {
-					let yesterday = new Date(targetDate.getTime());
-					yesterday.setDate(targetDate.getDate() - 1);
-					const yyear = yesterday.getFullYear()
-					const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-					const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-
-					const settings = {
-						"query": `(is:retweet OR is:reply OR is:quote) ${queryMain}`,
-						"sort_order":["recency"],
-						"expansions":"author_id",
-						"user.fields":[
-							"id",
-							"name",
-							"username",
-						],
-						"tweet.fields": [
-				      "created_at",
-				      "author_id",
-				      "conversation_id",
-				      "in_reply_to_user_id",
-				      "referenced_tweets",
-				      "attachments",
-				      "entities",
-				      "withheld",
-				      "possibly_sensitive",
-				      "lang",
-				      "reply_settings",
-				    ],
-				    "start_time": `${yyear}-${ymonth}-${ydatem}T00:00:00Z`,
-			    	"end_time": `${year}-${month}-${datem}T00:00:00Z`,
-				    "max_results": 100,
-				  }
-
-					tweetsResponse = await getSearchQueryTweets(settings, pageToken)
-					// Save response
-					const tweetsResponseString = JSON.stringify(tweetsResponse)
-					try {
-						fs.writeFileSync(fileName, tweetsResponseString)
-					  logger
-							.child({ context: {res, page, fileName} })
-							.debug(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} was saved successfully`);
-					} catch(error) {
-						logger
-							.child({ context: {res, page, fileName, error} })
-							.error(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} could not be saved`);						
-					}
-				}
-
-				// Process the results
-				if (tweetsResponse && tweetsResponse.data && tweetsResponse.data.length > 0) {
-					// As the ids are in the "includes" section, we need to index them
-					let userIndex = {}
-					try {
-						tweetsResponse.includes.users.forEach(u => {
-							userIndex[u.id] = u
-						})
-					} catch (error) {
-						console.log("Error", error)
-						logger
-							.child({ context: {res, page, usersResponse, error:error.message} })
-							.error(`An error occured when indexing the user data of the broadcasing of resource ${i}, ${truncate(res.id)}, page ${page}.`);
-					}
-					try {
-						harvestedTweetsCount += tweetsResponse.data.length
-						tweetsResponse.data.forEach(d => {
-							// Mentions
-							let mentions = {}
-							if (d.entities && d.entities.mentions){
-								d.entities.mentions.forEach(m => {
-									mentions[m.id] = true
-								})
-							}
-							if (d.in_reply_to_user_id) {
-								mentions[d.in_reply_to_user_id] = true
-							}
-							mentions = Object.keys(mentions)
-							if (mentions.length > 0) {
-								// Hashtags
-								let hashtags = {}
-								if (d.entities && d.entities.hashtags){
-									d.entities.hashtags.forEach(h => {
-										hashtags[h.tag] = true
-									})
-								}
-								hashtags = Object.keys(hashtags)
-
-								// Media
-								let media = {}
-								if (d.attachments && d.attachments.media_keys){
-									d.attachments.media_keys.forEach(mk => {
-										media[mk] = true
-									})
-								}
-								media = Object.keys(media)
-								
-								// Create row (object)
-								let broadcasting = {
-									broadcaster_id: userIndex[d.author_id].id,
-									broadcaster_name: userIndex[d.author_id].name,
-									broadcaster_username: userIndex[d.author_id].username,
-									// resource_group_main: res.group_main,
-									resource_groups: res.groups,
-									resource_id: res.id || res.url,
-									resource_type: res.type,
-									// resource_url: res.url,
-									tweet_mentions: JSON.stringify(mentions),
-									tweet_text: d.text,
-									tweet_hashtags: JSON.stringify(hashtags),
-									tweet_media: JSON.stringify(media),
-									tweet_lang: ""+d.lang,
-								}
-								broadcastings.push(broadcasting)
-							}
-						})
-					} catch (error) {
-						console.log("Error", error)
-						logger
-							.child({ context: {res, page, usersResponse, error:error.message} })
-							.error(`Broadcasting response data could not be processed for resource ${i}, ${truncate(res.id)}, page ${page}.`);
-					}
-				}
-				page++
-				if (tweetsResponse && tweetsResponse.meta && tweetsResponse.meta.next_token) {
-					pageToken = tweetsResponse.meta.next_token
-				} else break;
+			const minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
+			try {
+				await minet(minetSettings)
+			} catch (error) {
+				console.log("Error", error)
+				logger
+					.child({ context: {minetSettings, error:error?error.message:"unknown"} })
+					.error(`An error occurred during the retrieval of yesterday's MP tweets`);
+				return new Promise((resolve, reject) => {
+					logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
+					logger.end();
+				});
 			}
+			// TODO: load the file and process it
+
+
+			// const maxPages = 10 // 100 users per page
+			// let page = 0
+			// let pageToken
+			// while (page<maxPages) {
+			// 	let queryMain
+			// 	let fileHandle
+
+			// 	if (res.type == "tweet") {
+			// 		fileHandle = res.id
+			// 		queryMain = `"${res.id}"`
+			// 	} else if (res.type == "url") {
+			// 		fileHandle = res.id.replace(/[^a-zA-Z0-9_-]/gi, '-').slice(0, 100)
+			// 		queryMain = `url:"${res.id}"`
+			// 	}
+
+			// 	const fileName = `${broadcastingsDir}/${fileHandle}-${page.toLocaleString('en-US', {minimumIntegerDigits: 3, useGrouping: false})}.json`
+				
+			// 	let tweetsResponse
+			// 	// If the file exists, we just load it (recovery system)
+			// 	if (fs.existsSync(fileName)){
+			// 		let tweetsResponseRaw
+			// 		try {
+			// 			tweetsResponseRaw = fs.readFileSync(fileName);
+			// 		} catch (error) {
+			// 			console.log("Error", error)
+			// 			logger
+			// 				.child({ context: {res, page, fileName, error:error.message} })
+			// 				.error(`JSON file read error. The data could not be recovered.`);
+			// 			return new Promise((resolve, reject) => {
+			// 				logger.once('finish', () => resolve({success:false, msg:`JSON file read error. The data could not be recovered.`}));
+			// 				logger.end();
+			// 		  });
+			// 		}
+			// 		if (tweetsResponseRaw) {
+			// 			try {
+			// 		  	tweetsResponse = JSON.parse(tweetsResponseRaw);
+			// 		  	logger
+			// 		  		.child({ context: {res, page, fileName, tweetsResponse} })
+			// 					.trace(`Tweets data response retrieved from local cache ${fileName}`);
+			// 	  	} catch (error) {
+			// 				console.log("Error", error)
+			// 				logger
+			// 					.child({ context: {res, page, fileName, tweetsResponseRaw, error:error.message} })
+			// 					.error(`JSON file cannot be parsed. The data could not be recovered.`);
+			// 				tweetsResponse = undefined
+			// 			}
+			// 		}
+			// 	}
+
+			// 	// If the file does not exist or failed, query Twitter.
+			// 	if (tweetsResponse === undefined) {
+			// 		let yesterday = new Date(targetDate.getTime());
+			// 		yesterday.setDate(targetDate.getDate() - 1);
+			// 		const yyear = yesterday.getFullYear()
+			// 		const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+			// 		const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+
+			// 		const settings = {
+			// 			"query": `(is:retweet OR is:reply OR is:quote) ${queryMain}`,
+			// 			"sort_order":["recency"],
+			// 			"expansions":"author_id",
+			// 			"user.fields":[
+			// 				"id",
+			// 				"name",
+			// 				"username",
+			// 			],
+			// 			"tweet.fields": [
+			// 	      "created_at",
+			// 	      "author_id",
+			// 	      "conversation_id",
+			// 	      "in_reply_to_user_id",
+			// 	      "referenced_tweets",
+			// 	      "attachments",
+			// 	      "entities",
+			// 	      "withheld",
+			// 	      "possibly_sensitive",
+			// 	      "lang",
+			// 	      "reply_settings",
+			// 	    ],
+			// 	    "start_time": `${yyear}-${ymonth}-${ydatem}T00:00:00Z`,
+			//     	"end_time": `${year}-${month}-${datem}T00:00:00Z`,
+			// 	    "max_results": 100,
+			// 	  }
+
+			// 		tweetsResponse = await getSearchQueryTweets(settings, pageToken)
+			// 		// Save response
+			// 		const tweetsResponseString = JSON.stringify(tweetsResponse)
+			// 		try {
+			// 			fs.writeFileSync(fileName, tweetsResponseString)
+			// 		  logger
+			// 				.child({ context: {res, page, fileName} })
+			// 				.debug(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} was saved successfully`);
+			// 		} catch(error) {
+			// 			logger
+			// 				.child({ context: {res, page, fileName, error} })
+			// 				.error(`The tweeting file for resource ${i},  ${truncate(res.id)}, page ${page} could not be saved`);						
+			// 		}
+			// 	}
+
+			// 	// Process the results
+			// 	if (tweetsResponse && tweetsResponse.data && tweetsResponse.data.length > 0) {
+			// 		// As the ids are in the "includes" section, we need to index them
+			// 		let userIndex = {}
+			// 		try {
+			// 			tweetsResponse.includes.users.forEach(u => {
+			// 				userIndex[u.id] = u
+			// 			})
+			// 		} catch (error) {
+			// 			console.log("Error", error)
+			// 			logger
+			// 				.child({ context: {res, page, usersResponse, error:error.message} })
+			// 				.error(`An error occured when indexing the user data of the broadcasing of resource ${i}, ${truncate(res.id)}, page ${page}.`);
+			// 		}
+			// 		try {
+			// 			harvestedTweetsCount += tweetsResponse.data.length
+			// 			tweetsResponse.data.forEach(d => {
+			// 				// Mentions
+			// 				let mentions = {}
+			// 				if (d.entities && d.entities.mentions){
+			// 					d.entities.mentions.forEach(m => {
+			// 						mentions[m.id] = true
+			// 					})
+			// 				}
+			// 				if (d.in_reply_to_user_id) {
+			// 					mentions[d.in_reply_to_user_id] = true
+			// 				}
+			// 				mentions = Object.keys(mentions)
+			// 				if (mentions.length > 0) {
+			// 					// Hashtags
+			// 					let hashtags = {}
+			// 					if (d.entities && d.entities.hashtags){
+			// 						d.entities.hashtags.forEach(h => {
+			// 							hashtags[h.tag] = true
+			// 						})
+			// 					}
+			// 					hashtags = Object.keys(hashtags)
+
+			// 					// Media
+			// 					let media = {}
+			// 					if (d.attachments && d.attachments.media_keys){
+			// 						d.attachments.media_keys.forEach(mk => {
+			// 							media[mk] = true
+			// 						})
+			// 					}
+			// 					media = Object.keys(media)
+								
+			// 					// Create row (object)
+			// 					let broadcasting = {
+			// 						broadcaster_id: userIndex[d.author_id].id,
+			// 						broadcaster_name: userIndex[d.author_id].name,
+			// 						broadcaster_username: userIndex[d.author_id].username,
+			// 						// resource_group_main: res.group_main,
+			// 						resource_groups: res.groups,
+			// 						resource_id: res.id || res.url,
+			// 						resource_type: res.type,
+			// 						// resource_url: res.url,
+			// 						tweet_mentions: JSON.stringify(mentions),
+			// 						tweet_text: d.text,
+			// 						tweet_hashtags: JSON.stringify(hashtags),
+			// 						tweet_media: JSON.stringify(media),
+			// 						tweet_lang: ""+d.lang,
+			// 					}
+			// 					broadcastings.push(broadcasting)
+			// 				}
+			// 			})
+			// 		} catch (error) {
+			// 			console.log("Error", error)
+			// 			logger
+			// 				.child({ context: {res, page, usersResponse, error:error.message} })
+			// 				.error(`Broadcasting response data could not be processed for resource ${i}, ${truncate(res.id)}, page ${page}.`);
+			// 		}
+			// 	}
+			// 	page++
+			// 	if (tweetsResponse && tweetsResponse.meta && tweetsResponse.meta.next_token) {
+			// 		pageToken = tweetsResponse.meta.next_token
+			// 	} else break;
+			// }
 
 			logger
 				.info(`Resource ${i+1} retrieved (${harvestedTweetsCount}/${maxTweets} tweets)`);
@@ -344,4 +373,44 @@ export async function get_political_tweets(date, useFullArchive) {
 	   }
 	   return input;
 	};
+
+	function minet(opts) {
+	  // call Minet with opts which is an array of strings, each beeing an arg name or arg value
+	  let csvString = ''
+	  return new Promise((resolve, reject) => {
+	    //TODO: add timeout which would reject and kill subprocess
+	    try {
+	      // activate venv
+	      // recommend to use venv to install/use python deps
+	      // env can be ignored if minet is accessible from command line globally
+	      console.log("Exec: minet", opts.join(" "));
+	      const minet = spawn(process.env.MINET_BINARIES, opts);
+	      minet.stdout.setEncoding("utf8");
+	      minet.stdout.on("data", (data) => {
+	      	csvString += data
+	      });
+	      minet.stderr.setEncoding("utf8");
+	      minet.stderr.on("data", (data) => {
+	      	logger
+						.info('Minet process: '+data.trim().split("\r")[0]);
+	      });
+	      minet.on("close", (code) => {
+	        if (code === 0) {
+	        	resolve(csvString);
+	        	logger
+							.info(`MINET exited with no error`);
+	        } else {
+		      	logger
+							.error(`MINET exited on an ERROR: the process closed with code ${code}`);
+	          reject();
+	        }
+	      });
+	    } catch (error) {
+	      console.log("Error", error)
+				logger
+					.child({ context: {opts, error:error.message} })
+					.error('An error occurred when trying to execute MINET.');
+	    }
+	  });
+	}
 }
