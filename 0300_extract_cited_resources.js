@@ -22,122 +22,87 @@ export async function extract_cited_resources(date) {
 	logger.info('***** RUN SCRIPT ****');
 
 	async function main() {
-		const usersFile = `${thisFolder}/twitter_valid_users.csv`
-		let users = loadUsers(usersFile)
+		const mpTweetsFile = `${thisFolder}/yesterdays_mp_tweets.csv`
+		let mpTweets = loadMpTweets(mpTweetsFile)
 		logger
-			.child({ context: {users} })
-			.debug('Users');
+			.child({ context: {mpTweets} })
+			.debug('MP Tweets from yesterday');
 		try {
 			// Extract resources
 			/*
 				What we consider a resource cited by a tweet:
-				* What the API defines as "referenced tweets", which includes
+				* What the API defines as "referenced tweets", which consists of
 					* The retweeted tweet
 					* Mentioned tweets (quoted)
 				* What the API defines as "entities" when it is:
 					* A URL -> can be a doublon with a referenced tweet
+					* A media, like a photo or video (then defined as its Twitter URL)
 			*/
-			const tweetsDir = `${thisFolder}/tweets`
+			// const tweetsDir = `${thisFolder}/tweets`
 			const resources = []
-			for (let i = 0; i < users.length; i++) {
-				let user = users[i]
-		  	let id = user.id
-		  	let tweetsFile = `${tweetsDir}/${id}.json`
-		  	// Load JSON
-		  	let tweetDataRaw
-		  	try {
-			  	tweetDataRaw = fs.readFileSync(tweetsFile);
-		  	} catch (error) {
-					console.log("Error", error)
-					logger
-						.child({ context: {id, tweetsFile, error:error.message} })
-						.error(`JSON file cannot be read. The tweets from user ${id} will be ignored.`);
-				}
-				let tweetData
-				if (tweetDataRaw) {
-					try {
-				  	tweetData = JSON.parse(tweetDataRaw);
-			  	} catch (error) {
-						console.log("Error", error)
-						logger
-							.child({ context: {id, tweetsFile, tweetDataRaw, error:error.message} })
-							.error(`JSON file cannot be parsed. The tweets from user ${id} will be ignored.`);
+			for (let i = 0; i < mpTweets.length; i++) {
+				let t = mpTweets[i]
+				try {
+					// Referenced tweets
+					let citedTweets = {}
+					if (t.retweeted_id) {
+						citedTweets[t.retweeted_id] = true
 					}
-				}
-				if (tweetData) {
-					logger
-						.child({ context: {id, tweetData} })
-						.debug(`Tweets from user ${id}`);
-					if (tweetData.data && tweetData.data.length>0) {
-						logger
-							.info(`${tweetData.data.length} tweets from user ${id}`);
+					if (t.quoted_id) {
+						citedTweets[t.quoted_id] = true
+					}
 
-						tweetData.data.forEach(t => {
-							try {
-								
-								// Referenced tweets
-								let citedTweets = {}
-								if (t.referenced_tweets) {
-									t.referenced_tweets.forEach(reft => {
-										if (reft.type && (reft.type == "retweeted" || reft.type == "quoted")){
-											citedTweets[reft.id] = true
-										}
-									})
+					// URLs
+					let urls = {}
+					if (t.links) {
+						t.links.split("|").forEach(url => {
+							// We want to check that those URLs are not duplicates of referenced tweets
+							let isReferencedTweet = false
+							Object.keys(citedTweets).forEach(id => {
+								if (url.indexOf(id)>=0) {
+									isReferencedTweet = true
+									citedTweets[id] = url
 								}
-
-								// URLs
-								let urls = {}
-								if (t.entities && t.entities.urls) {
-									t.entities.urls.forEach(u => {
-										let url = u.expanded_url
-										// We want to check that those URLs are not duplicates of referenced tweets
-										let isReferencedTweet = false
-										Object.keys(citedTweets).forEach(id => {
-											if (url.indexOf(id)>=0) {
-												isReferencedTweet = true
-												citedTweets[id] = url
-											}
-										})
-										if (!isReferencedTweet) {
-											urls[url] = true
-										}
-									})
-								}
-
-								// Register resources
-								Object.keys(citedTweets).forEach(ct => {
-									resources.push({
-										user_handle: users[i].handle,
-										user_id: users[i].id,
-										tweet_id: t.id,
-										tweet_created_at: t.created_at,
-										resource_type:'tweet',
-										resource_id:ct,
-										resource_url:(citedTweets[ct]===true)?(''):(citedTweets[ct]),
-									})
-								})
-								Object.keys(urls).forEach(url => {
-									resources.push({
-										user_handle: users[i].handle,
-										user_id: users[i].id,
-										tweet_id: t.id,
-										tweet_created_at: t.created_at,
-										resource_type:'url',
-										resource_id:'',
-										resource_url:url,
-									})
-								})
-							} catch (error) {
-								console.log("Error", error)
-								logger
-									.child({ context: {id, tweet:t, error:error.message} })
-									.error(`An error occurred when extracting the cited resources from a tweet of user ${id}.`);
+							})
+							if (!isReferencedTweet) {
+								urls[url] = true
 							}
 						})
-					} else {
-						logger
-							.info(`No tweets from user ${id}`);
 					}
+					// if (t.media_urls) {
+					// 	t.media_urls.split("|").forEach(url => {
+					// 		urls[url] = true
+					// 	})
+					// }
+
+					// Register resources
+					Object.keys(citedTweets).forEach(ct => {
+						resources.push({
+							user_handle: t.user_screen_name,
+							user_id: t.user_id,
+							tweet_id: t.id,
+							tweet_created_at: t.local_time,
+							resource_type:'tweet',
+							resource_id:ct,
+							resource_url:(citedTweets[ct]===true)?(''):(citedTweets[ct]),
+						})
+					})
+					Object.keys(urls).forEach(url => {
+						resources.push({
+							user_handle: t.user_screen_name,
+							user_id: t.user_id,
+							tweet_id: t.id,
+							tweet_created_at: t.local_time,
+							resource_type:'url',
+							resource_id:'',
+							resource_url:url,
+						})
+					})
+				} catch (error) {
+					console.log("Error", error)
+					logger
+						.child({ context: {id, tweet:t, error:error.message} })
+						.error(`An error occurred when extracting the cited resources from a tweet of user ${id}.`);
 				}
 		  }
 
@@ -180,7 +145,7 @@ export async function extract_cited_resources(date) {
 
 	return main();
 
-	function loadUsers(filePath) {
+	function loadMpTweets(filePath) {
 		try {
 			// Load file as string
 			const csvString = fs.readFileSync(filePath, "utf8")
@@ -188,13 +153,14 @@ export async function extract_cited_resources(date) {
 			const data = d3.csvParse(csvString);
 			logger
 				.child({ context: {filePath} })
-				.info('Users file loaded');
+				.info('MP Tweets file loaded');
 			return data
 		} catch (error) {
 			console.log("Error", error)
 			logger
 				.child({ context: {filePath, error:error.message} })
-				.error('The users file could not be loaded');
+				.error('The MP Tweets file could not be loaded');
 		}
 	}
+
 }
