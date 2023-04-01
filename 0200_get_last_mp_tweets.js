@@ -5,6 +5,7 @@ import * as fs from "fs";
 import * as d3 from 'd3';
 import { Client, auth } from "twitter-api-sdk";
 import dotenv from "dotenv";
+import { spawn } from "child_process";
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ export async function get_last_mp_tweets(date) {
 		let handleList = loadHandles(handlesFile)
 		let tweetsFilesSavecSuccessfully = 0;
 
-		// Check that the handles are valid (else, the Twitter API will reject them)
+		// Check that the handles are valid
 		const handleRegex = /^[A-Za-z0-9_]{1,15}$/
 		let invalidHandles = []
 		handleList = handleList.filter(d => {
@@ -45,7 +46,7 @@ export async function get_last_mp_tweets(date) {
 		}
 
 		if (handleList && handleList.length > 0) {
-			let users = await retrieveUserIds(handleList)
+			/* let users = await retrieveUserIds(handleList)
 			logger
 				.child({ context: {users} })
 				.debug('User data retrieved from Twitter');
@@ -87,10 +88,64 @@ export async function get_last_mp_tweets(date) {
 					.child({ context: {usersFile, error} })
 					.error('The valid users file could not be saved');
 				return {success:false, msg:"The valid users file could not be saved."}
-			}
+			} */
 
-		  // For each user, load yesterday's tweets
-	  	const tweetsDir = `${thisFolder}/tweets`
+		  // For each user, load yesterday's tweets with Minet
+			// Build CSV file for the queries
+			let yesterday = new Date(targetDate.getTime());
+			yesterday.setDate(targetDate.getDate() - 1);
+			const yyear = yesterday.getFullYear()
+			const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+			const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
+			const queryFile = `${thisFolder}/queries_for_mp_tweets.csv`
+			const queryCsvString = d3.csvFormat(handleList.map(d => {
+				return {query: `from:@${d.handle} since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`}
+			}))
+			try {
+				fs.writeFileSync(queryFile, queryCsvString)
+				logger
+					.child({ context: {queryFile} })
+					.info('Queries file saved successfully');
+			} catch(error) {
+				logger
+					.child({ context: {queryFile, error} })
+					.error('The queries file could not be saved');
+				return {success:false, msg:"The queries file could not be saved."}
+			}
+			const minetSettings = ["twitter", "scrape", "tweets", "query", "-i", queryFile, "--limit", "100"]
+			let minetResultString
+			try {
+				minetResultString = await minet(minetSettings)
+				logger
+					.child({ context: {minetResultString} })
+					.debug('Minet output');
+			} catch (error) {
+				console.log("Error", error)
+				logger
+					.child({ context: {minetSettings, error:error?error.message:"unknown"} })
+					.error(`An error occurred during the retrieval of yesterday's MP tweets`);
+				return new Promise((resolve, reject) => {
+					logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
+					logger.end();
+				});
+			}
+			// Save Minet output as CSV
+			const minetFile_resolved = `${thisFolder}/yesterdays_mp_tweets.csv`
+			try {
+				fs.writeFileSync(minetFile_resolved, minetResultString)
+				logger
+					.child({ context: {minetFile_resolved} })
+					.info('MP tweets file saved successfully');
+			} catch(error) {
+				logger
+					.child({ context: {minetFile_resolved, error} })
+					.error('The MP tweets file could not be saved');
+				return new Promise((resolve, reject) => {
+					logger.once('finish', () => resolve({success:false, msg:`The MP tweets file could not be saved.`}));
+					logger.end();
+				});
+			}
+	  	/* const tweetsDir = `${thisFolder}/tweets`
 		  for (let i in users) {
 		  	const id = users[i].id
 		  	const tweetsFile = `${tweetsDir}/${id}.json`
@@ -117,7 +172,7 @@ export async function get_last_mp_tweets(date) {
 							.error(`The tweets file for user ${id} could not be saved`);
 					}
 				}
-		  }
+		  } */
 		  logger
 				.info('Yesterday\'s tweets for all valid handles retrieved.');
 		} else {
@@ -127,7 +182,7 @@ export async function get_last_mp_tweets(date) {
 			return {success:false, msg:"No handles to fetch."}
 		}
 		console.log("Done.")
-		return {success:true, msg:`${tweetsFilesSavecSuccessfully} tweet files saved successfully.`}
+		return {success:true, msg:`Tweets harvested.`}
 	}
 
 	return main();
@@ -150,7 +205,7 @@ export async function get_last_mp_tweets(date) {
 		}
 	}
 
-	async function retrieveUserIds(handleList) {
+	/* async function retrieveUserIds(handleList) {
 		logger
 			.child({ context: {handleList} })
 			.debug('Retrieve Twitter ids from handles');
@@ -210,9 +265,9 @@ export async function get_last_mp_tweets(date) {
 				return result
 		  }
 		}
-	}
+	} */
 
-	async function getYesterdaysTweets(id) {
+	/* async function getYesterdaysTweets(id) {
 		let yesterday = new Date(targetDate.getTime());
 		yesterday.setDate(targetDate.getDate() - 1);
 		const yyear = yesterday.getFullYear()
@@ -275,5 +330,45 @@ export async function get_last_mp_tweets(date) {
 				.error('The API call to retrieve tweets from id failed');
 			return {}
 	  }
+	} */
+
+	function minet(opts) {
+	  // call Minet with opts which is an array of strings, each beeing an arg name or arg value
+	  let csvString = ''
+	  return new Promise((resolve, reject) => {
+	    //TODO: add timeout which would reject and kill subprocess
+	    try {
+	      // activate venv
+	      // recommend to use venv to install/use python deps
+	      // env can be ignored if minet is accessible from command line globally
+	      console.log("exec minet", opts.join(" "));
+	      const minet = spawn(process.env.MINET_BINARIES, opts);
+	      minet.stdout.setEncoding("utf8");
+	      minet.stdout.on("data", (data) => {
+	      	csvString += data
+	      });
+	      minet.stderr.setEncoding("utf8");
+	      minet.stderr.on("data", (data) => {
+	      	logger
+						.info('Minet process: '+data.trim().split("\r")[0]);
+	      });
+	      minet.on("close", (code) => {
+	        if (code === 0) {
+	        	resolve(csvString);
+	        	logger
+							.info(`MINET exited with no error`);
+	        } else {
+		      	logger
+							.error(`MINET exited on an ERROR: the process closed with code ${code}`);
+	          reject();
+	        }
+	      });
+	    } catch (error) {
+	      console.log("Error", error)
+				logger
+					.child({ context: {opts, error:error.message} })
+					.error('An error occurred when trying to execute MINET.');
+	    }
+	  });
 	}
 }
