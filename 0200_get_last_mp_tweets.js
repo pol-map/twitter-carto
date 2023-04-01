@@ -99,7 +99,7 @@ export async function get_last_mp_tweets(date) {
 			const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 			const queryFile = `${thisFolder}/queries_for_mp_tweets.csv`
 			const queryCsvString = d3.csvFormat(users.map(d => {
-				return {query: `from:@${d.handle} since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`}
+				return {query: `from:${d.handle} include:nativeretweets since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`}
 			}))
 			try {
 				fs.writeFileSync(queryFile, queryCsvString)
@@ -182,7 +182,7 @@ export async function get_last_mp_tweets(date) {
 		// Strategy: scrape 1 tweet per handle to check it exists and get more info
 		const queryFile = `${thisFolder}/queries_for_mp_handles.csv`
 		const queryCsvString = d3.csvFormat(handleList.map(d => {
-			return {query: `from:@${d.handle}`}
+			return {query: `from:${d.handle} include:nativeretweets`}
 		}))
 		try {
 			fs.writeFileSync(queryFile, queryCsvString)
