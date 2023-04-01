@@ -145,34 +145,6 @@ export async function get_last_mp_tweets(date) {
 					logger.end();
 				});
 			}
-	  	/* const tweetsDir = `${thisFolder}/tweets`
-		  for (let i in users) {
-		  	const id = users[i].id
-		  	const tweetsFile = `${tweetsDir}/${id}.json`
-		  	if (fs.existsSync(tweetsFile)) {
-		  		logger
-						.child({ context: {id, tweetsFile} })
-						.info('Tweets file found');
-		  	} else {
-			  	const tweetData = await getYesterdaysTweets(id)
-			  	// Save data as JSON
-			  	if (!fs.existsSync(tweetsDir)){
-					  fs.mkdirSync(tweetsDir);
-					}
-			  	const tweetsString = JSON.stringify(tweetData)
-					try {
-						fs.writeFileSync(tweetsFile, tweetsString)
-						logger
-							.child({ context: {id, tweetsFile} })
-							.debug('Tweets file saved successfully');
-							tweetsFilesSavecSuccessfully++
-					} catch(error) {
-						logger
-							.child({ context: {id, tweetsFile, error} })
-							.error(`The tweets file for user ${id} could not be saved`);
-					}
-				}
-		  } */
 		  logger
 				.info('Yesterday\'s tweets for all valid handles retrieved.');
 		} else {
@@ -266,131 +238,10 @@ export async function get_last_mp_tweets(date) {
 		})
 		users = Object.values(users)
 
-		// logger
-		// 	.child({ context: {handleList} })
-		// 	.debug('Retrieve Twitter ids from handles');
-		// const batchSize = 100
-		// let batches = []
-		// let currentBatch = []
-		// handleList.forEach((d,i) => {
-		// 	currentBatch.push(d.handle)
-		// 	if (i%batchSize == batchSize-1 || i==handleList.length-1) {
-		// 		batches.push(currentBatch.splice(0))
-		// 		currentBatch = []
-		// 	}
-		// })
-
-		// let batchNumber = 0
-		// const users = await fetchNextBatch()
 		logger
 			.info(`${users.length} users ids retrieved`);
 		return users
-
-		// async function fetchNextBatch(_result) {
-		// 	let result = _result || []
-		// 	const batch = batches.shift()
-		// 	logger
-		// 		.debug('Fetch batch of handles');
-		// 	try {
-		// 		const usernamesLookup = await twitterClient.users.findUsersByUsername({
-		//       usernames: batch
-		//     });
-		//     if (usernamesLookup.errors && usernamesLookup.errors.length > 0) {
-		//   		logger
-		//     		.child({ context: {batchNumber, errors: usernamesLookup.errors} })
-		// 				.warn('Some twitter handles could not be found');
-		//     }
-		//     if (usernamesLookup.data && usernamesLookup.data.length > 0) {
-		// 	    logger
-		// 	  		.child({ context: {batchNumber, handlesRetrieved: usernamesLookup.data.length} })
-		// 				.info('Batch of handles retrieved');
-		// 			result = result.concat(usernamesLookup.data)
-		// 		} else {
-		//   		logger
-		//     		.child({ context: {batchNumber} })
-		// 				.warn('No handles retrieved in this batch');			
-		// 		}
-
-		//     batchNumber++
-		//     if (batches.length > 0) {
-		//     	return fetchNextBatch(result)
-		//     } else {
-		//     	return result
-		//     }
-		//   } catch(error) {
-		// 		console.log("Error", error)
-		// 		logger
-		// 			.child({ context: {batchNumber, error:error.message} })
-		// 			.error('The API call to retrieve ids from handles failed');
-		// 		return result
-		//   }
-		// }
 	}
-
-	/* async function getYesterdaysTweets(id) {
-		let yesterday = new Date(targetDate.getTime());
-		yesterday.setDate(targetDate.getDate() - 1);
-		const yyear = yesterday.getFullYear()
-		const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-		const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
-
-		const settings = {
-	    //A comma separated list of Tweet fields to display
-	    "tweet.fields": [
-	      "created_at",
-	      "author_id",
-	      "conversation_id",
-	      "in_reply_to_user_id",
-	      "referenced_tweets",
-	      "attachments",
-	      "entities",
-	      "withheld",
-	      "public_metrics",
-	      "possibly_sensitive",
-	      "lang",
-	      "reply_settings",
-	    ],
-
-	    exclude: ["replies"],
-
-	    start_time: `${yyear}-${ymonth}-${ydatem}T00:00:00Z`,
-	    end_time: `${year}-${month}-${datem}T00:00:00Z`,
-
-	    //The maximum number of results
-	    "max_results": 100,
-	  }
-		try {
-	    const usersTweets = await twitterClient.tweets.usersIdTweets(
-	      //The ID of the User to list Tweets of
-	      id,
-	      settings
-	    );
-	    if (usersTweets.errors) {
-		    logger
-		  		.child({ context: {id} })
-					.warn(`Errors returned for ${usersTweets.errors.length} tweets that we retrieved for user ${id}`);    	
-	    }
-	    if (usersTweets.data) {
-		    logger
-		  		.child({ context: {id} })
-					.info(`${usersTweets.data.length} tweets retrieved for user ${id}`);    	
-	    } else {
-		    logger
-		  		.child({ context: {id} })
-					.info(`No tweets retrieved for user ${id}`);
-	    }
-	    logger
-	  		.child({ context: {id, settings, usersTweets} })
-				.debug('Tweets retrieved');
-	    return usersTweets || {}
-	  } catch (error) {
-	    console.log("Error", error)
-			logger
-				.child({ context: {id, settings, error:error.message} })
-				.error('The API call to retrieve tweets from id failed');
-			return {}
-	  }
-	} */
 
 	function minet(opts) {
 	  // call Minet with opts which is an array of strings, each beeing an arg name or arg value
