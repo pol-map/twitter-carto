@@ -24,54 +24,44 @@ export async function normalize_urls(date) {
 
 	async function main() {
 		const resFile = `${thisFolder}/resources_cited_by_mps.csv`
-
-		// First, we resolve the URL redirections (using Minet)
-		const resolveSettings = ["resolve", "resource_url", resFile]
-		let resolvedDataString
-		try {
-			resolvedDataString = await minet(resolveSettings)
-			logger
-				.child({ context: {resolvedDataString} })
-				.debug('Minet resolve output');
-		} catch (error) {
-			console.log("Error", error)
-			logger
-				.child({ context: {resolveSettings, error:error.message} })
-				.error('An error occurred during the resolving of resources URLs');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the resolving of resources URLs.`}));
-				logger.end();
-		  });
-		}
-		// Save resolved resources as CSV
 		const resFile_resolved = `${thisFolder}/resources_cited_by_mps_resolved.csv`
-		try {
-			fs.writeFileSync(resFile_resolved, resolvedDataString)
-			logger
-				.child({ context: {resFile_resolved} })
-				.info('Resolved resources file saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {resFile_resolved, error} })
-				.error('The resolved resources file could not be saved');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`The resolved resources file could not be saved.`}));
-				logger.end();
-		  });
-		}
+		// // We need to delete the output file if it exists because Minet's recovery mode is activated
+		// fs.unlinkSync(resFile_resolved);
+		// // First, we resolve the URL redirections (using Minet)
+		// const resolveSettings = ["resolve", "resource_url", "-i", resFile, "-o", resFile_resolved, "--throttle", "3.0", "--resume"]
+		// let retries = 10
+		// while (retries>0) {
+		// 	retries--
+		// 	try {
+		// 		await minet(resolveSettings)
+		// 		retries = 0
+		// 	} catch (error) {
+		// 		if (retries>0) {
+		// 			logger
+		// 				.warn('Minet crashed but that happens in this context. Retries left: '+retries);
+		// 		} else {
+		// 			console.log("Error", error)
+		// 			logger
+		// 				.child({ context: {error:error?error.message:"unknown"} })
+		// 				.error('An error occurred during the resolving of resources URLs');
+		// 			return new Promise((resolve, reject) => {
+		// 				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the resolving of resources URLs.`}));
+		// 				logger.end();
+		// 			});
+		// 		}
+		// 	}
+		// }
 
 		// Second, we parse the resolved URLs (to normalize them)
-		const parsedSettings = ["url-parse", "resolved", resFile_resolved]
+		const resFile_parsed = `${thisFolder}/resources_cited_by_mps_parsed.csv`
+		const parsedSettings = ["url-parse", "resolved_url", "-i", resFile_resolved, "-o", resFile_parsed]
 		let parsedDataString
 		try {
-			parsedDataString = await minet(parsedSettings)
-			logger
-				.child({ context: {parsedDataString} })
-				.debug('Minet url-parse output');
+			await minet(parsedSettings)
 		} catch (error) {
 			console.log("Error", error)
 			logger
-				.child({ context: {parsedSettings, error:error.message} })
+				.child({ context: {parsedSettings, error:error?error.message:"unknown"} })
 				.error('An error occurred during Minet\'s parsing of resources URLs');
 			return new Promise((resolve, reject) => {
 				logger.once('finish', () => resolve({success:false, msg:`An error occurred during Minet's parsing of resources URLs.`}));
@@ -79,7 +69,6 @@ export async function normalize_urls(date) {
 		  });
 		}
 		// Save resolved resources as CSV
-		const resFile_parsed = `${thisFolder}/resources_cited_by_mps_parsed.csv`
 		try {
 			fs.writeFileSync(resFile_parsed, parsedDataString)
 			logger
@@ -102,7 +91,7 @@ export async function normalize_urls(date) {
 			.debug('Resources after Minet processing');
 		let resourcesNormalized = resourcesAfterMinet.map(d => {
 			delete d.index
-			delete d.resolved
+			delete d.resolved_url
 			delete d.status
 			delete d.error
 			delete d.redirects
@@ -113,6 +102,18 @@ export async function normalize_urls(date) {
 			d.normalized_url_host = d.normalized_hostname
 			delete d.probably_shortened
 			delete d.probably_typo
+			delete d.fetch_original_index
+			delete d.chain
+			delete d.http_status
+			delete d.resolution_error
+			delete d.redirect_count
+			delete d.redirect_chain
+			delete d.shortened
+			delete d.typo
+			delete d.homepage
+			delete d.should_resolve
+			delete d.url_resolve_chain
+			delete d.normalized_hostname
 			return d
 		})
 		logger
@@ -176,7 +177,7 @@ export async function normalize_urls(date) {
 	      // activate venv
 	      // recommend to use venv to install/use python deps
 	      // env can be ignored if minet is accessible from command line globally
-	      console.log("exec minet");
+	      console.log("Exec: minet", opts.join(" "));
 	      const minet = spawn(process.env.MINET_BINARIES, opts);
 	      minet.stdout.setEncoding("utf8");
 	      minet.stdout.on("data", (data) => {
