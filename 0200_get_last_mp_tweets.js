@@ -46,7 +46,7 @@ export async function get_last_mp_tweets(date) {
 		}
 
 		if (handleList && handleList.length > 0) {
-			/* let users = await retrieveUserIds(handleList)
+			let users = await retrieveUserIds(handleList)
 			logger
 				.child({ context: {users} })
 				.debug('User data retrieved from Twitter');
@@ -88,7 +88,7 @@ export async function get_last_mp_tweets(date) {
 					.child({ context: {usersFile, error} })
 					.error('The valid users file could not be saved');
 				return {success:false, msg:"The valid users file could not be saved."}
-			} */
+			}
 
 		  // For each user, load yesterday's tweets with Minet
 			// Build CSV file for the queries
@@ -98,7 +98,7 @@ export async function get_last_mp_tweets(date) {
 			const ymonth = (1+yesterday.getMonth()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 			const ydatem = (yesterday.getDate()).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping: false})
 			const queryFile = `${thisFolder}/queries_for_mp_tweets.csv`
-			const queryCsvString = d3.csvFormat(handleList.map(d => {
+			const queryCsvString = d3.csvFormat(users.map(d => {
 				return {query: `from:@${d.handle} since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`}
 			}))
 			try {
@@ -205,67 +205,127 @@ export async function get_last_mp_tweets(date) {
 		}
 	}
 
-	/* async function retrieveUserIds(handleList) {
-		logger
-			.child({ context: {handleList} })
-			.debug('Retrieve Twitter ids from handles');
-		const batchSize = 100
-		let batches = []
-		let currentBatch = []
-		handleList.forEach((d,i) => {
-			currentBatch.push(d.handle)
-			if (i%batchSize == batchSize-1 || i==handleList.length-1) {
-				batches.push(currentBatch.splice(0))
-				currentBatch = []
+	async function retrieveUserIds(handleList) {
+		logger.info('Retrieve user IDs from Twitter');
+		// Strategy: scrape 1 tweet per handle to check it exists and get more info
+		const queryFile = `${thisFolder}/queries_for_mp_handles.csv`
+		const queryCsvString = d3.csvFormat(handleList.map(d => {
+			return {query: `from:@${d.handle}`}
+		}))
+		try {
+			fs.writeFileSync(queryFile, queryCsvString)
+			logger
+				.child({ context: {queryFile} })
+				.info('Queries file saved successfully');
+		} catch(error) {
+			logger
+				.child({ context: {queryFile, error} })
+				.error('The queries file could not be saved');
+			return {success:false, msg:"The queries file could not be saved."}
+		}
+		const minetSettings = ["twitter", "scrape", "tweets", "query", "-i", queryFile, "--limit", "1"]
+		let minetResultString
+		try {
+			minetResultString = await minet(minetSettings)
+			logger
+				.child({ context: {minetResultString} })
+				.debug('Minet output');
+		} catch (error) {
+			console.log("Error", error)
+			logger
+				.child({ context: {minetSettings, error:error?error.message:"unknown"} })
+				.error(`An error occurred during the retrieval of yesterday's MP tweets`);
+			return new Promise((resolve, reject) => {
+				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
+				logger.end();
+			});
+		}
+		// Parse the output
+		let outputData = []
+		try {
+			// Parse string
+			outputData = d3.csvParse(minetResultString);
+			logger
+				.info('Minet output parsed');
+		} catch (error) {
+			console.log("Error", error)
+			logger
+				.child({ context: {minetResultString, error:error.message} })
+				.error('The Minet output could not be parsed');
+		}
+		
+		// Extract user data
+		let users = {}
+		outputData.forEach(d => {
+			let user = {
+				id: d.user_id,
+				username: d.user_screen_name,
+				name: d.user_name,
 			}
+			users[user.id] = user
 		})
+		users = Object.values(users)
 
-		let batchNumber = 0
-		const users = await fetchNextBatch()
+		// logger
+		// 	.child({ context: {handleList} })
+		// 	.debug('Retrieve Twitter ids from handles');
+		// const batchSize = 100
+		// let batches = []
+		// let currentBatch = []
+		// handleList.forEach((d,i) => {
+		// 	currentBatch.push(d.handle)
+		// 	if (i%batchSize == batchSize-1 || i==handleList.length-1) {
+		// 		batches.push(currentBatch.splice(0))
+		// 		currentBatch = []
+		// 	}
+		// })
+
+		// let batchNumber = 0
+		// const users = await fetchNextBatch()
 		logger
 			.info(`${users.length} users ids retrieved`);
 		return users
 
-		async function fetchNextBatch(_result) {
-			let result = _result || []
-			const batch = batches.shift()
-			logger
-				.debug('Fetch batch of handles');
-			try {
-				const usernamesLookup = await twitterClient.users.findUsersByUsername({
-		      usernames: batch
-		    });
-		    if (usernamesLookup.errors && usernamesLookup.errors.length > 0) {
-		  		logger
-		    		.child({ context: {batchNumber, errors: usernamesLookup.errors} })
-						.warn('Some twitter handles could not be found');
-		    }
-		    if (usernamesLookup.data && usernamesLookup.data.length > 0) {
-			    logger
-			  		.child({ context: {batchNumber, handlesRetrieved: usernamesLookup.data.length} })
-						.info('Batch of handles retrieved');
-					result = result.concat(usernamesLookup.data)
-				} else {
-		  		logger
-		    		.child({ context: {batchNumber} })
-						.warn('No handles retrieved in this batch');			
-				}
+		// async function fetchNextBatch(_result) {
+		// 	let result = _result || []
+		// 	const batch = batches.shift()
+		// 	logger
+		// 		.debug('Fetch batch of handles');
+		// 	try {
+		// 		const usernamesLookup = await twitterClient.users.findUsersByUsername({
+		//       usernames: batch
+		//     });
+		//     if (usernamesLookup.errors && usernamesLookup.errors.length > 0) {
+		//   		logger
+		//     		.child({ context: {batchNumber, errors: usernamesLookup.errors} })
+		// 				.warn('Some twitter handles could not be found');
+		//     }
+		//     if (usernamesLookup.data && usernamesLookup.data.length > 0) {
+		// 	    logger
+		// 	  		.child({ context: {batchNumber, handlesRetrieved: usernamesLookup.data.length} })
+		// 				.info('Batch of handles retrieved');
+		// 			result = result.concat(usernamesLookup.data)
+		// 		} else {
+		//   		logger
+		//     		.child({ context: {batchNumber} })
+		// 				.warn('No handles retrieved in this batch');			
+		// 		}
 
-		    batchNumber++
-		    if (batches.length > 0) {
-		    	return fetchNextBatch(result)
-		    } else {
-		    	return result
-		    }
-		  } catch(error) {
-				console.log("Error", error)
-				logger
-					.child({ context: {batchNumber, error:error.message} })
-					.error('The API call to retrieve ids from handles failed');
-				return result
-		  }
-		}
-	} */
+		//     batchNumber++
+		//     if (batches.length > 0) {
+		//     	return fetchNextBatch(result)
+		//     } else {
+		//     	return result
+		//     }
+		//   } catch(error) {
+		// 		console.log("Error", error)
+		// 		logger
+		// 			.child({ context: {batchNumber, error:error.message} })
+		// 			.error('The API call to retrieve ids from handles failed');
+		// 		return result
+		//   }
+		// }
+	}
 
 	/* async function getYesterdaysTweets(id) {
 		let yesterday = new Date(targetDate.getTime());
@@ -341,7 +401,7 @@ export async function get_last_mp_tweets(date) {
 	      // activate venv
 	      // recommend to use venv to install/use python deps
 	      // env can be ignored if minet is accessible from command line globally
-	      console.log("exec minet", opts.join(" "));
+	      console.log("Exec: minet", opts.join(" "));
 	      const minet = spawn(process.env.MINET_BINARIES, opts);
 	      minet.stdout.setEncoding("utf8");
 	      minet.stdout.on("data", (data) => {
