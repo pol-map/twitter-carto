@@ -100,455 +100,452 @@ export async function resource_extract_data(date) {
 		  });
 		}
 
-		// Extract the text content from Twitter resources
-  	const tweetsDir = `${thisFolder}/tweetsData`
-  	if (!fs.existsSync(tweetsDir)){
-		  fs.mkdirSync(tweetsDir);
-		}
-  	const mediaDir = `${thisFolder}/media`
-		if (!fs.existsSync(mediaDir)){
-		  fs.mkdirSync(mediaDir);
-		}
-  	const usersDir = `${thisFolder}/usersData`
-		if (!fs.existsSync(usersDir)){
-		  fs.mkdirSync(usersDir);
-		}
-  	let newResourcesTwitterFetched = []
-		let batches = []
-		let currentBatch = []
-		newResourcesTwitter.forEach(r => {
-			// Check if the tweet's content is already there
-			let fileName = `${tweetsDir}/${r.id}.json`
-			let tweetsResponse = undefined
-			if (fs.existsSync(fileName)){
-				// The data has been previously downloaded: load it.
-				let tweetsResponseRaw
-				try {
-					tweetsResponseRaw = fs.readFileSync(fileName);
-				} catch (error) {
-					console.log("Error", error)
-					logger
-						.child({ context: {res, page, fileName, error:error.message} })
-						.error(`JSON file read error. The data could not be recovered.`);
-					return new Promise((resolve, reject) => {
-						logger.once('finish', () => resolve({success:false, msg:`JSON file read error. The data could not be recovered.`}));
-						logger.end();
-				  });
-				}
-				if (tweetsResponseRaw) {
-					try {
-				  	tweetsResponse = JSON.parse(tweetsResponseRaw);
-				  	logger
-				  		.child({ context: {r, fileName, tweetsResponse} })
-							.trace(`Tweets data response retrieved from local cache ${fileName}`);
-			  	} catch (error) {
-						console.log("Error", error)
-						logger
-							.child({ context: {r, fileName, tweetsResponseRaw, error:error.message} })
-							.error(`JSON file cannot be parsed. The data could not be recovered.`);
-						tweetsResponse = undefined
-					}
-				}
-			}
-			// If the file does not exist or failed, query Twitter.
-			if (tweetsResponse === undefined) {
-				// Add the tweet to the batch of tweets to retrieve
-				currentBatch.push(r.id)
-				if (currentBatch.length >= 100) {
-					batches.push(currentBatch)
-					currentBatch = []
-				}
-			} else {
-				// Add the retrieved data to the list
-				newResourcesTwitterFetched.push(tweetsResponse)
-			}
-		})
-		if (currentBatch.length > 0) {
-			batches.push(currentBatch)
-		}
-		logger
-			.info(`${batches.length} batches built for ${newResourcesTwitter.length} resources (${newResourcesTwitterFetched.length} already downloaded).`);
+		// // Extract the text content from Twitter resources
+  	// const tweetsDir = `${thisFolder}/tweetsData`
+  	// if (!fs.existsSync(tweetsDir)){
+		//   fs.mkdirSync(tweetsDir);
+		// }
+  	// const mediaDir = `${thisFolder}/media`
+		// if (!fs.existsSync(mediaDir)){
+		//   fs.mkdirSync(mediaDir);
+		// }
+  	// const usersDir = `${thisFolder}/usersData`
+		// if (!fs.existsSync(usersDir)){
+		//   fs.mkdirSync(usersDir);
+		// }
+  	// let newResourcesTwitterFetched = []
+		// let batches = []
+		// let currentBatch = []
+		// newResourcesTwitter.forEach(r => {
+		// 	// Check if the tweet's content is already there
+		// 	let fileName = `${tweetsDir}/${r.id}.json`
+		// 	let tweetsResponse = undefined
+		// 	if (fs.existsSync(fileName)){
+		// 		// The data has been previously downloaded: load it.
+		// 		let tweetsResponseRaw
+		// 		try {
+		// 			tweetsResponseRaw = fs.readFileSync(fileName);
+		// 		} catch (error) {
+		// 			console.log("Error", error)
+		// 			logger
+		// 				.child({ context: {res, page, fileName, error:error.message} })
+		// 				.error(`JSON file read error. The data could not be recovered.`);
+		// 			return new Promise((resolve, reject) => {
+		// 				logger.once('finish', () => resolve({success:false, msg:`JSON file read error. The data could not be recovered.`}));
+		// 				logger.end();
+		// 		  });
+		// 		}
+		// 		if (tweetsResponseRaw) {
+		// 			try {
+		// 		  	tweetsResponse = JSON.parse(tweetsResponseRaw);
+		// 		  	logger
+		// 		  		.child({ context: {r, fileName, tweetsResponse} })
+		// 					.trace(`Tweets data response retrieved from local cache ${fileName}`);
+		// 	  	} catch (error) {
+		// 				console.log("Error", error)
+		// 				logger
+		// 					.child({ context: {r, fileName, tweetsResponseRaw, error:error.message} })
+		// 					.error(`JSON file cannot be parsed. The data could not be recovered.`);
+		// 				tweetsResponse = undefined
+		// 			}
+		// 		}
+		// 	}
+		// 	// If the file does not exist or failed, query Twitter.
+		// 	if (tweetsResponse === undefined) {
+		// 		// Add the tweet to the batch of tweets to retrieve
+		// 		currentBatch.push(r.id)
+		// 		if (currentBatch.length >= 100) {
+		// 			batches.push(currentBatch)
+		// 			currentBatch = []
+		// 		}
+		// 	} else {
+		// 		// Add the retrieved data to the list
+		// 		newResourcesTwitterFetched.push(tweetsResponse)
+		// 	}
+		// })
+		// if (currentBatch.length > 0) {
+		// 	batches.push(currentBatch)
+		// }
+		// logger
+		// 	.info(`${batches.length} batches built for ${newResourcesTwitter.length} resources (${newResourcesTwitterFetched.length} already downloaded).`);
+		//
+		// if (batches.length > 0) {
+		// 	for (let b in batches) {
+		// 		const batch = batches[b]
+		// 		const settings = {
+		// 			"ids": batch.join(","),
+		// 			"expansions":[
+		// 				"attachments.poll_ids",
+		// 				"attachments.media_keys",
+		// 				"author_id",
+		// 				"edit_history_tweet_ids",
+		// 				"entities.mentions.username",
+		// 				"geo.place_id",
+		// 				"in_reply_to_user_id",
+		// 				"referenced_tweets.id",
+		// 				"referenced_tweets.id.author_id",
+		// 			],
+		// 			"media.fields":[
+		// 				"duration_ms",
+		// 				"media_key",
+		// 				"preview_image_url",
+		// 				"type",
+		// 				"url",
+		// 				"alt_text",
+		// 				"variants",
+		// 			],
+		// 			"tweet.fields": [
+		// 				"attachments",
+		// 	      "author_id",
+		// 	      "context_annotations",
+		// 	      "conversation_id",
+		// 	      "created_at",
+		// 	      "entities",
+		// 	      "id",
+		// 	      "in_reply_to_user_id",
+		// 	      "lang",
+		// 	      "possibly_sensitive",
+		// 	      "referenced_tweets",
+		// 	      "reply_settings",
+		// 	      "source",
+		// 	      "text",
+		// 	      "withheld",
+		// 	    ],
+		// 			"user.fields":[
+		// 				"id",
+		// 				"name",
+		// 				"username",
+		// 			],
+		// 	  }
+		// 		let tweetsFetched = await getTweets(settings)
+		// 		// Save each tweet's content
+		// 		for (let t in tweetsFetched.data) {
+		// 			const tweet = tweetsFetched.data[t]
+		// 			newResourcesTwitterFetched.push(tweet)
+		// 			// Save
+		// 			const fileName = `${tweetsDir}/${tweet.id}.json`
+		// 			const tweetString = JSON.stringify(tweet)
+		// 			try {
+		// 				fs.writeFileSync(fileName, tweetString)
+		// 			  logger
+		// 					.child({ tweet:tweet })
+		// 					.debug(`The tweeting file for tweet ${tweet.id} was saved successfully`);
+		// 			} catch(error) {
+		// 				logger
+		// 					.child({ tweet:tweet })
+		// 					.error(`The tweeting file for tweet ${tweet.id} could not be saved`);						
+		// 			}
+		// 		}
+		// 		// Save the data about each media
+		// 		if (tweetsFetched.includes && tweetsFetched.includes.media) {
+		// 			for (let i in tweetsFetched.includes.media) {
+		// 				const media = tweetsFetched.includes.media[i]
+		// 				// Save
+		// 				const fileName = `${mediaDir}/${media.media_key}.json`
+		// 				const mediaString = JSON.stringify(media)
+		// 				try {
+		// 					fs.writeFileSync(fileName, mediaString)
+		// 				  logger
+		// 						.child({ media:media })
+		// 						.debug(`The file for media ${media.media_key} was saved successfully`);
+		// 				} catch(error) {
+		// 					logger
+		// 						.child({ media:media })
+		// 						.error(`The file for media ${media.media_key} could not be saved`);						
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
 
-		if (batches.length > 0) {
-			for (let b in batches) {
-				const batch = batches[b]
-				const settings = {
-					"ids": batch.join(","),
-					"expansions":[
-						"attachments.poll_ids",
-						"attachments.media_keys",
-						"author_id",
-						"edit_history_tweet_ids",
-						"entities.mentions.username",
-						"geo.place_id",
-						"in_reply_to_user_id",
-						"referenced_tweets.id",
-						"referenced_tweets.id.author_id",
-					],
-					"media.fields":[
-						"duration_ms",
-						"media_key",
-						"preview_image_url",
-						"type",
-						"url",
-						"alt_text",
-						"variants",
-					],
-					"tweet.fields": [
-						"attachments",
-			      "author_id",
-			      "context_annotations",
-			      "conversation_id",
-			      "created_at",
-			      "entities",
-			      "id",
-			      "in_reply_to_user_id",
-			      "lang",
-			      "possibly_sensitive",
-			      "referenced_tweets",
-			      "reply_settings",
-			      "source",
-			      "text",
-			      "withheld",
-			    ],
-					"user.fields":[
-						"id",
-						"name",
-						"username",
-					],
-			  }
-				let tweetsFetched = await getTweets(settings)
-				// Save each tweet's content
-				for (let t in tweetsFetched.data) {
-					const tweet = tweetsFetched.data[t]
-					newResourcesTwitterFetched.push(tweet)
-					// Save
-					const fileName = `${tweetsDir}/${tweet.id}.json`
-					const tweetString = JSON.stringify(tweet)
-					try {
-						fs.writeFileSync(fileName, tweetString)
-					  logger
-							.child({ tweet:tweet })
-							.debug(`The tweeting file for tweet ${tweet.id} was saved successfully`);
-					} catch(error) {
-						logger
-							.child({ tweet:tweet })
-							.error(`The tweeting file for tweet ${tweet.id} could not be saved`);						
-					}
-				}
-				// Save the data about each media
-				if (tweetsFetched.includes && tweetsFetched.includes.media) {
-					for (let i in tweetsFetched.includes.media) {
-						const media = tweetsFetched.includes.media[i]
-						// Save
-						const fileName = `${mediaDir}/${media.media_key}.json`
-						const mediaString = JSON.stringify(media)
-						try {
-							fs.writeFileSync(fileName, mediaString)
-						  logger
-								.child({ media:media })
-								.debug(`The file for media ${media.media_key} was saved successfully`);
-						} catch(error) {
-							logger
-								.child({ media:media })
-								.error(`The file for media ${media.media_key} could not be saved`);						
-						}
-					}
-				}
-			}
-		}
+		// /// Retrieve tweet-resource author information
+		// // Compile authors
+		// let authorIndex = {}
+		// newResourcesTwitterFetched.forEach(r => {
+		// 	authorIndex[r.author_id] = true
+		// })
+		// const authorIds = Object.keys(authorIndex)
+		// // Build author batches
+		// batches = []
+		// currentBatch = []
+		// let newUsersFetched = []
+		// authorIds.forEach(uId => {
+		// 	let fileName = `${usersDir}/${uId}.json`
+		// 	let usersResponse = undefined
+		// 	if (fs.existsSync(fileName)){
+		// 		// The data has been previously downloaded: load it.
+		// 		let usersResponseRaw
+		// 		try {
+		// 			usersResponseRaw = fs.readFileSync(fileName);
+		// 		} catch (error) {
+		// 			console.log("Error", error)
+		// 			logger
+		// 				.child({ context: {res, page, fileName, error:error.message} })
+		// 				.error(`JSON file read error. The data could not be recovered for ${fileName}.`);
+		// 			return new Promise((resolve, reject) => {
+		// 				logger.once('finish', () => resolve({success:false, msg:`JSON file read error. The data could not be recovered.`}));
+		// 				logger.end();
+		// 		  });
+		// 		}
+		// 		if (usersResponseRaw) {
+		// 			try {
+		// 		  	usersResponse = JSON.parse(usersResponseRaw);
+		// 		  	logger
+		// 		  		.child({ context: {uId, fileName, usersResponse} })
+		// 					.trace(`Users data response retrieved from local cache ${fileName}.`);
+		// 	  	} catch (error) {
+		// 				console.log("Error", error)
+		// 				logger
+		// 					.child({ context: {r, fileName, usersResponseRaw, error:error.message} })
+		// 					.error(`JSON file cannot be parsed. The data could not be recovered for ${fileName}.`);
+		// 				usersResponse = undefined
+		// 			}
+		// 		}
+		// 	}
+		// 	// If the file does not exist or failed, query Twitter.
+		// 	if (usersResponse === undefined) {
+		// 		// Add the tweet to the batch of tweets to retrieve
+		// 		currentBatch.push(uId)
+		// 		if (currentBatch.length >= 100) {
+		// 			batches.push(currentBatch)
+		// 			currentBatch = []
+		// 		}
+		// 	} else {
+		// 		// Add the retrieved data to the list
+		// 		newUsersFetched.push(usersResponse)
+		// 	}
+		// })
+		// if (currentBatch.length > 0) {
+		// 	batches.push(currentBatch)
+		// }
+		// logger
+		// 	.info(`${batches.length} batches built for ${authorIds.length} users (${newUsersFetched.length} already downloaded).`);
+		// // Query API
+		// if (batches.length > 0) {
+		// 	for (let b in batches) {
+		// 		const batch = batches[b]
+		// 		const settings = {
+		// 			"ids": batch.join(","),
+		// 			"user.fields":[
+		// 				"created_at",
+		// 				"description",
+		// 				"entities",
+		// 				"id",
+		// 				"location",
+		// 				"name",
+		// 				"pinned_tweet_id",
+		// 				"profile_image_url",
+		// 				"protected",
+		// 				"public_metrics",
+		// 				"url",
+		// 				"username",
+		// 				"verified",
+		// 				"withheld",
+		// 			],
+		// 			"tweet.fields": [
+		// 				"attachments",
+		// 	      "author_id",
+		// 	      "context_annotations",
+		// 	      "conversation_id",
+		// 	      "created_at",
+		// 	      "entities",
+		// 	      "geo",
+		// 	      "id",
+		// 	      "in_reply_to_user_id",
+		// 	      "lang",
+		// 	      "possibly_sensitive",
+		// 	      "referenced_tweets",
+		// 	      "reply_settings",
+		// 	      "source",
+		// 	      "text",
+		// 	      "withheld",
+		// 	    ],
+		// 	  }
+		// 		let usersFetched = await getUsers(settings)
+		// 		// Save each user's content
+		// 		for (let u in usersFetched.data) {
+		// 			const user = usersFetched.data[u]
+		// 			newUsersFetched.push(user)
+		// 			// Save
+		// 			const fileName = `${usersDir}/${user.id}.json`
+		// 			const userString = JSON.stringify(user)
+		// 			try {
+		// 				fs.writeFileSync(fileName, userString)
+		// 			  logger
+		// 					.child({ user:user })
+		// 					.debug(`The file for user ${user.id} was saved successfully`);
+		// 			} catch(error) {
+		// 				logger
+		// 					.child({ user:user })
+		// 					.error(`The file for user ${user.id} could not be saved`);	
+		// 			}
+		// 		}
+		// 	}
+		// }
+		// // Build user index
+		// let userIndex = {}
+		// newUsersFetched.forEach(u => {
+		// 	userIndex[u.id] = u
+		// })
 
-		/// Retrieve tweet-resource author information
-		// Compile authors
-		let authorIndex = {}
-		newResourcesTwitterFetched.forEach(r => {
-			authorIndex[r.author_id] = true
-		})
-		const authorIds = Object.keys(authorIndex)
-		// Build author batches
-		batches = []
-		currentBatch = []
-		let newUsersFetched = []
-		authorIds.forEach(uId => {
-			let fileName = `${usersDir}/${uId}.json`
-			let usersResponse = undefined
-			if (fs.existsSync(fileName)){
-				// The data has been previously downloaded: load it.
-				let usersResponseRaw
-				try {
-					usersResponseRaw = fs.readFileSync(fileName);
-				} catch (error) {
-					console.log("Error", error)
-					logger
-						.child({ context: {res, page, fileName, error:error.message} })
-						.error(`JSON file read error. The data could not be recovered for ${fileName}.`);
-					return new Promise((resolve, reject) => {
-						logger.once('finish', () => resolve({success:false, msg:`JSON file read error. The data could not be recovered.`}));
-						logger.end();
-				  });
-				}
-				if (usersResponseRaw) {
-					try {
-				  	usersResponse = JSON.parse(usersResponseRaw);
-				  	logger
-				  		.child({ context: {uId, fileName, usersResponse} })
-							.trace(`Users data response retrieved from local cache ${fileName}.`);
-			  	} catch (error) {
-						console.log("Error", error)
-						logger
-							.child({ context: {r, fileName, usersResponseRaw, error:error.message} })
-							.error(`JSON file cannot be parsed. The data could not be recovered for ${fileName}.`);
-						usersResponse = undefined
-					}
-				}
-			}
-			// If the file does not exist or failed, query Twitter.
-			if (usersResponse === undefined) {
-				// Add the tweet to the batch of tweets to retrieve
-				currentBatch.push(uId)
-				if (currentBatch.length >= 100) {
-					batches.push(currentBatch)
-					currentBatch = []
-				}
-			} else {
-				// Add the retrieved data to the list
-				newUsersFetched.push(usersResponse)
-			}
-		})
-		if (currentBatch.length > 0) {
-			batches.push(currentBatch)
-		}
-		logger
-			.info(`${batches.length} batches built for ${authorIds.length} users (${newUsersFetched.length} already downloaded).`);
-		// Query API
-		if (batches.length > 0) {
-			for (let b in batches) {
-				const batch = batches[b]
-				const settings = {
-					"ids": batch.join(","),
-					"user.fields":[
-						"created_at",
-						"description",
-						"entities",
-						"id",
-						"location",
-						"name",
-						"pinned_tweet_id",
-						"profile_image_url",
-						"protected",
-						"public_metrics",
-						"url",
-						"username",
-						"verified",
-						"withheld",
-					],
-					"tweet.fields": [
-						"attachments",
-			      "author_id",
-			      "context_annotations",
-			      "conversation_id",
-			      "created_at",
-			      "entities",
-			      "geo",
-			      "id",
-			      "in_reply_to_user_id",
-			      "lang",
-			      "possibly_sensitive",
-			      "referenced_tweets",
-			      "reply_settings",
-			      "source",
-			      "text",
-			      "withheld",
-			    ],
-			  }
-				let usersFetched = await getUsers(settings)
-				// Save each user's content
-				for (let u in usersFetched.data) {
-					const user = usersFetched.data[u]
-					newUsersFetched.push(user)
-					// Save
-					const fileName = `${usersDir}/${user.id}.json`
-					const userString = JSON.stringify(user)
-					try {
-						fs.writeFileSync(fileName, userString)
-					  logger
-							.child({ user:user })
-							.debug(`The file for user ${user.id} was saved successfully`);
-					} catch(error) {
-						logger
-							.child({ user:user })
-							.error(`The file for user ${user.id} could not be saved`);	
-					}
-				}
-			}
-		}
-		// Build user index
-		let userIndex = {}
-		newUsersFetched.forEach(u => {
-			userIndex[u.id] = u
-		})
+		// // Aggregate with existing resources
+		// let newResourcesTwitterFetchedIndex = {}
+		// newResourcesTwitterFetched.forEach(r => {
+		// 	newResourcesTwitterFetchedIndex[r.id] = r
+		// })
+		// let newResourcesTwitterExtracted = newResourcesTwitter.map(r => {
+		// 	let r2 = newResourcesTwitterFetchedIndex[r.id]
+		// 	if (r2 === undefined) {
+		// 		logger
+		// 			.warn(`Aggregation error: new twitter resource ${r.id} could not be found in fetched resources index.`);
+		// 		return r
+		// 	} else {
+		// 		let result = {...r}
+		// 		result.text = r2.text
+		// 		result.lang = r2.lang
+		// 		result.author_id = r2.author_id
+		// 		let user = userIndex[result.author_id]
+		// 		if (user) {
+		// 			result.author_username = user.username
+		// 			result.author_name = user.name
+		// 		} else {
+		// 			logger
+		// 				.error(`User ${result.author_id} not found in the index. It should be there by design.`);						
+		// 		}
+		// 		if (r2.attachments && r2.attachments.media_keys) {
+		// 			result.media_keys = JSON.stringify(r2.attachments.media_keys)
+		// 		}
+		// 		return result
+		// 	}
+		// })
 
-		// Aggregate with existing resources
-		let newResourcesTwitterFetchedIndex = {}
-		newResourcesTwitterFetched.forEach(r => {
-			newResourcesTwitterFetchedIndex[r.id] = r
-		})
-		let newResourcesTwitterExtracted = newResourcesTwitter.map(r => {
-			let r2 = newResourcesTwitterFetchedIndex[r.id]
-			if (r2 === undefined) {
-				logger
-					.warn(`Aggregation error: new twitter resource ${r.id} could not be found in fetched resources index.`);
-				return r
-			} else {
-				let result = {...r}
-				result.text = r2.text
-				result.lang = r2.lang
-				result.author_id = r2.author_id
-				let user = userIndex[result.author_id]
-				if (user) {
-					result.author_username = user.username
-					result.author_name = user.name
-				} else {
-					logger
-						.error(`User ${result.author_id} not found in the index. It should be there by design.`);						
-				}
-				if (r2.attachments && r2.attachments.media_keys) {
-					result.media_keys = JSON.stringify(r2.attachments.media_keys)
-				}
-				return result
-			}
-		})
+		// // Save the new Twitter resources file with enrichment
+		// const resFile_twitter_extracted = `${thisFolder}/resources_newtoday_twitter_enriched.csv`
+		// const newResourcesTwitterExtractedString = d3.csvFormat(newResourcesTwitterExtracted)
+		// try {
+		// 	fs.writeFileSync(resFile_twitter_extracted, newResourcesTwitterExtractedString)
+		// 	logger
+		// 		.child({ context: {resFile_twitter_extracted} })
+		// 		.info('New Twitter resources with text file saved successfully');
+		// } catch(error) {
+		// 	logger
+		// 		.child({ context: {resFile_twitter_extracted, error} })
+		// 		.error('The new Twitter resources with text file could not be saved');
+		// 	return new Promise((resolve, reject) => {
+		// 		logger.once('finish', () => resolve({success:false, msg:`The new Twitter resources with text file could not be saved.`}));
+		// 		logger.end();
+		// 	})
+		// }
 
-		// Save the new Twitter resources file with enrichment
-		const resFile_twitter_extracted = `${thisFolder}/resources_newtoday_twitter_enriched.csv`
-		const newResourcesTwitterExtractedString = d3.csvFormat(newResourcesTwitterExtracted)
-		try {
-			fs.writeFileSync(resFile_twitter_extracted, newResourcesTwitterExtractedString)
-			logger
-				.child({ context: {resFile_twitter_extracted} })
-				.info('New Twitter resources with text file saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {resFile_twitter_extracted, error} })
-				.error('The new Twitter resources with text file could not be saved');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`The new Twitter resources with text file could not be saved.`}));
-				logger.end();
-			})
-		}
+		// // List media new today
+		// let mediaIndex = {}
+		// Object.values(newResourcesTwitterFetchedIndex).forEach(r => {
+		// 	if (r.attachments && r.attachments.media_keys) {
+		// 		r.attachments.media_keys.forEach(k => {
+		// 			mediaIndex[k] = true
+		// 		})
+		// 	}
+		// })
 
-		// List media new today
-		let mediaIndex = {}
-		Object.values(newResourcesTwitterFetchedIndex).forEach(r => {
-			if (r.attachments && r.attachments.media_keys) {
-				r.attachments.media_keys.forEach(k => {
-					mediaIndex[k] = true
-				})
-			}
-		})
+		// // Directory to store media images
+		// const mediaImagesDir = `${thisFolder}/media-images`
+		// if (!fs.existsSync(mediaImagesDir)){
+		//   fs.mkdirSync(mediaImagesDir);
+		// }
 
-		// Directory to store media images
-		const mediaImagesDir = `${thisFolder}/media-images`
-		if (!fs.existsSync(mediaImagesDir)){
-		  fs.mkdirSync(mediaImagesDir);
-		}
+		// // Fetch meta data from file and download images
+		// let i = 0
+		// let imgTotal = Object.values(mediaIndex).length
+		// for (let k in mediaIndex){
+		// 	// Load
+		// 	let dataString
+		// 	try {
+		// 		dataString = fs.readFileSync(`${mediaDir}/${k}.json`, "utf8")
+		// 	} catch (error) {
+		// 		logger
+		// 			.child({ context: {media_key:k, error} })
+		// 			.warn(`ERROR: The file for media ${k} could not be loaded.`);
+		// 	}
 
-		// Fetch meta data from file and download images
-		let i = 0
-		let imgTotal = Object.values(mediaIndex).length
-		for (let k in mediaIndex){
-			// Load
-			let dataString
-			try {
-				dataString = fs.readFileSync(`${mediaDir}/${k}.json`, "utf8")
-			} catch (error) {
-				logger
-					.child({ context: {media_key:k, error} })
-					.warn(`ERROR: The file for media ${k} could not be loaded.`);
-			}
+		// 	// Parse
+		// 	let data
+		// 	if (dataString) {
+		// 		try {
+		// 			data = JSON.parse(dataString)
+		// 		} catch (error) {
+		// 			logger
+		// 				.child({ context: {media_key:k, error} })
+		// 				.warn(`ERROR: The data for media ${k} could not be parsed.`);
+		// 		}
+		// 	}
 
-			// Parse
-			let data
-			if (dataString) {
-				try {
-					data = JSON.parse(dataString)
-				} catch (error) {
-					logger
-						.child({ context: {media_key:k, error} })
-						.warn(`ERROR: The data for media ${k} could not be parsed.`);
-				}
-			}
+		// 	// Analyze and flatten
+		// 	// Goal: media can be different things,
+		// 	// but above all we want the URL with an image.
+		// 	// And we download it.
+		// 	let media = {id: k}
+		// 	media.type = data.type
+		// 	if (data.type == 'video') {
+		// 		media.imgurl = data.preview_image_url
+		// 		media.duration_ms = data.duration_ms
+		// 		media.variants = JSON.stringify(data.variants)
+		// 	} else if (data.type == "photo") {
+		// 		media.imgurl = data.url
+		// 		media.alt_text = data.alt_text || ""
+		// 	}
 
-			// Analyze and flatten
-			// Goal: media can be different things,
-			// but above all we want the URL with an image.
-			// And we download it.
-			let media = {id: k}
-			media.type = data.type
-			if (data.type == 'video') {
-				media.imgurl = data.preview_image_url
-				media.duration_ms = data.duration_ms
-				media.variants = JSON.stringify(data.variants)
-			} else if (data.type == "photo") {
-				media.imgurl = data.url
-				media.alt_text = data.alt_text || ""
-			}
+		// 	if (media.imgurl) {
+		// 		await (async () => {
+		// 			try {
+		// 				const fileFormat = media.imgurl.split('.').pop().toLowerCase()
+		// 				if (fileFormat == "jpg" || fileFormat == "png") {
+		// 					const fileName = `${k}.${fileFormat}`
+		// 					const filePath = `${mediaImagesDir}/${fileName}`
+		// 					if (!fs.existsSync(filePath)){
+		// 						console.log(`Download image ${i}/${imgTotal}`, filePath)
+		// 						const response = await fetch(media.imgurl)
+		// 					  const buffer = await response.arrayBuffer()
+		// 					  fs.writeFileSync(filePath, Buffer.from(buffer));
+		// 					}
+		// 					media.img = fileName
+		// 				}
+		// 			} catch (error) {
+		// 				logger
+		// 					.child({ context: {media:media, error} })
+		// 					.warn(`The image for media ${k} could not be downloaded.`);
+		// 			}
+		// 		})()
+		// 	}
 
-			if (media.imgurl) {
-				await (async () => {
-					try {
-						const fileFormat = media.imgurl.split('.').pop().toLowerCase()
-						if (fileFormat == "jpg" || fileFormat == "png") {
-							const fileName = `${k}.${fileFormat}`
-							const filePath = `${mediaImagesDir}/${fileName}`
-							if (!fs.existsSync(filePath)){
-								console.log(`Download image ${i}/${imgTotal}`, filePath)
-								const response = await fetch(media.imgurl)
-							  const buffer = await response.arrayBuffer()
-							  fs.writeFileSync(filePath, Buffer.from(buffer));
-							}
-							media.img = fileName
-						}
-					} catch (error) {
-						logger
-							.child({ context: {media:media, error} })
-							.warn(`The image for media ${k} could not be downloaded.`);
-					}
-				})()
-			}
+		// 	// Index
+		// 	mediaIndex[k] = media
 
-			// Index
-			mediaIndex[k] = media
+		// 	i++
+		// }
 
-			i++
-		}
-
-		// Save the new media file
-		const media_extracted = `${thisFolder}/media_newtoday.csv`
-		const newMediaExtractedString = d3.csvFormat(Object.values(mediaIndex))
-		try {
-			fs.writeFileSync(media_extracted, newMediaExtractedString)
-			logger
-				.child({ context: {media_extracted} })
-				.info('Twitter media new today saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {media_extracted, error} })
-				.error('Twitter media new today could not be saved');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`The Twitter media new today file could not be saved.`}));
-				logger.end();
-			})
-		}
+		// // Save the new media file
+		// const media_extracted = `${thisFolder}/media_newtoday.csv`
+		// const newMediaExtractedString = d3.csvFormat(Object.values(mediaIndex))
+		// try {
+		// 	fs.writeFileSync(media_extracted, newMediaExtractedString)
+		// 	logger
+		// 		.child({ context: {media_extracted} })
+		// 		.info('Twitter media new today saved successfully');
+		// } catch(error) {
+		// 	logger
+		// 		.child({ context: {media_extracted, error} })
+		// 		.error('Twitter media new today could not be saved');
+		// 	return new Promise((resolve, reject) => {
+		// 		logger.once('finish', () => resolve({success:false, msg:`The Twitter media new today file could not be saved.`}));
+		// 		logger.end();
+		// 	})
+		// }
 
 		// Fetch the text content from URL resources
-		const fetchUrlSettings = ["fetch", "url", resFile_URL]
-		let fetchUrlDataString
+		const resFile_URL_fetched = `${thisFolder}/resources_newtoday_URL_fetched.csv`
+		const fetchUrlSettings = ["fetch", "url", "-i", resFile_URL, "-o", resFile_URL_fetched]
 		try {
-			fetchUrlDataString = await minet(fetchUrlSettings)
-			logger
-				.child({ context: {fetchUrlDataString} })
-				.debug('Minet fetch output');
+			await minet(fetchUrlSettings)
 		} catch (error) {
 			console.log("Error", error)
 			logger
@@ -559,30 +556,11 @@ export async function resource_extract_data(date) {
 				logger.end();
 		  });
 		}
-		// Save fetched resources as CSV
-		const resFile_URL_fetched = `${thisFolder}/resources_newtoday_URL_fetched.csv`
-		try {
-			fs.writeFileSync(resFile_URL_fetched, fetchUrlDataString)
-			logger
-				.child({ context: {resFile_URL_fetched} })
-				.info('New URL resources fetched file saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {resFile_URL_fetched, error} })
-				.error('The new URL resources fetched file could not be saved');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`The new URL resources fetched file could not be saved.`}));
-				logger.end();
-			})
-		}
 		// Extract the text content from URL resources
-		const textExtractUrlSettings = ["extract", resFile_URL_fetched]
-		let textExtractUrlDataString
+		const resFile_URL_extracted = `${thisFolder}/resources_newtoday_URL_text.csv`
+		const textExtractUrlSettings = ["extract", "-i", resFile_URL_fetched, "-I", "downloaded", "-o", resFile_URL_extracted]
 		try {
-			textExtractUrlDataString = await minet(textExtractUrlSettings)
-			logger
-				.child({ context: {textExtractUrlDataString} })
-				.debug('Minet extract output');
+			await minet(textExtractUrlSettings)
 		} catch (error) {
 			console.log("Error", error)
 			logger
@@ -593,22 +571,6 @@ export async function resource_extract_data(date) {
 				logger.end();
 		  });
 		}
-		// Save extracted resources as CSV
-		const resFile_URL_extracted = `${thisFolder}/resources_newtoday_URL_text.csv`
-		try {
-			fs.writeFileSync(resFile_URL_extracted, textExtractUrlDataString)
-			logger
-				.child({ context: {resFile_URL_extracted} })
-				.info('New URL resources with text file saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {resFile_URL_extracted, error} })
-				.error('The new URL resources with text file could not be saved');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`The new URL resources with text file could not be saved.`}));
-				logger.end();
-			})
-		}
 
 		// Load Minet result
 		let newResourcesUrlExtracted = loadFile(resFile_URL_extracted, "new URL resources with text");
@@ -617,15 +579,26 @@ export async function resource_extract_data(date) {
 		// From URLs
 		newResourcesUrlExtracted.forEach(res => {
 			newResourcesWithTextIndex[res.id] = {
-				text: `${res.title}. ${res.description}`,
-				text_long: `${res.title}. \n${res.description}. \n${res.raw_content}`,
+				text: `${res.title?(res.title+". "):""}${res.description||""}`,
+				text_long: `${res.title?(res.title+". \n"):""}${res.description?(res.description+". \n"):""}${res.raw_content||""}`,
 			}
 		})
 		// From Twitter
-		newResourcesTwitterExtracted.forEach(res => {
+		// newResourcesTwitterExtracted.forEach(res => {
+		// 	newResourcesWithTextIndex[res.id] = {
+		// 		text: res.text,
+		// 		text_long: `${res.text}`,
+		// 		lang: res.lang,
+		// 		media_keys: res.media_keys,
+		// 		author_username: res.author_username,
+		// 		author_name: res.author_name,
+		// 		url: `https://twitter.com/${res.author_username}/status/${res.id}`, // We rewrite the URL with fetched username
+		// 	}
+		// })
+		newResourcesTwitter.forEach(res => {
 			newResourcesWithTextIndex[res.id] = {
-				text: res.text,
-				text_long: `${res.text}`,
+				text: res.text||"",
+				text_long: `${res.text||""}`,
 				lang: res.lang,
 				media_keys: res.media_keys,
 				author_username: res.author_username,
@@ -761,7 +734,7 @@ export async function resource_extract_data(date) {
 	      // activate venv
 	      // recommend to use venv to install/use python deps
 	      // env can be ignored if minet is accessible from command line globally
-	      console.log("exec minet");
+	      console.log("Exec: minet", opts.join(" "));
 	      const minet = spawn(process.env.MINET_BINARIES, opts);
 	      minet.stdout.setEncoding("utf8");
 	      minet.stdout.on("data", (data) => {
