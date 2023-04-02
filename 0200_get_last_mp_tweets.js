@@ -1,6 +1,4 @@
 import { getLogger } from "./-get-logger.js"
-import * as https from "https";
-import * as http from "http";
 import * as fs from "fs";
 import * as d3 from 'd3';
 import { Client, auth } from "twitter-api-sdk";
