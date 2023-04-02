@@ -21,11 +21,6 @@ export async function get_political_tweets(date, useFullArchive) {
 	const logger = getLogger(`${thisFolder}/0600_get_political_tweets.log`)
 	logger.level = "info"
 	logger.info('***** RUN SCRIPT ****');
-	if (useFullArchive) {
-		logger.info('Use full archive access (if API key allows).');
-	}
-
-	const twitterClient = new Client(process.env.BEARER_TOKEN);
 
 	async function main() {
 		
@@ -56,29 +51,31 @@ export async function get_political_tweets(date, useFullArchive) {
 		for (let i = 0; i<resources.length && i<maxResources; i++) {
 			const res = resources[i]
 			const maxResults = 1000
-			// https://petitions.assemblee-nationale.fr/initiatives/i-1319 include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:2023-03-31 until:2023-04-01
 			const query = `${res.url} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
-			// const query = `${"https://petitions.assemblee-nationale.fr/initiatives/i-1319"} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
 			const fileHandle = res.url.replace(/[^a-zA-Z0-9_-]/gi, '-').slice(0, 100)
 			const minetFile_resolved = `${broadcastingsDir}/${fileHandle}.csv`
 
-			const minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
-			// const minetSettings = ["tw", "scrape", "tweets", `"${query}"`, "--limit", 10, "-o", minetFile_resolved]
-			// const minetSettings = ["tw", "scrape", "tweets", `"https://petitions.assemblee-nationale.fr/initiatives/i-1319 include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:2023-03-31 until:2023-04-01"`, "--limit", "10", "-o", minetFile_resolved]
-			try {
-				await minet(minetSettings)
-			} catch (error) {
-				console.log("Error", error)
+			if (fs.existsSync(minetFile_resolved)){
 				logger
-					.child({ context: {minetSettings, error:error?error.message:"unknown"} })
-					.error(`An error occurred during the retrieval of yesterday's MP tweets`);
-				return new Promise((resolve, reject) => {
-					logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
-					logger.end();
-				});
+					.child({ context: {file:minetFile_resolved} })
+					.debug(`File found for ressource ${res.url}`);
+			} else {
+				const minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
+				try {
+					await minet(minetSettings)
+				} catch (error) {
+					console.log("Error", error)
+					logger
+						.child({ context: {minetSettings, error:error?error.message:"unknown"} })
+						.error(`An error occurred during the retrieval of yesterday's MP tweets`);
+					return new Promise((resolve, reject) => {
+						logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
+						logger.end();
+					});
+				}
 			}
 			// TODO: load the file and process it
-
+			
 
 			// const maxPages = 10 // 100 users per page
 			// let page = 0
