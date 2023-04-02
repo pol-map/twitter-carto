@@ -25,32 +25,34 @@ export async function normalize_urls(date) {
 	async function main() {
 		const resFile = `${thisFolder}/resources_cited_by_mps.csv`
 		const resFile_resolved = `${thisFolder}/resources_cited_by_mps_resolved.csv`
-		// // We need to delete the output file if it exists because Minet's recovery mode is activated
-		// fs.unlinkSync(resFile_resolved);
-		// // First, we resolve the URL redirections (using Minet)
-		// const resolveSettings = ["resolve", "resource_url", "-i", resFile, "-o", resFile_resolved, "--throttle", "3.0", "--resume"]
-		// let retries = 10
-		// while (retries>0) {
-		// 	retries--
-		// 	try {
-		// 		await minet(resolveSettings)
-		// 		retries = 0
-		// 	} catch (error) {
-		// 		if (retries>0) {
-		// 			logger
-		// 				.warn('Minet crashed but that happens in this context. Retries left: '+retries);
-		// 		} else {
-		// 			console.log("Error", error)
-		// 			logger
-		// 				.child({ context: {error:error?error.message:"unknown"} })
-		// 				.error('An error occurred during the resolving of resources URLs');
-		// 			return new Promise((resolve, reject) => {
-		// 				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the resolving of resources URLs.`}));
-		// 				logger.end();
-		// 			});
-		// 		}
-		// 	}
-		// }
+		// We need to delete the output file if it exists because Minet's recovery mode is activated
+		if (fs.existsSync(resFile_resolved)){
+			fs.unlinkSync(resFile_resolved);
+		}
+		// First, we resolve the URL redirections (using Minet)
+		const resolveSettings = ["resolve", "resource_url", "-i", resFile, "-o", resFile_resolved, "--throttle", "3.0", "--resume"]
+		let retries = 10
+		while (retries>0) {
+			retries--
+			try {
+				await minet(resolveSettings)
+				retries = 0
+			} catch (error) {
+				if (retries>0) {
+					logger
+						.warn('Minet crashed, but that happens in this context. Retries left: '+retries);
+				} else {
+					console.log("Error", error)
+					logger
+						.child({ context: {error:error?error.message:"unknown"} })
+						.error('An error occurred during the resolving of resources URLs');
+					return new Promise((resolve, reject) => {
+						logger.once('finish', () => resolve({success:false, msg:`An error occurred during the resolving of resources URLs.`}));
+						logger.end();
+					});
+				}
+			}
+		}
 
 		// Second, we parse the resolved URLs (to normalize them)
 		const resFile_parsed = `${thisFolder}/resources_cited_by_mps_parsed.csv`
@@ -68,23 +70,8 @@ export async function normalize_urls(date) {
 				logger.end();
 		  });
 		}
-		// Save resolved resources as CSV
-		try {
-			fs.writeFileSync(resFile_parsed, parsedDataString)
-			logger
-				.child({ context: {resFile_parsed} })
-				.info('Resolved url-parsed file saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {resFile_parsed, error} })
-				.error('The url-parsed resources file could not be saved');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`The url-parsed resources file could not be saved.`}));
-				logger.end();
-			})
-		}
 
-		// Third, we load the file, we slightly fix it, and we re-save it
+		// Third, we load the file, we slightly clean and normalize it, and we re-save it
 		let resourcesAfterMinet = loadResources(resFile_parsed);
 		logger
 			.child({ context: {resourcesAfterMinet} })
