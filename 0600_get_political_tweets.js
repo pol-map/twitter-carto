@@ -30,7 +30,7 @@ export async function get_political_tweets(date, useFullArchive) {
 
 		const maxResources = +process.env.MAX_RESOURCES || 2500
 		const maxTweets = 33000
-		let harvestedTweetsCount = 0
+		let harvestedTweets = {}
 
 		const broadcastingsDir = `${thisFolder}/broadcastings`
 		if (!fs.existsSync(broadcastingsDir)){
@@ -48,92 +48,102 @@ export async function get_political_tweets(date, useFullArchive) {
 		for (let i = 0; i<resources.length && i<maxResources; i++) {
 			const res = resources[i]
 			const maxResults = 1000
-			let baseQuery
+			let baseQueries, baseFileHandle
 			if (res.type == "tweet") {
-				baseQuery = `url:"${res.id}"`
+				baseQueries = [`url:"${res.id}"`]
+				baseFileHandle = `${res.id}`
 			} else {
-				baseQuery = res.url
+				baseQueries = [res.url].concat(JSON.parse(res.alt_urls))
+				baseFileHandle = `${res.url.replace(/[^a-zA-Z0-9_-]/gi, '-').slice(0, 100)}`
 			}
-			const query = `${baseQuery} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
-			const fileHandle = res.url.replace(/[^a-zA-Z0-9_-]/gi, '-').slice(0, 100)
-			const minetFile_resolved = `${broadcastingsDir}/${fileHandle}.csv`
-
-			if (fs.existsSync(minetFile_resolved)){
-				logger
-					.child({ context: {file:minetFile_resolved} })
-					.debug(`File found for resource ${res.url}`);
-			} else {
-				const minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
+			for (let j in baseQueries){
+				const baseQuery = baseQueries[j]
+				const query = `${baseQuery} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
+				const fileHandle = baseFileHandle+"-"+j
+				const minetFile_resolved = `${broadcastingsDir}/${fileHandle}.csv`
+				if (fs.existsSync(minetFile_resolved)){
+					logger
+						.child({ context: {file:minetFile_resolved} })
+						.debug(`File found for resource ${res.url}`);
+				} else {
+					const minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
+					try {
+						await minet(minetSettings)
+					} catch (error) {
+						console.log("Error", error)
+						logger
+							.child({ context: {minetSettings, error:error?error.message:"unknown"} })
+							.error(`An error occurred during the retrieval of yesterday's MP tweets`);
+						return new Promise((resolve, reject) => {
+							logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
+							logger.end();
+						});
+					}
+				}	
+				
+				// Load the file
+				let tweets = loadFile(minetFile_resolved, `tweets res #${i} ${fileHandle}`)
+				
 				try {
-					await minet(minetSettings)
+					tweets.forEach(d => {
+						if (harvestedTweets[d.id]) {
+							// We don't compute anything, as this has already been done
+						} else {
+							harvestedTweets[d.id] = true
+							
+							// Mentions
+							let mentions = {}
+							if (d.to_userid) {
+								mentions[d.to_userid] = true
+							}
+							if (d.retweeted_user_id) {
+								mentions[d.retweeted_user_id] = true
+							}
+							if (d.quoted_user_id) {
+								mentions[d.quoted_user_id] = true
+							}
+							if (d.mentioned_ids){
+								d.mentioned_ids.split("|").forEach(id => {
+									mentions[id] = true
+								})
+							}
+							mentions = Object.keys(mentions)
+							if (mentions.length > 0) {
+								// Hashtags
+								let hashtags = d.hashtags.split("|")
+	
+								// Media
+								let media = d.media_urls.split("|")
+								
+								// Create row (object)
+								let broadcasting = {
+									broadcaster_id: d.user_id,
+									broadcaster_name: d.user_name,
+									broadcaster_username: d.user_screen_name,
+									// resource_group_main: res.group_main,
+									resource_groups: res.groups,
+									resource_id: res.id || res.url,
+									resource_type: res.type,
+									// resource_url: res.url,
+									tweet_mentions: JSON.stringify(mentions),
+									tweet_text: d.text,
+									tweet_hashtags: JSON.stringify(hashtags),
+									tweet_media: JSON.stringify(media),
+									tweet_lang: ""+d.lang,
+								}
+								broadcastings.push(broadcasting)
+							}
+						}
+					})
 				} catch (error) {
 					console.log("Error", error)
 					logger
-						.child({ context: {minetSettings, error:error?error.message:"unknown"} })
-						.error(`An error occurred during the retrieval of yesterday's MP tweets`);
-					return new Promise((resolve, reject) => {
-						logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
-						logger.end();
-					});
+						.child({ context: {res, page, usersResponse, error:error.message} })
+						.error(`Broadcasting response data could not be processed for resource ${i}, ${truncate(res.id)}, page ${page}.`);
 				}
 			}
-			
-			// Load the file
-			let tweets = loadFile(minetFile_resolved, `tweets res #${i} ${fileHandle}`)
 
-			try {
-				harvestedTweetsCount += tweets.length
-				tweets.forEach(d => {
-					// Mentions
-					let mentions = {}
-					if (d.to_userid) {
-						mentions[d.to_userid] = true
-					}
-					if (d.retweeted_user_id) {
-						mentions[d.retweeted_user_id] = true
-					}
-					if (d.quoted_user_id) {
-						mentions[d.quoted_user_id] = true
-					}
-					if (d.mentioned_ids){
-						d.mentioned_ids.split("|").forEach(id => {
-							mentions[id] = true
-						})
-					}
-					mentions = Object.keys(mentions)
-					if (mentions.length > 0) {
-						// Hashtags
-						let hashtags = d.hashtags.split("|")
-
-						// Media
-						let media = d.media_urls.split("|")
-						
-						// Create row (object)
-						let broadcasting = {
-							broadcaster_id: d.user_id,
-							broadcaster_name: d.user_name,
-							broadcaster_username: d.user_screen_name,
-							// resource_group_main: res.group_main,
-							resource_groups: res.groups,
-							resource_id: res.id || res.url,
-							resource_type: res.type,
-							// resource_url: res.url,
-							tweet_mentions: JSON.stringify(mentions),
-							tweet_text: d.text,
-							tweet_hashtags: JSON.stringify(hashtags),
-							tweet_media: JSON.stringify(media),
-							tweet_lang: ""+d.lang,
-						}
-						broadcastings.push(broadcasting)
-					}
-				})
-			} catch (error) {
-				console.log("Error", error)
-				logger
-					.child({ context: {res, page, usersResponse, error:error.message} })
-					.error(`Broadcasting response data could not be processed for resource ${i}, ${truncate(res.id)}, page ${page}.`);
-			}
-
+			let harvestedTweetsCount = Object.keys(harvestedTweets).length
 			logger
 				.info(`Resource ${i+1} retrieved (${harvestedTweetsCount}/${maxTweets} tweets)`);
 
