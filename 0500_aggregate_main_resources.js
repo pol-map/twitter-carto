@@ -133,6 +133,17 @@ export async function aggregate_main_resources(date) {
 					url = `https://twitter.com/x/status/${id}`
 				}
 
+				// Compile the list of distinct URLs actually used
+				let altUrls = {}
+				resList.forEach(res => {
+					if (res.resource_url && res.resource_url.length > 0) {
+						altUrls[res.resource_url] = true
+					}
+				})
+				// We remove the main url from the list if it is in there
+				delete altUrls[url]
+				altUrls = Object.keys(altUrls)
+
 				// Get the groups
 				let groupsIndex = {}
 				resList.forEach(r => {
@@ -176,6 +187,7 @@ export async function aggregate_main_resources(date) {
 					type: resList[0].resource_type,
 					count: resList.length,
 					url: url,
+					alt_urls:JSON.stringify(altUrls),
 					groups:JSON.stringify(groupsIndex),
 					group_main: mainGroup,
 				}
