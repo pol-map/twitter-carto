@@ -50,7 +50,7 @@ export async function get_political_tweets(date, useFullArchive) {
 			const maxResults = 1000
 			let baseQueries, baseFileHandle
 			if (res.type == "tweet") {
-				baseQueries = [`url:"${res.id}"`]
+				baseQueries = [`url:${res.id}`]
 				baseFileHandle = `${res.id}`
 			} else {
 				baseQueries = [res.url].concat(JSON.parse(res.alt_urls))
