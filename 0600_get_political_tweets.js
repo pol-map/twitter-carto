@@ -25,7 +25,7 @@ export async function get_political_tweets(date, useFullArchive) {
 	async function main() {
 		
 		const resFile_agg = `${thisFolder}/resources_7days_aggregated.csv`
-		let resources = loadResources(resFile_agg)
+		let resources = loadFile(resFile_agg, 'resources')
 		resources.sort(function(a,b){ return b.count - a.count })
 		logger
 			.child({ context: {resources} })
@@ -58,7 +58,7 @@ export async function get_political_tweets(date, useFullArchive) {
 			if (fs.existsSync(minetFile_resolved)){
 				logger
 					.child({ context: {file:minetFile_resolved} })
-					.debug(`File found for ressource ${res.url}`);
+					.debug(`File found for resource ${res.url}`);
 			} else {
 				const minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
 				try {
@@ -74,8 +74,62 @@ export async function get_political_tweets(date, useFullArchive) {
 					});
 				}
 			}
-			// TODO: load the file and process it
 			
+			// Load the file
+			let tweets = loadFile(minetFile_resolved, `tweets res #${i} ${fileHandle}`)
+
+			try {
+				harvestedTweetsCount += tweets.length
+				tweets.forEach(d => {
+					// Mentions
+					let mentions = {}
+					if (d.to_userid) {
+						mentions[d.to_userid] = true
+					}
+					if (d.retweeted_user_id) {
+						mentions[d.retweeted_user_id] = true
+					}
+					if (d.quoted_user_id) {
+						mentions[d.quoted_user_id] = true
+					}
+					if (d.mentioned_ids){
+						d.mentioned_ids.split("|").forEach(id => {
+							mentions[id] = true
+						})
+					}
+					mentions = Object.keys(mentions)
+					if (mentions.length > 0) {
+						// Hashtags
+						let hashtags = d.hashtags.split("|")
+
+						// Media
+						let media = d.media_urls.split("|")
+						
+						// Create row (object)
+						let broadcasting = {
+							broadcaster_id: d.user_id,
+							broadcaster_name: d.user_name,
+							broadcaster_username: d.user_screen_name,
+							// resource_group_main: res.group_main,
+							resource_groups: res.groups,
+							resource_id: res.id || res.url,
+							resource_type: res.type,
+							// resource_url: res.url,
+							tweet_mentions: JSON.stringify(mentions),
+							tweet_text: d.text,
+							tweet_hashtags: JSON.stringify(hashtags),
+							tweet_media: JSON.stringify(media),
+							tweet_lang: ""+d.lang,
+						}
+						broadcastings.push(broadcasting)
+					}
+				})
+			} catch (error) {
+				console.log("Error", error)
+				logger
+					.child({ context: {res, page, usersResponse, error:error.message} })
+					.error(`Broadcasting response data could not be processed for resource ${i}, ${truncate(res.id)}, page ${page}.`);
+			}
 
 			// const maxPages = 10 // 100 users per page
 			// let page = 0
@@ -300,7 +354,7 @@ export async function get_political_tweets(date, useFullArchive) {
 
 	return main();
 
-	function loadResources(filePath) {
+	function loadFile(filePath, title) {
 		try {
 			// Load file as string
 			const csvString = fs.readFileSync(filePath, "utf8")
@@ -308,13 +362,13 @@ export async function get_political_tweets(date, useFullArchive) {
 			const data = d3.csvParse(csvString);
 			logger
 				.child({ context: {filePath} })
-				.info('Resources file loaded');
+				.info(`File "${title}" loaded`);
 			return data
 		} catch (error) {
 			console.log("Error", error)
 			logger
 				.child({ context: {filePath, error:error.message} })
-				.error('The resources file could not be loaded');
+				.error(`The file "${title}" could not be loaded`);
 		}
 	}
 
