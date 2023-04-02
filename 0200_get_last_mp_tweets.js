@@ -1,7 +1,6 @@
 import { getLogger } from "./-get-logger.js"
 import * as fs from "fs";
 import * as d3 from 'd3';
-import { Client, auth } from "twitter-api-sdk";
 import dotenv from "dotenv";
 import { spawn } from "child_process";
 
@@ -20,7 +19,6 @@ export async function get_last_mp_tweets(date) {
 	logger.level = "info"
 	logger.info('***** RUN SCRIPT ****');
 
-	const twitterClient = new Client(process.env.BEARER_TOKEN);
 	const handlesFile = `${thisFolder}/twitter_handles.csv`
 
 	async function main() {
