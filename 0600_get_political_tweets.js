@@ -57,12 +57,14 @@ export async function get_political_tweets(date, useFullArchive) {
 			const res = resources[i]
 			const maxResults = 1000
 			// https://petitions.assemblee-nationale.fr/initiatives/i-1319 include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:2023-03-31 until:2023-04-01
-			// const query = `${res.url} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
-			const query = `${"https://petitions.assemblee-nationale.fr/initiatives/i-1319"} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
+			const query = `${res.url} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
+			// const query = `${"https://petitions.assemblee-nationale.fr/initiatives/i-1319"} include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:${yyear}-${ymonth}-${ydatem} until:${year}-${month}-${datem}`
 			const fileHandle = res.url.replace(/[^a-zA-Z0-9_-]/gi, '-').slice(0, 100)
 			const minetFile_resolved = `${broadcastingsDir}/${fileHandle}.csv`
 
 			const minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
+			// const minetSettings = ["tw", "scrape", "tweets", `"${query}"`, "--limit", 10, "-o", minetFile_resolved]
+			// const minetSettings = ["tw", "scrape", "tweets", `"https://petitions.assemblee-nationale.fr/initiatives/i-1319 include:nativeretweets (filter:retweets OR filter:quote OR filter:replies) since:2023-03-31 until:2023-04-01"`, "--limit", "10", "-o", minetFile_resolved]
 			try {
 				await minet(minetSettings)
 			} catch (error) {
@@ -374,7 +376,7 @@ export async function get_political_tweets(date, useFullArchive) {
 	   return input;
 	};
 
-	function minet(opts) {
+	async function minet(opts) {
 	  // call Minet with opts which is an array of strings, each beeing an arg name or arg value
 	  let csvString = ''
 	  return new Promise((resolve, reject) => {
@@ -384,7 +386,7 @@ export async function get_political_tweets(date, useFullArchive) {
 	      // recommend to use venv to install/use python deps
 	      // env can be ignored if minet is accessible from command line globally
 	      console.log("Exec: minet", opts.join(" "));
-	      const minet = spawn(process.env.MINET_BINARIES, opts);
+	      const minet = spawn(process.env.MINET_BINARIES, opts, {windowsVerbatimArguments:true});
 	      minet.stdout.setEncoding("utf8");
 	      minet.stdout.on("data", (data) => {
 	      	csvString += data

@@ -178,7 +178,7 @@ export async function normalize_urls(date) {
 	      // recommend to use venv to install/use python deps
 	      // env can be ignored if minet is accessible from command line globally
 	      console.log("Exec: minet", opts.join(" "));
-	      const minet = spawn(process.env.MINET_BINARIES, opts);
+	      const minet = spawn(process.env.MINET_BINARIES, opts, {windowsVerbatimArguments:true});
 	      minet.stdout.setEncoding("utf8");
 	      minet.stdout.on("data", (data) => {
 	      	csvString += data
