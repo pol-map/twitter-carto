@@ -66,7 +66,10 @@ export async function get_political_tweets(date, useFullArchive) {
 						.child({ context: {file:minetFile_resolved} })
 						.debug(`File found for resource ${res.url}`);
 				} else {
-					const minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
+					let minetSettings = ["twitter", "scrape", "tweets", `"${query}"`, "--limit", maxResults, "-o", minetFile_resolved]
+					if (process.env.MINET_TWITTER_COOKIE && process.env.MINET_TWITTER_COOKIE.length > 0) {
+						minetSettings = minetSettings.concat(["--cookie", `"${process.env.MINET_TWITTER_COOKIE}"`])
+					}	
 					try {
 						await minet(minetSettings)
 					} catch (error) {

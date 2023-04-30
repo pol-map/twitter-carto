@@ -17,13 +17,18 @@ Then two small but necessary things:
 
 ## Config
 
-1. Duplicate and rename ```-default.env``` into ```.env``` and edit it to inform your own settings:
+1. Get a Twitter cookie:
+	* In Firefox, connect to Twitter on the account you want use for scraping.
+	* From the repository of Minet, run this command: ```minet cookies firefox --url https://twitter.com```
+	* Copy the result (i.e., the cookie) and paste it somewhere
+2. Duplicate and rename ```-default.env``` into ```.env``` and edit it to inform your own settings:
 	* Path to the folder where you downloaded the Minet stuff
-2. Duplicate and rename ```-default-corpus-settings.json```.  into ```-corpus-settings.json``` and edit it:
+	* Twitter cookie (paste it from just before, the cookie is just text)
+3. Duplicate and rename ```-default-corpus-settings.json```.  into ```-corpus-settings.json``` and edit it:
 	* URL to the CSV file containing the list of Twitter users we follow as starting points (MPs)
 	* CSV separator (you know, ```,``` or ```;```)
 	* Which columns contain the Twitter handle (**without the @**), the name of the person, and its political affiliation.
-3. Duplicate and rename ```-default-political-affiliations.json```.  into ```-political-affiliations.json``` and edit it:
+4. Duplicate and rename ```-default-political-affiliations.json```.  into ```-political-affiliations.json``` and edit it:
 	* "Eras" allow you to have different time periods with different parties. You may have just one era like in the default file.
 	* The "id" of a political affiliation is never shown. **It must match the affiliations in the source corpus.**
 	* The "name" is what is shown.
@@ -65,6 +70,6 @@ The **network** consists of the users mentioning each others in last month's bro
 # Out of memory error
 In case the default 1 Gb RAM is not enough, specify a higher limit. For instance:
 ```
-node --max-old-space-size=16384 01_update_mp_list.js
+node --max-old-space-size=16384 run-step --help
 ```
 Values: 8192, 16384, 32768... depending on the computer.

@@ -108,7 +108,10 @@ export async function get_last_mp_tweets(date) {
 					.error('The queries file could not be saved');
 				return {success:false, msg:"The queries file could not be saved."}
 			}
-			const minetSettings = ["twitter", "scrape", "tweets", "query", "-i", queryFile, "--limit", "100"]
+			let minetSettings = ["twitter", "scrape", "tweets", "query", "-i", queryFile, "--limit", "100"]
+			if (process.env.MINET_TWITTER_COOKIE && process.env.MINET_TWITTER_COOKIE.length > 0) {
+				minetSettings = minetSettings.concat(["--cookie", `"${process.env.MINET_TWITTER_COOKIE}"`])
+			}	
 			let minetResultString
 			try {
 				minetResultString = await minet(minetSettings)
@@ -191,7 +194,10 @@ export async function get_last_mp_tweets(date) {
 				.error('The queries file could not be saved');
 			return {success:false, msg:"The queries file could not be saved."}
 		}
-		const minetSettings = ["twitter", "scrape", "tweets", "query", "-i", queryFile, "--limit", "1"]
+		let minetSettings = ["twitter", "scrape", "tweets", "query", "-i", queryFile, "--limit", "1"]
+		if (process.env.MINET_TWITTER_COOKIE && process.env.MINET_TWITTER_COOKIE.length > 0) {
+			minetSettings = minetSettings.concat(["--cookie", `"${process.env.MINET_TWITTER_COOKIE}"`])
+		}
 		let minetResultString
 		try {
 			minetResultString = await minet(minetSettings)
@@ -256,6 +262,7 @@ export async function get_last_mp_tweets(date) {
 	      });
 	      minet.stderr.setEncoding("utf8");
 	      minet.stderr.on("data", (data) => {
+					console.log(data)
 	      	logger
 						.info('Minet process: '+data.trim().split("\r")[0]);
 	      });
