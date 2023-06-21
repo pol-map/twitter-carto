@@ -542,7 +542,7 @@ export async function resource_extract_data(date) {
 		}
 
 		// Fetch the text content from URL resources
-		const fetchUrlSettings = ["fetch", "url", resFile_URL]
+		const fetchUrlSettings = ["fetch", "url", "-i", resFile_URL]
 		let fetchUrlDataString
 		try {
 			fetchUrlDataString = await minet(fetchUrlSettings)
@@ -761,7 +761,7 @@ export async function resource_extract_data(date) {
 	      // activate venv
 	      // recommend to use venv to install/use python deps
 	      // env can be ignored if minet is accessible from command line globally
-	      console.log("exec minet");
+	      console.log("exec minet", opts);
 	      const minet = spawn(process.env.MINET_BINARIES, opts);
 	      minet.stdout.setEncoding("utf8");
 	      minet.stdout.on("data", (data) => {

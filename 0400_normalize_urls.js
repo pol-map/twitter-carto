@@ -1,9 +1,6 @@
 import { getLogger } from "./-get-logger.js"
-import * as https from "https";
-import * as http from "http";
 import * as fs from "fs";
 import * as d3 from 'd3';
-import { Client, auth } from "twitter-api-sdk";
 import dotenv from "dotenv";
 import { spawn } from "child_process";
 
@@ -26,12 +23,11 @@ export async function normalize_urls(date) {
 		const resFile = `${thisFolder}/resources_cited_by_mps.csv`
 
 		// First, we resolve the URL redirections (using Minet)
-		const resolveSettings = ["resolve", "resource_url", resFile]
-		let resolvedDataString
+		const resFile_resolved = `${thisFolder}/resources_cited_by_mps_resolved.csv`
+		const resolveSettings = ["resolve", "resource_url", "-i", resFile, "-o", resFile_resolved]
 		try {
-			resolvedDataString = await minet(resolveSettings)
+			await minet(resolveSettings)
 			logger
-				.child({ context: {resolvedDataString} })
 				.debug('Minet resolve output');
 		} catch (error) {
 			console.log("Error", error)
@@ -43,56 +39,23 @@ export async function normalize_urls(date) {
 				logger.end();
 		  });
 		}
-		// Save resolved resources as CSV
-		const resFile_resolved = `${thisFolder}/resources_cited_by_mps_resolved.csv`
-		try {
-			fs.writeFileSync(resFile_resolved, resolvedDataString)
-			logger
-				.child({ context: {resFile_resolved} })
-				.info('Resolved resources file saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {resFile_resolved, error} })
-				.error('The resolved resources file could not be saved');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`The resolved resources file could not be saved.`}));
-				logger.end();
-		  });
-		}
 
 		// Second, we parse the resolved URLs (to normalize them)
-		const parsedSettings = ["url-parse", "resolved", resFile_resolved]
-		let parsedDataString
+		const resFile_parsed = `${thisFolder}/resources_cited_by_mps_parsed.csv`
+		const parsedSettings = ["url-parse", "resolved_url", "-i", resFile_resolved, "-o", resFile_parsed]
 		try {
-			parsedDataString = await minet(parsedSettings)
+			await minet(parsedSettings)
 			logger
-				.child({ context: {parsedDataString} })
 				.debug('Minet url-parse output');
 		} catch (error) {
 			console.log("Error", error)
 			logger
-				.child({ context: {parsedSettings, error:error.message} })
+				.child({ context: {parsedSettings, error:error} })
 				.error('An error occurred during Minet\'s parsing of resources URLs');
 			return new Promise((resolve, reject) => {
 				logger.once('finish', () => resolve({success:false, msg:`An error occurred during Minet's parsing of resources URLs.`}));
 				logger.end();
 		  });
-		}
-		// Save resolved resources as CSV
-		const resFile_parsed = `${thisFolder}/resources_cited_by_mps_parsed.csv`
-		try {
-			fs.writeFileSync(resFile_parsed, parsedDataString)
-			logger
-				.child({ context: {resFile_parsed} })
-				.info('Resolved url-parsed file saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {resFile_parsed, error} })
-				.error('The url-parsed resources file could not be saved');
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`The url-parsed resources file could not be saved.`}));
-				logger.end();
-			})
 		}
 
 		// Third, we load the file, we slightly fix it, and we re-save it
@@ -176,7 +139,7 @@ export async function normalize_urls(date) {
 	      // activate venv
 	      // recommend to use venv to install/use python deps
 	      // env can be ignored if minet is accessible from command line globally
-	      console.log("exec minet");
+	      console.log("exec minet", opts);
 	      const minet = spawn(process.env.MINET_BINARIES, opts);
 	      minet.stdout.setEncoding("utf8");
 	      minet.stdout.on("data", (data) => {
