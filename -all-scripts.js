@@ -25,7 +25,7 @@ const _scripts = [
 		omit: false,
 	},{
 		id: 200,
-		title: "Get last MP tweets",
+		title: "Get lastest MP tweets",
 		run: get_last_mp_tweets,
 		omit: false,
 	},{
