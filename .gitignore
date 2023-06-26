@@ -2,7 +2,7 @@ node_modules/
 data/
 minet/
 downloaded/
-.env
+*.env
 corpus_settings.json
 political_affiliations.json
 locale.json
