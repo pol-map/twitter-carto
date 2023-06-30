@@ -100,8 +100,6 @@ export async function resource_extract_data(date) {
 		  });
 		}
 
-		// TODO: extract text content and media from tweet resources
-
 		// Load index of tweets if any (to not double-do it)
 		let newResourcesTwitterExtractedIndex = {}
 		const newResourcesTwitterExtracted = `${thisFolder}/resources_newtoday_twitter_enriched.csv`
@@ -119,7 +117,7 @@ export async function resource_extract_data(date) {
 			const r = newResourcesTwitter[i]
 			if (r.id && r.id.length>0){
 				if (newResourcesTwitterExtractedIndex[r.id]) {
-					logger.info(`Tweet ${i+1}/${newResourcesTwitter.length} found.`)
+					logger.info(`Enriched tweet ${i+1}/${newResourcesTwitter.length} found.`)
 				} else {
 					logger.info(`Enrich tweet ${i+1}/${newResourcesTwitter.length}.`)
 					const scrapeTweetSettings = ["twitter", "scrape", "tweets", `"url:${r.id}"`, "--limit", "2", "--include-refs"]
