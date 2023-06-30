@@ -53,7 +53,17 @@ export async function get_last_mp_tweets(date) {
 				handleList.forEach(d => {
 					handleIndex[d.handle.toLowerCase()] = d
 				})
-				users = users.map(d => {
+				users = users
+				.filter(d => {
+					if (handleIndex[d.username.toLowerCase()]){
+						return true
+					} else {
+						logger
+							.child({ context: {user:d} })
+							.warn(`User ${d.username.toLowerCase()} was retrieved but did not match with the query list. It probably indicates that the user has changed handle. That user will be ignored.`);
+					}
+				})
+				.map(d => {
 					let sourceData = handleIndex[d.username.toLowerCase()]
 					sourceData.sourcename = sourceData.name
 					delete sourceData.name
