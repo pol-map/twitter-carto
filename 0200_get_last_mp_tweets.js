@@ -178,56 +178,52 @@ export async function get_last_mp_tweets(date) {
 
 	async function retrieveUserIds(handleList) {
 		logger.info('Retrieve user IDs from Twitter');
-		// Strategy: scrape 1 tweet per handle to check it exists and get more info
-		const queryFile = `${thisFolder}/queries_for_mp_handles.csv`
-		const queryCsvString = d3.csvFormat(handleList.map(d => {
-			return {query: `from:${d.handle} include:nativeretweets`}
-		}))
-		try {
-			fs.writeFileSync(queryFile, queryCsvString)
+		const resultsFile = `${thisFolder}/queries_for_mp_handles_results.csv`
+		if (!fs.existsSync(resultsFile)){
+			// Strategy: scrape 1 tweet per handle to check it exists and get more info
+			const queryFile = `${thisFolder}/queries_for_mp_handles.csv`
+			const queryCsvString = d3.csvFormat(handleList.map(d => {
+				return {query: `from:${d.handle} include:nativeretweets`}
+			}))
+			try {
+				fs.writeFileSync(queryFile, queryCsvString)
+				logger
+					.child({ context: {queryFile} })
+					.info('Queries file saved successfully');
+			} catch(error) {
+				logger
+					.child({ context: {queryFile, error} })
+					.error('The queries file could not be saved');
+				return {success:false, msg:"The queries file could not be saved."}
+			}
+			let minetSettings = ["twitter", "scrape", "tweets", "query", "-i", queryFile, "--limit", "1", "-o", resultsFile]
+			if (process.env.MINET_TWITTER_COOKIE && process.env.MINET_TWITTER_COOKIE.length > 0) {
+				minetSettings = minetSettings.concat(["--cookie", `"${process.env.MINET_TWITTER_COOKIE}"`])
+			}
+			try {
+				await minet(minetSettings)
+				logger
+					.child({ context: {minetSettings} })
+					.debug('Minet queries done.');
+			} catch (error) {
+				console.log("Error", error)
+				logger
+					.child({ context: {minetSettings, error:error?error.message:"unknown"} })
+					.error(`An error occurred during the retrieval of yesterday's MP tweets`);
+				return new Promise((resolve, reject) => {
+					logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
+					logger.end();
+				});
+			}
+		} else {
 			logger
-				.child({ context: {queryFile} })
-				.info('Queries file saved successfully');
-		} catch(error) {
-			logger
-				.child({ context: {queryFile, error} })
-				.error('The queries file could not be saved');
-			return {success:false, msg:"The queries file could not be saved."}
+				.info('Query results file found (using it).');
 		}
-		let minetSettings = ["twitter", "scrape", "tweets", "query", "-i", queryFile, "--limit", "1"]
-		if (process.env.MINET_TWITTER_COOKIE && process.env.MINET_TWITTER_COOKIE.length > 0) {
-			minetSettings = minetSettings.concat(["--cookie", `"${process.env.MINET_TWITTER_COOKIE}"`])
-		}
-		let minetResultString
-		try {
-			minetResultString = await minet(minetSettings)
-			logger
-				.child({ context: {minetResultString} })
-				.debug('Minet output');
-		} catch (error) {
-			console.log("Error", error)
-			logger
-				.child({ context: {minetSettings, error:error?error.message:"unknown"} })
-				.error(`An error occurred during the retrieval of yesterday's MP tweets`);
-			return new Promise((resolve, reject) => {
-				logger.once('finish', () => resolve({success:false, msg:`An error occurred during the retrieval of yesterday's MP tweets.`}));
-				logger.end();
-			});
-		}
-		// Parse the output
+
+		// Load the results
 		let outputData = []
-		try {
-			// Parse string
-			outputData = d3.csvParse(minetResultString);
-			logger
-				.info('Minet output parsed');
-		} catch (error) {
-			console.log("Error", error)
-			logger
-				.child({ context: {minetResultString, error:error.message} })
-				.error('The Minet output could not be parsed');
-		}
-		
+		outputData = loadFile(resultsFile, "Yesterday's MP tweets")
+
 		// Extract user data
 		let users = {}
 		outputData.forEach(d => {
@@ -243,6 +239,24 @@ export async function get_last_mp_tweets(date) {
 		logger
 			.info(`${users.length} users ids retrieved`);
 		return users
+	}
+
+	function loadFile(filePath, title) {
+		try {
+			// Load file as string
+			const csvString = fs.readFileSync(filePath, "utf8")
+			// Parse string
+			const data = d3.csvParse(csvString);
+			logger
+				.child({ context: {filePath} })
+				.info(`File "${title}" loaded`);
+			return data
+		} catch (error) {
+			console.log("Error", error)
+			logger
+				.child({ context: {filePath, error:error.message} })
+				.error(`The file "${title}" could not be loaded`);
+		}
 	}
 
 	function minet(opts) {
