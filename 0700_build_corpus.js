@@ -65,7 +65,6 @@ export async function build_corpus(date) {
 		logger
 			.info(`Broadcastings for precedent days loaded (${daysMissing} days missing)`);
 		logger
-			.child({ context: {broadcastings} })
 			.trace(`Broadcastings (${broadcastings.length} rows)`);
 
 		// Build user index
